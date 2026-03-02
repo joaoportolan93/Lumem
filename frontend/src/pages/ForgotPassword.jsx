@@ -53,14 +53,22 @@ const ForgotPassword = () => {
     };
 
     return (
-        <div className="auth-bg">
+        <div className="min-h-screen w-full flex items-center justify-center bg-[#110914] relative overflow-hidden p-4">
+            {/* Efeitos de Fundo: Paleta Sunset Premium */}
+            <div className="absolute top-[-15%] left-[-10%] w-[60vw] h-[60vw] max-w-[800px] max-h-[800px] bg-[#5C4A72]/70 rounded-full blur-[140px] pointer-events-none" />
+            <div className="absolute top-[5%] right-[-10%] w-[50vw] h-[50vw] max-w-[700px] max-h-[700px] bg-[#A3586D]/60 rounded-full blur-[130px] pointer-events-none" />
+            <div className="absolute bottom-[-15%] left-[5%] w-[60vw] h-[60vw] max-w-[800px] max-h-[800px] bg-[#F46A4E]/50 rounded-full blur-[150px] pointer-events-none" />
+            <div className="absolute bottom-[-10%] right-[5%] w-[50vw] h-[50vw] max-w-[700px] max-h-[700px] bg-[#F3B05A]/50 rounded-full blur-[140px] pointer-events-none" />
+
             <motion.div
-                className="glass-card"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
+                className="w-full max-w-md bg-black/40 backdrop-blur-[30px] border border-white/10 rounded-2xl p-8 sm:p-10 shadow-2xl relative z-10"
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                transition={{ duration: 0.6, ease: "easeOut" }}
             >
-                <h1 className="auth-title">DreamShare</h1>
+                <div className="text-center mb-6">
+                    <h1 className="auth-title">DreamShare</h1>
+                </div>
 
                 <AnimatePresence mode="wait">
                     {success ? (
@@ -71,19 +79,19 @@ const ForgotPassword = () => {
                             exit={{ opacity: 0 }}
                             transition={{ duration: 0.3 }}
                         >
-                            <div className="auth-success">
-                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ margin: '0 auto 16px', display: 'block' }}>
+                            <div className="auth-success flex flex-col items-center">
+                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mb-4">
                                     <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
                                     <polyline points="22 4 12 14.01 9 11.01" />
                                 </svg>
-                                <h2 style={{ color: '#f8fafc', fontSize: '1.3rem', marginBottom: '8px', textAlign: 'center' }}>
+                                <h2 className="text-[#f8fafc] text-xl mb-2 text-center font-medium">
                                     Senha redefinida!
                                 </h2>
-                                <p style={{ color: '#94a3b8', fontSize: '0.9rem', textAlign: 'center', marginBottom: '24px' }}>
+                                <p className="text-[#94a3b8] text-sm text-center mb-6">
                                     Sua senha foi alterada com sucesso. Agora você pode entrar com a nova senha.
                                 </p>
                                 <button
-                                    className="btn-dream"
+                                    className="btn-dream glow-btn w-full"
                                     onClick={() => navigate('/login')}
                                 >
                                     Ir para o Login
@@ -98,7 +106,7 @@ const ForgotPassword = () => {
                             exit={{ opacity: 0 }}
                             transition={{ duration: 0.3 }}
                         >
-                            <p className="auth-subtitle">
+                            <p className="auth-subtitle text-center mb-6">
                                 Informe seu email, nome de usuário e resposta secreta para redefinir sua senha
                             </p>
 
@@ -115,7 +123,7 @@ const ForgotPassword = () => {
                             <form onSubmit={handleReset}>
                                 <input
                                     type="email"
-                                    className="auth-input"
+                                    className="auth-input immersive-input mb-4"
                                     placeholder="Email"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
@@ -123,7 +131,7 @@ const ForgotPassword = () => {
                                 />
                                 <input
                                     type="text"
-                                    className="auth-input"
+                                    className="auth-input immersive-input mb-4"
                                     placeholder="Nome de usuário"
                                     value={nomeUsuario}
                                     onChange={(e) => setNomeUsuario(e.target.value)}
@@ -131,7 +139,7 @@ const ForgotPassword = () => {
                                 />
                                 <input
                                     type="text"
-                                    className="auth-input"
+                                    className="auth-input immersive-input mb-4"
                                     placeholder="Resposta secreta"
                                     value={respostaSecreta}
                                     onChange={(e) => setRespostaSecreta(e.target.value)}
@@ -139,7 +147,7 @@ const ForgotPassword = () => {
                                 />
                                 <input
                                     type="password"
-                                    className="auth-input"
+                                    className="auth-input immersive-input mb-4"
                                     placeholder="Nova senha"
                                     value={newPassword}
                                     onChange={(e) => setNewPassword(e.target.value)}
@@ -147,7 +155,7 @@ const ForgotPassword = () => {
                                 />
                                 <input
                                     type="password"
-                                    className="auth-input"
+                                    className="auth-input immersive-input mb-6"
                                     placeholder="Confirmar nova senha"
                                     value={confirmPassword}
                                     onChange={(e) => setConfirmPassword(e.target.value)}
@@ -155,15 +163,15 @@ const ForgotPassword = () => {
                                 />
                                 <button
                                     type="submit"
-                                    className="btn-dream"
+                                    className="btn-dream glow-btn w-full"
                                     disabled={loading}
                                 >
                                     {loading ? 'Redefinindo...' : 'Redefinir Senha'}
                                 </button>
                             </form>
 
-                            <p className="auth-link">
-                                Lembrou a senha? <Link to="/login">Voltar ao login</Link>
+                            <p className="auth-link text-center mt-6">
+                                Lembrou a senha? <Link to="/login" className="text-[#a78bfa] hover:text-[#c4b5fd] transition-colors">Voltar ao login</Link>
                             </p>
                         </motion.div>
                     )}

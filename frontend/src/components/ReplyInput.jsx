@@ -184,8 +184,8 @@ const ReplyInput = ({
                         onClick={handleSubmit}
                         disabled={!canSubmit || submitting}
                         className={`px-4 py-1.5 font-bold text-sm rounded-full transition-all flex items-center gap-2 ${canSubmit
-                                ? 'bg-primary hover:bg-primary/90 text-white'
-                                : 'bg-gray-300 dark:bg-white/10 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+                            ? 'bg-primary hover:bg-primary/90 text-white'
+                            : 'bg-gray-300 dark:bg-white/10 text-gray-500 dark:text-gray-400 cursor-not-allowed'
                             }`}
                     >
                         {submitting && <FaSpinner className="animate-spin" size={12} />}

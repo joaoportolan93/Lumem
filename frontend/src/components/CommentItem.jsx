@@ -175,20 +175,20 @@ const CommentItem = ({
                         )}
 
                         {(comment.imagem_url || comment.video_url) && (
-                            <div className="mt-3 rounded-2xl overflow-hidden border border-gray-200 dark:border-white/10 max-w-lg">
+                            <div className="mt-3 rounded-2xl overflow-hidden border border-gray-200 dark:border-white/10 max-w-lg bg-black/5 dark:bg-black/20">
                                 {comment.imagem_url && (
                                     <img
                                         src={comment.imagem_url}
                                         alt="Anexo"
-                                        className="max-w-full max-h-80 object-cover hover:opacity-90 transition-opacity cursor-pointer"
+                                        className="w-full max-h-80 object-contain hover:opacity-90 transition-opacity cursor-pointer"
                                         onClick={(e) => handleAction(e, () => window.open(comment.imagem_url, '_blank'))}
                                     />
                                 )}
                                 {comment.video_url && (
-                                    <div className="relative group" onClick={(e) => e.stopPropagation()}>
+                                    <div className="relative group w-full flex justify-center" onClick={(e) => e.stopPropagation()}>
                                         <video
                                             src={comment.video_url}
-                                            className="max-w-full max-h-80 object-cover"
+                                            className="w-full max-h-80 object-contain outline-none"
                                             controls
                                             preload="metadata"
                                         />
@@ -200,31 +200,9 @@ const CommentItem = ({
                         {/* TWITTER/X ACTION BAR */}
                         <div className="flex items-center gap-6 mt-3">
                             <button
-                                onClick={(e) => handleAction(e, toggleReply)}
-                                className={`group flex items-center gap-2 transition-colors ${
-                                    isReplying ? 'text-blue-500' : 'text-gray-500 dark:text-gray-400 hover:text-blue-500'
-                                }`}
-                            >
-                                <div className="p-1.5 rounded-full group-hover:bg-blue-500/10 transition-colors">
-                                    <FaRegComment size={16} />
-                                </div>
-                                {comment.respostas_count > 0 && <span className="text-sm">{comment.respostas_count}</span>}
-                            </button>
-
-                            <button
-                                onClick={(e) => handleAction(e, handleShare)}
-                                className="group flex items-center gap-2 text-gray-500 dark:text-gray-400 hover:text-green-500 transition-colors"
-                            >
-                                <div className="p-1.5 rounded-full group-hover:bg-green-500/10 transition-colors">
-                                    <FaRetweet size={16} />
-                                </div>
-                            </button>
-
-                            <button
                                 onClick={(e) => handleAction(e, handleLike)}
-                                className={`group flex items-center gap-2 transition-colors ${
-                                    isLiked ? 'text-red-500' : 'text-gray-500 dark:text-gray-400 hover:text-red-500'
-                                }`}
+                                className={`group flex items-center gap-2 transition-colors ${isLiked ? 'text-red-500' : 'text-gray-500 dark:text-gray-400 hover:text-red-500'
+                                    }`}
                             >
                                 <div className="p-1.5 rounded-full group-hover:bg-red-500/10 transition-colors">
                                     {isLiked ? <FaHeart size={16} /> : <FaRegHeart size={16} />}
@@ -233,10 +211,20 @@ const CommentItem = ({
                             </button>
 
                             <button
+                                onClick={(e) => handleAction(e, toggleReply)}
+                                className={`group flex items-center gap-2 transition-colors ${isReplying ? 'text-blue-500' : 'text-gray-500 dark:text-gray-400 hover:text-blue-500'
+                                    }`}
+                            >
+                                <div className="p-1.5 rounded-full group-hover:bg-blue-500/10 transition-colors">
+                                    <FaRegComment size={16} />
+                                </div>
+                                {comment.respostas_count > 0 && <span className="text-sm">{comment.respostas_count}</span>}
+                            </button>
+
+                            <button
                                 onClick={(e) => handleAction(e, () => setIsSaved(!isSaved))}
-                                className={`flex items-center gap-2 transition-colors ${
-                                    isSaved ? 'text-primary' : 'text-gray-500 dark:text-gray-400 hover:text-primary'
-                                }`}
+                                className={`flex items-center gap-2 transition-colors ${isSaved ? 'text-primary' : 'text-gray-500 dark:text-gray-400 hover:text-primary'
+                                    }`}
                             >
                                 <div className="p-1.5 rounded-full hover:bg-primary/10 transition-colors">
                                     {isSaved ? <FaBookmark size={16} /> : <FaRegBookmark size={16} />}
@@ -289,11 +277,10 @@ const CommentItem = ({
                             <img
                                 src={comment.usuario?.avatar_url || 'https://randomuser.me/api/portraits/lego/1.jpg'}
                                 alt={comment.usuario?.nome_completo}
-                                className={`w-10 h-10 rounded-full object-cover border-2 transition-all ${
-                                    hasReplies && !isCollapsed
-                                        ? 'border-blue-400 dark:border-blue-500'
-                                        : 'border-gray-200 dark:border-white/10'
-                                }`}
+                                className={`w-10 h-10 rounded-full object-cover border-2 transition-all ${hasReplies && !isCollapsed
+                                    ? 'border-blue-400 dark:border-blue-500'
+                                    : 'border-gray-200 dark:border-white/10'
+                                    }`}
                             />
                         </Link>
 

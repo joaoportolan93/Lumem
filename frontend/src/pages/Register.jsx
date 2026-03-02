@@ -50,19 +50,16 @@ const Register = () => {
         e.preventDefault();
         setError('');
 
-        // Validate secret question
         if (!formData.pergunta_secreta) {
             setError('Por favor, selecione uma pergunta secreta.');
             return;
         }
 
-        // Validate passwords match
         if (formData.password !== formData.confirmPassword) {
             setError('As senhas não coincidem.');
             return;
         }
 
-        // Validate password length
         if (formData.password.length < 6) {
             setError('A senha deve ter pelo menos 6 caracteres.');
             return;
@@ -71,7 +68,6 @@ const Register = () => {
         setLoading(true);
 
         try {
-            // Register the user
             await register({
                 nome_usuario: formData.username,
                 email: formData.email,
@@ -81,17 +77,14 @@ const Register = () => {
                 resposta_secreta: formData.resposta_secreta || undefined,
             });
 
-            // Auto-login after registration
             const loginResponse = await login({
                 email: formData.email,
                 password: formData.password,
             });
 
-            // Store tokens
             localStorage.setItem('access', loginResponse.data.access);
             localStorage.setItem('refresh', loginResponse.data.refresh);
 
-            // Redirect to onboarding
             navigate('/onboarding');
         } catch (err) {
             if (err.response?.data?.email) {
@@ -109,15 +102,23 @@ const Register = () => {
     };
 
     return (
-        <div className="auth-bg">
+        <div className="min-h-screen w-full flex items-center justify-center bg-[#110914] relative overflow-hidden p-4">
+            {/* Efeitos de Fundo: Paleta Sunset Premium */}
+            <div className="absolute top-[-15%] left-[-10%] w-[60vw] h-[60vw] max-w-[800px] max-h-[800px] bg-[#5C4A72]/70 rounded-full blur-[140px] pointer-events-none" />
+            <div className="absolute top-[5%] right-[-10%] w-[50vw] h-[50vw] max-w-[700px] max-h-[700px] bg-[#A3586D]/60 rounded-full blur-[130px] pointer-events-none" />
+            <div className="absolute bottom-[-15%] left-[5%] w-[60vw] h-[60vw] max-w-[800px] max-h-[800px] bg-[#F46A4E]/50 rounded-full blur-[150px] pointer-events-none" />
+            <div className="absolute bottom-[-10%] right-[5%] w-[50vw] h-[50vw] max-w-[700px] max-h-[700px] bg-[#F3B05A]/50 rounded-full blur-[140px] pointer-events-none" />
+
             <motion.div
-                className="glass-card"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
+                className="w-full max-w-md bg-black/40 backdrop-blur-[30px] border border-white/10 rounded-2xl p-8 sm:p-10 shadow-2xl relative z-10"
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                transition={{ duration: 0.6, ease: "easeOut" }}
             >
-                <h1 className="auth-title">Criar Conta</h1>
-                <p className="auth-subtitle">Junte-se à comunidade de sonhadores</p>
+                <div className="text-center mb-6">
+                    <h1 className="auth-title">Criar Conta</h1>
+                    <p className="auth-subtitle">Junte-se à comunidade de sonhadores</p>
+                </div>
 
                 {error && (
                     <motion.div
@@ -133,7 +134,7 @@ const Register = () => {
                     <input
                         type="text"
                         name="username"
-                        className="auth-input"
+                        className="auth-input immersive-input mb-4"
                         placeholder="Nome de usuário"
                         value={formData.username}
                         onChange={handleChange}
@@ -142,7 +143,7 @@ const Register = () => {
                     <input
                         type="email"
                         name="email"
-                        className="auth-input"
+                        className="auth-input immersive-input mb-4"
                         placeholder="Email"
                         value={formData.email}
                         onChange={handleChange}
@@ -151,7 +152,7 @@ const Register = () => {
                     <input
                         type="password"
                         name="password"
-                        className="auth-input"
+                        className="auth-input immersive-input mb-4"
                         placeholder="Senha"
                         value={formData.password}
                         onChange={handleChange}
@@ -160,17 +161,17 @@ const Register = () => {
                     <input
                         type="password"
                         name="confirmPassword"
-                        className="auth-input"
+                        className="auth-input immersive-input mb-4"
                         placeholder="Confirmar senha"
                         value={formData.confirmPassword}
                         onChange={handleChange}
                         required
                     />
 
-                    {/* Custom Dropdown */}
-                    <div className="custom-select-container">
+                    {/* Custom Dropdown Atualizado para aderir ao look Glassmorphism */}
+                    <div className="custom-select-container mb-4">
                         <div
-                            className={`custom-select-trigger ${isDropdownOpen ? 'open' : ''}`}
+                            className={`custom-select-trigger immersive-input ${isDropdownOpen ? 'open' : ''}`}
                             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                         >
                             <span>{getPerguntaText(formData.pergunta_secreta)}</span>
@@ -179,7 +180,7 @@ const Register = () => {
 
                         {isDropdownOpen && (
                             <motion.div
-                                className="custom-select-options"
+                                className="custom-select-options backdrop-blur-md bg-black/80 border border-white/10"
                                 initial={{ opacity: 0, y: -10 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ duration: 0.2 }}
@@ -187,7 +188,7 @@ const Register = () => {
                                 {perguntasSecretas.map((p) => (
                                     <div
                                         key={p.id}
-                                        className={`custom-option ${Number(formData.pergunta_secreta) === p.id ? 'selected' : ''}`}
+                                        className={`custom-option ${Number(formData.pergunta_secreta) === p.id ? 'selected bg-white/10' : 'hover:bg-white/5'}`}
                                         onClick={() => handleSelectPergunta(p.id)}
                                     >
                                         {p.text}
@@ -196,10 +197,11 @@ const Register = () => {
                             </motion.div>
                         )}
                     </div>
+
                     <input
                         type="text"
                         name="resposta_secreta"
-                        className="auth-input"
+                        className="auth-input immersive-input mb-6"
                         placeholder="Resposta secreta"
                         value={formData.resposta_secreta}
                         onChange={handleChange}
@@ -207,15 +209,15 @@ const Register = () => {
                     />
                     <button
                         type="submit"
-                        className="btn-dream"
+                        className="btn-dream glow-btn w-full"
                         disabled={loading}
                     >
                         {loading ? 'Criando conta...' : 'Criar conta'}
                     </button>
                 </form>
 
-                <p className="auth-link">
-                    Já tem uma conta? <Link to="/login">Entrar</Link>
+                <p className="auth-link text-center mt-6">
+                    Já tem uma conta? <Link to="/login" className="text-[#a78bfa] hover:text-[#c4b5fd] transition-colors">Entrar</Link>
                 </p>
             </motion.div>
         </div>

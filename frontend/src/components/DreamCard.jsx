@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaHeart, FaRegHeart, FaComment, FaShare, FaEllipsisH, FaEdit, FaTrash, FaUserFriends, FaFlag, FaBookmark, FaRegBookmark, FaUserPlus, FaUserCheck, FaBan, FaVolumeMute, FaLock } from 'react-icons/fa';
+import { FaHeart, FaRegHeart, FaEllipsisH, FaEdit, FaTrash, FaUserFriends, FaFlag, FaBookmark, FaRegBookmark, FaUserPlus, FaUserCheck, FaBan, FaVolumeMute, FaLock } from 'react-icons/fa';
+import { FaRegComment, FaRetweet } from 'react-icons/fa6';
 import { deleteDream, likeDream, saveDream, followUser, unfollowUser, blockUser, unblockUser, muteUser, unmuteUser } from '../services/api';
 import { AnimatePresence } from 'framer-motion';
 import CommentSection from './CommentSection';
@@ -379,11 +380,8 @@ const DreamCard = ({ dream, onDelete, onEdit, currentUserId }) => {
                     onClick={() => setShowComments(!showComments)}
                     className={`flex items-center gap-2 transition-colors ${showComments ? 'text-primary' : 'text-gray-500 dark:text-gray-400 hover:text-primary'}`}
                 >
-                    <FaComment />
+                    <FaRegComment />
                     <span className="text-sm font-medium">{commentsCount}</span>
-                </button>
-                <button className="flex items-center gap-2 text-gray-500 dark:text-gray-400 hover:text-primary transition-colors">
-                    <FaShare />
                 </button>
                 <button
                     onClick={handleSave}

@@ -260,11 +260,10 @@ const CommentSection = ({
                                         setSortBy(key);
                                         setShowSortDropdown(false);
                                     }}
-                                    className={`w-full text-left px-4 py-3 text-sm transition-colors ${
-                                        sortBy === key
+                                    className={`w-full text-left px-4 py-3 text-sm transition-colors ${sortBy === key
                                             ? 'bg-primary/10 text-primary font-semibold'
                                             : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/5'
-                                    }`}
+                                        }`}
                                 >
                                     {label}
                                 </button>
@@ -314,20 +313,20 @@ const CommentSection = ({
                         <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-white/10">
                             <div className="flex gap-1">
                                 <input ref={imageInputRef} type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
-                                <button 
-                                    type="button" 
-                                    onClick={() => imageInputRef.current?.click()} 
-                                    className="p-2 text-primary hover:bg-primary/10 rounded-full transition-colors" 
+                                <button
+                                    type="button"
+                                    onClick={() => imageInputRef.current?.click()}
+                                    className="p-2 text-primary hover:bg-primary/10 rounded-full transition-colors"
                                     disabled={submitting}
                                 >
                                     <FaImage size={18} />
                                 </button>
 
                                 <input ref={videoInputRef} type="file" accept="video/*" onChange={handleVideoSelect} className="hidden" />
-                                <button 
-                                    type="button" 
-                                    onClick={() => videoInputRef.current?.click()} 
-                                    className="p-2 text-primary hover:bg-primary/10 rounded-full transition-colors" 
+                                <button
+                                    type="button"
+                                    onClick={() => videoInputRef.current?.click()}
+                                    className="p-2 text-primary hover:bg-primary/10 rounded-full transition-colors"
                                     disabled={submitting}
                                 >
                                     <FaVideo size={18} />

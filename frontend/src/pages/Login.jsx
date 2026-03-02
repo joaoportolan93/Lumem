@@ -179,7 +179,7 @@ const Login = () => {
                             className="btn-dream glow-btn"
                             disabled={loading}
                         >
-                            {loading ? 'Entrando...' : 'Sign in'}
+                            {loading ? 'Entrando...' : 'Entrar'}
                         </button>
                     </form>
 

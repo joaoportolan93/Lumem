@@ -14,6 +14,7 @@ const CreateDreamModal = ({ isOpen, onClose, onSuccess, editingDream = null, com
     const [showTypeMenu, setShowTypeMenu] = useState(false);
     const [emotions, setEmotions] = useState([]);
     const [showEmotionsMenu, setShowEmotionsMenu] = useState(false);
+    const [customEmotion, setCustomEmotion] = useState('');
     const [imagePreview, setImagePreview] = useState(null);
     const [videoPreview, setVideoPreview] = useState(null);
 
@@ -24,7 +25,7 @@ const CreateDreamModal = ({ isOpen, onClose, onSuccess, editingDream = null, com
         { value: 'Recorrente', icon: '🔄', color: 'text-yellow-400' },
     ];
 
-    const emotionOptions = ['😊 Feliz', '😨 Medo', '😮 Surpresa', '😢 Triste', '😡 Raiva', '🤔 Confuso', '😌 Paz', '🤩 Êxtase'];
+    const emotionOptions = ['😊 Feliz', '😨 Medo', '😮 Surpresa', '😢 Triste', '🤔 Confuso', '😌 Paz'];
 
     useEffect(() => {
         getProfile().then(res => setUser(res.data)).catch(console.error);
@@ -116,6 +117,14 @@ const CreateDreamModal = ({ isOpen, onClose, onSuccess, editingDream = null, com
                 ? prev.filter(e => e !== emotion)
                 : [...prev, emotion]
         );
+    };
+
+    const handleAddCustomEmotion = () => {
+        const trimmed = customEmotion.trim();
+        if (trimmed && !emotions.includes(trimmed)) {
+            setEmotions(prev => [...prev, trimmed]);
+            setCustomEmotion('');
+        }
     };
 
 
@@ -307,18 +316,46 @@ const CreateDreamModal = ({ isOpen, onClose, onSuccess, editingDream = null, com
                                     <FaSmile size={18} />
                                 </button>
                                 {showEmotionsMenu && (
-                                    <div className="absolute bottom-full left-0 mb-2 bg-gray-800 border border-white/10 rounded-xl shadow-xl z-20 py-2 min-w-[180px]">
+                                    <div className="absolute bottom-full left-0 mb-2 bg-gray-800 border border-white/10 rounded-xl shadow-xl z-20 py-2 min-w-[220px]">
                                         <p className="px-4 py-2 text-gray-400 text-xs uppercase">Emoções sentidas</p>
-                                        {emotionOptions.map(emotion => (
-                                            <button
-                                                key={emotion}
-                                                onClick={() => toggleEmotion(emotion)}
-                                                className={`w-full flex items-center gap-2 px-4 py-2 hover:bg-white/5 ${emotions.includes(emotion) ? 'text-primary' : 'text-white'}`}
-                                            >
-                                                {emotion}
-                                                {emotions.includes(emotion) && <span className="ml-auto">✓</span>}
-                                            </button>
-                                        ))}
+                                        <div className="max-h-[200px] overflow-y-auto custom-scrollbar">
+                                            {emotionOptions.map(emotion => (
+                                                <button
+                                                    key={emotion}
+                                                    onClick={(e) => { e.preventDefault(); toggleEmotion(emotion); }}
+                                                    className={`w-full flex items-center gap-2 px-4 py-2 hover:bg-white/5 ${emotions.includes(emotion) ? 'text-primary' : 'text-white'}`}
+                                                >
+                                                    {emotion}
+                                                    {emotions.includes(emotion) && <span className="ml-auto">✓</span>}
+                                                </button>
+                                            ))}
+                                        </div>
+
+                                        <div className="px-4 py-2 mt-1 border-t border-white/10">
+                                            <p className="text-gray-400 text-xs mb-2">Adicionar personalizada</p>
+                                            <div className="flex gap-2">
+                                                <input
+                                                    type="text"
+                                                    value={customEmotion}
+                                                    onChange={(e) => setCustomEmotion(e.target.value)}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter') {
+                                                            e.preventDefault();
+                                                            handleAddCustomEmotion();
+                                                        }
+                                                    }}
+                                                    placeholder="Ex: Saudade"
+                                                    className="flex-1 bg-black/30 border border-white/10 rounded px-2 py-1 text-sm text-white focus:outline-none focus:border-primary"
+                                                />
+                                                <button
+                                                    onClick={(e) => { e.preventDefault(); handleAddCustomEmotion(); }}
+                                                    disabled={!customEmotion.trim()}
+                                                    className="px-2 py-1 bg-primary text-white rounded text-sm hover:bg-primary/80 disabled:opacity-50"
+                                                >
+                                                    +
+                                                </button>
+                                            </div>
+                                        </div>
                                     </div>
                                 )}
                             </div>
