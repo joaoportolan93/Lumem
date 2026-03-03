@@ -323,6 +323,16 @@ class PublicacaoViewSet(viewsets.ModelViewSet):
         )
         base_filter = Q(usuario__status=1) & ~Q(usuario__in=blocked_user_ids) & privacy_filter
 
+        # Post visibility rules:
+        # 1: Public -> Visible to all who pass base_filter
+        # 2: Close Friends/Followers -> Visible if current user follows author
+        # 3: Private -> Only visible to the author
+        visibility_q = (
+            Q(visibilidade=1) |
+            (Q(visibilidade=2) & Q(usuario__in=following_ids)) |
+            Q(usuario=user)
+        )
+
         if self.action == 'list':
             tab = self.request.query_params.get('tab', 'following')
             
@@ -336,6 +346,7 @@ class PublicacaoViewSet(viewsets.ModelViewSet):
                 # Saved Dreams: Posts saved by the user
                 return Publicacao.objects.filter(
                     base_filter,
+                    visibility_q,
                     publicacaosalva__usuario=user
                 ).order_by('-publicacaosalva__data_salvo')
             
@@ -344,6 +355,7 @@ class PublicacaoViewSet(viewsets.ModelViewSet):
                 if community_id:
                     return Publicacao.objects.filter(
                         base_filter,
+                        visibility_q,
                         comunidade_id=community_id
                     ).order_by('-data_publicacao')
 
@@ -367,6 +379,7 @@ class PublicacaoViewSet(viewsets.ModelViewSet):
                         return Publicacao.objects.none()
                     return Publicacao.objects.filter(
                         base_filter,
+                        visibility_q,
                         usuario_id=user_id,
                         comunidade__isnull=True
                     ).order_by('-data_publicacao')
@@ -383,6 +396,7 @@ class PublicacaoViewSet(viewsets.ModelViewSet):
                         return Publicacao.objects.none()
                     return Publicacao.objects.filter(
                         base_filter,
+                        visibility_q,
                         usuario_id=user_id,
                         comunidade__isnull=False
                     ).order_by('-data_publicacao')
@@ -400,6 +414,7 @@ class PublicacaoViewSet(viewsets.ModelViewSet):
                         return Publicacao.objects.none()
                     return Publicacao.objects.filter(
                         base_filter,
+                        visibility_q,
                         usuario_id=user_id
                     ).filter(media_filter).order_by('-data_publicacao')
                 else:
@@ -420,16 +435,15 @@ class PublicacaoViewSet(viewsets.ModelViewSet):
             # Following: Dreams from people user follows + own dreams
             return Publicacao.objects.filter(
                 base_filter,
+                visibility_q,
                 Q(usuario__in=following_ids) | Q(usuario=user)
             ).order_by('-data_publicacao')
 
         # For detailed actions (retrieve, like, etc), return all accessible posts
-        # Accessible = Public OR Own OR Followed (but not from banned users)
+        # Accessible = Satisfies visibility rules AND base filters
         return Publicacao.objects.filter(
             base_filter,
-            Q(visibilidade=1) | 
-            Q(usuario=user) | 
-            Q(usuario__in=following_ids)
+            visibility_q
         ).distinct()
     
     def perform_create(self, serializer):
