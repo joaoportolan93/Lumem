@@ -3,6 +3,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import make_password, check_password
+from django.utils.translation import gettext as _
 
 User = get_user_model()
 
@@ -137,17 +138,17 @@ class PasswordResetSerializer(serializers.Serializer):
             user = User.objects.get(email__iexact=email, nome_usuario=nome_usuario)
         except User.DoesNotExist:
             raise serializers.ValidationError(
-                'Não foi possível verificar sua identidade. Verifique o email e nome de usuário.'
+                _('Não foi possível verificar sua identidade. Verifique o email e nome de usuário.')
             )
         
         # Verify the secret answer
         if not user.resposta_secreta:
             raise serializers.ValidationError(
-                'Este usuário não configurou uma pergunta secreta. Entre em contato com o suporte.'
+                _('Este usuário não configurou uma pergunta secreta. Entre em contato com o suporte.')
             )
         if not check_password(resposta, user.resposta_secreta):
             raise serializers.ValidationError(
-                'Resposta secreta incorreta.'
+                _('Resposta secreta incorreta.')
             )
         
         attrs['user'] = user
@@ -379,7 +380,7 @@ class ComentarioCreateSerializer(serializers.ModelSerializer):
     def validate(self, data):
         # At least text or media must be provided
         if not data.get('conteudo_texto') and not data.get('imagem') and not data.get('video'):
-            raise serializers.ValidationError("Comentário deve ter texto ou mídia")
+            raise serializers.ValidationError(_("Comentário deve ter texto ou mídia"))
         return data
 
 

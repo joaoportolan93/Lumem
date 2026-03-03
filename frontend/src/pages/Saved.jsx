@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import DreamCard from '../components/DreamCard';
 import { getDreams } from '../services/api';
+import { useTranslation } from 'react-i18next';
 
 const Saved = () => {
+    const { t } = useTranslation();
     const [savedDreams, setSavedDreams] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -32,7 +34,7 @@ const Saved = () => {
 
     return (
         <div className="flex flex-col gap-6 max-w-2xl mx-auto pb-20">
-            <h1 className="text-2xl font-bold text-white mb-2">Salvos</h1>
+            <h1 className="text-2xl font-bold text-white mb-2">{t('saved.title')}</h1>
 
             {savedDreams.length > 0 ? (
                 savedDreams.map((dream) => (
@@ -44,8 +46,8 @@ const Saved = () => {
                 ))
             ) : (
                 <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-8 text-center">
-                    <p className="text-gray-400 text-lg mb-2">Você ainda não salvou nenhum sonho.</p>
-                    <p className="text-gray-500 text-sm">Salve sonhos interessantes para encontrá-los facilmente aqui!</p>
+                    <p className="text-gray-400 text-lg mb-2">{t('saved.empty.title')}</p>
+                    <p className="text-gray-500 text-sm">{t('saved.empty.description')}</p>
                 </div>
             )}
         </div>

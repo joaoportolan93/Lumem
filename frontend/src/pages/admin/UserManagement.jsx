@@ -5,8 +5,10 @@
 import React, { useState, useEffect } from 'react';
 import { FaSearch, FaUser, FaEye, FaBan, FaCheck, FaTimes } from 'react-icons/fa';
 import api from '../../services/api';
+import { useTranslation } from 'react-i18next';
 
 const UserManagement = () => {
+    const { t } = useTranslation();
     const [users, setUsers] = useState([]);
     const [search, setSearch] = useState('');
     const [loading, setLoading] = useState(true);
@@ -54,7 +56,7 @@ const UserManagement = () => {
             // Update local state
             setUsers(users.map(u =>
                 u.id_usuario === userId
-                    ? { ...u, status: newStatus, status_display: newStatus === 1 ? 'Ativo' : newStatus === 2 ? 'Suspenso' : 'Desativado' }
+                    ? { ...u, status: newStatus, status_display: newStatus === 1 ? t('admin.userManagement.statusActive') : newStatus === 2 ? t('admin.userManagement.statusSuspended') : t('admin.userManagement.statusDeactivated') }
                     : u
             ));
             if (selectedUser?.id_usuario === userId) {
@@ -68,11 +70,11 @@ const UserManagement = () => {
     const getStatusBadge = (status) => {
         switch (status) {
             case 1:
-                return <span className="px-2 py-1 text-xs font-medium bg-green-500/20 text-green-400 rounded-full">Ativo</span>;
+                return <span className="px-2 py-1 text-xs font-medium bg-green-500/20 text-green-400 rounded-full">{t('admin.userManagement.statusActive')}</span>;
             case 2:
-                return <span className="px-2 py-1 text-xs font-medium bg-red-500/20 text-red-400 rounded-full">Suspenso</span>;
+                return <span className="px-2 py-1 text-xs font-medium bg-red-500/20 text-red-400 rounded-full">{t('admin.userManagement.statusSuspended')}</span>;
             case 3:
-                return <span className="px-2 py-1 text-xs font-medium bg-gray-500/20 text-gray-400 rounded-full">Desativado</span>;
+                return <span className="px-2 py-1 text-xs font-medium bg-gray-500/20 text-gray-400 rounded-full">{t('admin.userManagement.statusDeactivated')}</span>;
             default:
                 return null;
         }
@@ -82,8 +84,8 @@ const UserManagement = () => {
         <div className="space-y-6">
             {/* Header */}
             <div>
-                <h1 className="text-3xl font-bold text-white">Gerenciamento de Usuários</h1>
-                <p className="text-gray-400 mt-1">{users.length} usuários encontrados</p>
+                <h1 className="text-3xl font-bold text-white">{t('admin.userManagement.title')}</h1>
+                <p className="text-gray-400 mt-1">{t('admin.userManagement.usersFound', { count: users.length })}</p>
             </div>
 
             {/* Search Bar */}
@@ -94,7 +96,7 @@ const UserManagement = () => {
                         type="text"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        placeholder="Buscar por @username, email ou ID..."
+                        placeholder={t('admin.userManagement.searchPlaceholder')}
                         className="w-full bg-[#1a1a1a] border border-amber-500/20 rounded-lg pl-12 pr-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-amber-500 font-mono"
                     />
                 </div>
@@ -102,7 +104,7 @@ const UserManagement = () => {
                     type="submit"
                     className="bg-amber-500 hover:bg-amber-600 text-black font-bold px-6 py-3 rounded-lg transition-colors"
                 >
-                    Buscar
+                    {t('admin.userManagement.searchBtn')}
                 </button>
             </form>
 
@@ -111,12 +113,12 @@ const UserManagement = () => {
                 <table className="w-full">
                     <thead>
                         <tr className="border-b border-amber-500/10 text-left">
-                            <th className="p-4 text-gray-400 font-medium">ID</th>
-                            <th className="p-4 text-gray-400 font-medium">Usuário</th>
-                            <th className="p-4 text-gray-400 font-medium">Email</th>
-                            <th className="p-4 text-gray-400 font-medium">Status</th>
-                            <th className="p-4 text-gray-400 font-medium">Cadastro</th>
-                            <th className="p-4 text-gray-400 font-medium">Ações</th>
+                            <th className="p-4 text-gray-400 font-medium">{t('admin.userManagement.colId')}</th>
+                            <th className="p-4 text-gray-400 font-medium">{t('admin.userManagement.colUser')}</th>
+                            <th className="p-4 text-gray-400 font-medium">{t('admin.userManagement.colEmail')}</th>
+                            <th className="p-4 text-gray-400 font-medium">{t('admin.userManagement.colStatus')}</th>
+                            <th className="p-4 text-gray-400 font-medium">{t('admin.userManagement.colRegistration')}</th>
+                            <th className="p-4 text-gray-400 font-medium">{t('admin.userManagement.colActions')}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -129,7 +131,7 @@ const UserManagement = () => {
                         ) : users.length === 0 ? (
                             <tr>
                                 <td colSpan="6" className="p-8 text-center text-gray-400">
-                                    Nenhum usuário encontrado
+                                    {t('admin.userManagement.emptyTable')}
                                 </td>
                             </tr>
                         ) : (
@@ -161,7 +163,7 @@ const UserManagement = () => {
                                             <button
                                                 onClick={() => openInspectModal(user.id_usuario)}
                                                 className="p-2 bg-amber-500/20 hover:bg-amber-500/30 text-amber-500 rounded-lg transition-colors"
-                                                title="Inspecionar"
+                                                title={t('admin.userManagement.actionInspect')}
                                             >
                                                 <FaEye />
                                             </button>
@@ -169,7 +171,7 @@ const UserManagement = () => {
                                                 <button
                                                     onClick={() => updateUserStatus(user.id_usuario, 2)}
                                                     className="p-2 bg-red-500/20 hover:bg-red-500/30 text-red-500 rounded-lg transition-colors"
-                                                    title="Banir"
+                                                    title={t('admin.userManagement.actionBan')}
                                                 >
                                                     <FaBan />
                                                 </button>
@@ -177,7 +179,7 @@ const UserManagement = () => {
                                                 <button
                                                     onClick={() => updateUserStatus(user.id_usuario, 1)}
                                                     className="p-2 bg-green-500/20 hover:bg-green-500/30 text-green-500 rounded-lg transition-colors"
-                                                    title="Reativar"
+                                                    title={t('admin.userManagement.actionReactivate')}
                                                 >
                                                     <FaCheck />
                                                 </button>
@@ -197,7 +199,7 @@ const UserManagement = () => {
                     <div className="bg-[#1a1a1a] rounded-xl border border-amber-500/20 w-full max-w-2xl max-h-[80vh] overflow-hidden">
                         {/* Modal Header */}
                         <div className="flex justify-between items-center p-4 border-b border-amber-500/10">
-                            <h2 className="text-xl font-bold text-white">Dados do Usuário</h2>
+                            <h2 className="text-xl font-bold text-white">{t('admin.userManagement.modalTitle')}</h2>
                             <button
                                 onClick={() => setModalOpen(false)}
                                 className="text-gray-400 hover:text-white transition-colors"
@@ -238,7 +240,7 @@ const UserManagement = () => {
                                     }}
                                     className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg transition-colors flex items-center justify-center gap-2"
                                 >
-                                    <FaBan /> Banir Usuário
+                                    <FaBan /> {t('admin.userManagement.modalBan')}
                                 </button>
                             ) : (
                                 <button
@@ -248,14 +250,14 @@ const UserManagement = () => {
                                     }}
                                     className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg transition-colors flex items-center justify-center gap-2"
                                 >
-                                    <FaCheck /> Reativar Usuário
+                                    <FaCheck /> {t('admin.userManagement.modalReactivate')}
                                 </button>
                             )}
                             <button
                                 onClick={() => setModalOpen(false)}
                                 className="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-2 rounded-lg transition-colors"
                             >
-                                Fechar
+                                {t('admin.userManagement.modalClose')}
                             </button>
                         </div>
                     </div>

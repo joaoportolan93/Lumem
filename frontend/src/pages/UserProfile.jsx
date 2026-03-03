@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { FaCalendarAlt, FaBirthdayCake, FaArrowLeft, FaLock, FaImage, FaUsers, FaCrown, FaShieldAlt, FaBan } from 'react-icons/fa';
 import { getUser, getProfile, followUser, unfollowUser, unblockUser, getUserPosts, getUserCommunityPosts, getUserMediaPosts, getUserMemberCommunities, getUserAdminCommunities } from '../services/api';
+import { useTranslation } from 'react-i18next';
 import DreamCard from '../components/DreamCard';
 import FollowersModal from '../components/FollowersModal';
 
 const UserProfile = () => {
+    const { t } = useTranslation();
     const { id } = useParams();
     const [user, setUser] = useState(null);
     const [currentUser, setCurrentUser] = useState(null);
@@ -170,16 +172,19 @@ const UserProfile = () => {
     };
 
     const formatDate = (dateString, type = 'join') => {
-        if (!dateString) return 'Data não informada';
+        if (!dateString) return t('userProfile.dateNotProvided');
         const dateValue = dateString.includes('T') ? dateString : `${dateString}T12:00:00`;
         const date = new Date(dateValue);
-        const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-            'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+        const months = [
+            t('months.january'), t('months.february'), t('months.march'), t('months.april'),
+            t('months.may'), t('months.june'), t('months.july'), t('months.august'),
+            t('months.september'), t('months.october'), t('months.november'), t('months.december')
+        ];
 
         if (type === 'birth') {
-            return `Nascido em ${date.getDate()} de ${months[date.getMonth()]} de ${date.getFullYear()}`;
+            return t('userProfile.bornOn', { day: date.getDate(), month: months[date.getMonth()], year: date.getFullYear() });
         }
-        return `Membro desde ${months[date.getMonth()]} de ${date.getFullYear()}`;
+        return t('userProfile.memberSince', { month: months[date.getMonth()], year: date.getFullYear() });
     };
 
     if (loading) {
@@ -193,9 +198,9 @@ const UserProfile = () => {
     if (!user) {
         return (
             <div className="text-center py-12">
-                <p className="text-gray-500 dark:text-gray-400">Usuário não encontrado</p>
+                <p className="text-gray-500 dark:text-gray-400">{t('userProfile.errNotFound')}</p>
                 <Link to="/" className="text-purple-400 hover:underline mt-4 inline-block">
-                    Voltar ao feed
+                    {t('userProfile.btnBackToFeed')}
                 </Link>
             </div>
         );
@@ -222,12 +227,12 @@ const UserProfile = () => {
     const renderLockedMessage = () => (
         <div className="bg-gray-900/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-8 text-center">
             <FaLock className="text-4xl text-gray-500 mx-auto mb-4" />
-            <h4 className="text-xl font-bold text-white mb-2">Esses posts estão protegidos</h4>
+            <h4 className="text-xl font-bold text-white mb-2">{t('userProfile.lockedTitle')}</h4>
             <p className="text-gray-400 mb-4">
-                Somente seguidores aprovados podem ver os posts de @{user.nome_usuario}. Para solicitar acesso, clique em Seguir.
+                {t('userProfile.lockedDesc', { username: user.nome_usuario })}
             </p>
             {followStatus === 'pending' && (
-                <p className="text-amber-400 text-sm">Solicitação pendente de aprovação</p>
+                <p className="text-amber-400 text-sm">{t('userProfile.pendingRequest')}</p>
             )}
         </div>
     );
@@ -237,7 +242,7 @@ const UserProfile = () => {
             {/* Back Button */}
             <Link to="/" className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white mb-6 transition-colors">
                 <FaArrowLeft />
-                <span>Voltar</span>
+                <span>{t('userProfile.btnBack')}</span>
             </Link>
 
             {/* Banned User Alert */}
@@ -247,10 +252,10 @@ const UserProfile = () => {
                         <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                         </svg>
-                        <h3 className="text-lg font-bold text-red-500">Usuário Banido</h3>
+                        <h3 className="text-lg font-bold text-red-500">{t('userProfile.userBanned')}</h3>
                     </div>
                     <p className="text-gray-300">
-                        O usuário desta conta foi banido por: <strong className="text-red-400">{user.ban_reason}</strong>
+                        {t('userProfile.userBannedReason')} <strong className="text-red-400">{user.ban_reason}</strong>
                     </p>
                 </div>
             )}
@@ -276,18 +281,18 @@ const UserProfile = () => {
 
                     <div className="flex-1 flex flex-col items-center md:items-start text-center md:text-left">
                         <h1 className="text-3xl font-bold mb-2">
-                            {user.nome_completo || 'Usuário'}
+                            {user.nome_completo || t('userProfile.defaultName')}
                         </h1>
                         <h2 className="text-lg mb-4 opacity-90 flex items-center gap-2 justify-center md:justify-start">
                             @{user.nome_usuario || 'username'}
                             {user.privacidade_padrao === 2 && (
                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-white/20 rounded-full text-xs font-medium">
-                                    <FaLock size={10} /> Conta Privada
+                                    <FaLock size={10} /> {t('userProfile.privateAccount')}
                                 </span>
                             )}
                         </h2>
                         <p className="mb-4 leading-relaxed max-w-2xl">
-                            {user.bio || 'Este usuário ainda não adicionou uma bio.'}
+                            {user.bio || t('userProfile.defaultBio')}
                         </p>
 
                         <div className="flex gap-6 flex-wrap mb-4 justify-center md:justify-start">
@@ -306,21 +311,21 @@ const UserProfile = () => {
                         <div className="flex gap-8 mb-6 justify-center md:justify-start">
                             <div className="text-center md:text-left">
                                 <div className="text-xl font-bold">{userDreams.length}</div>
-                                <div className="text-sm opacity-90">Sonhos</div>
+                                <div className="text-sm opacity-90">{t('userProfile.statDreams')}</div>
                             </div>
                             <button
                                 onClick={() => { if (canSeePosts || isOwnProfile) { setFollowersModalTab('followers'); setShowFollowersModal(true); } }}
                                 className={`text-center md:text-left ${(canSeePosts || isOwnProfile) ? 'hover:opacity-70 cursor-pointer' : 'cursor-default'} transition-opacity`}
                             >
                                 <div className="text-xl font-bold">{user.seguidores_count || 0}</div>
-                                <div className="text-sm opacity-90">Seguidores</div>
+                                <div className="text-sm opacity-90">{t('userProfile.statFollowers')}</div>
                             </button>
                             <button
                                 onClick={() => { if (canSeePosts || isOwnProfile) { setFollowersModalTab('following'); setShowFollowersModal(true); } }}
                                 className={`text-center md:text-left ${(canSeePosts || isOwnProfile) ? 'hover:opacity-70 cursor-pointer' : 'cursor-default'} transition-opacity`}
                             >
                                 <div className="text-xl font-bold">{user.seguindo_count || 0}</div>
-                                <div className="text-sm opacity-90">Seguindo</div>
+                                <div className="text-sm opacity-90">{t('userProfile.statFollowing')}</div>
                             </button>
                         </div>
 
@@ -336,12 +341,12 @@ const UserProfile = () => {
                                     } ${followLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                             >
                                 {followLoading
-                                    ? 'Carregando...'
+                                    ? t('userProfile.followLoading')
                                     : followStatus === 'following'
-                                        ? 'Seguindo ✓'
+                                        ? t('userProfile.followFollowing')
                                         : followStatus === 'pending'
-                                            ? 'Solicitado ⏳'
-                                            : 'Seguir'
+                                            ? t('userProfile.followPending')
+                                            : t('userProfile.followFollow')
                                 }
                             </button>
                         )}
@@ -351,7 +356,7 @@ const UserProfile = () => {
                                 to="/profile"
                                 className="px-6 py-3 bg-white text-[#764ba2] rounded-full font-semibold hover:bg-white/90 transition-colors"
                             >
-                                Ver meu perfil
+                                {t('userProfile.btnViewOwnProfile')}
                             </Link>
                         )}
                     </div>
@@ -364,16 +369,16 @@ const UserProfile = () => {
                     <div className="bg-white dark:bg-[#1a163a]/95 border border-gray-200 dark:border-white/10 rounded-2xl p-12 text-center">
                         <FaBan className="text-5xl text-red-500 mx-auto mb-4" />
                         <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                            @{user.nome_usuario} está bloqueado
+                            {t('userProfile.blockedTitle', { username: user.nome_usuario })}
                         </h3>
                         <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-md mx-auto">
-                            Você não pode ver as publicações deste usuário enquanto ele estiver bloqueado.
+                            {t('userProfile.blockedDesc')}
                         </p>
                         <button
                             onClick={handleUnblock}
                             className="px-8 py-3 bg-red-500 hover:bg-red-600 text-white rounded-full font-semibold transition-colors"
                         >
-                            Desbloquear @{user.nome_usuario}
+                            {t('userProfile.btnUnblock', { username: user.nome_usuario })}
                         </button>
                     </div>
                 </div>
@@ -390,7 +395,7 @@ const UserProfile = () => {
                             }`}
                         onClick={() => setActiveTab('dreams')}
                     >
-                        Sonhos
+                        {t('userProfile.tabDreams')}
                     </button>
                     <button
                         className={`px-6 py-4 text-base transition-colors ${activeTab === 'communities'
@@ -399,7 +404,7 @@ const UserProfile = () => {
                             }`}
                         onClick={() => setActiveTab('communities')}
                     >
-                        Comunidades
+                        {t('userProfile.tabCommunities')}
                     </button>
                     <button
                         className={`px-6 py-4 text-base transition-colors ${activeTab === 'media'
@@ -408,7 +413,7 @@ const UserProfile = () => {
                             }`}
                         onClick={() => setActiveTab('media')}
                     >
-                        Mídia
+                        {t('userProfile.tabMedia')}
                     </button>
                 </div>
 
@@ -431,7 +436,7 @@ const UserProfile = () => {
                             </div>
                         ) : (
                             <div className="text-center py-8">
-                                <p className="text-gray-500 dark:text-gray-400">Este usuário ainda não compartilhou sonhos.</p>
+                                <p className="text-gray-500 dark:text-gray-400">{t('userProfile.emptyDreams')}</p>
                             </div>
                         )}
                     </>
@@ -444,7 +449,7 @@ const UserProfile = () => {
                             <>
                                 {/* Community Sub-Tabs */}
                                 <div className="flex gap-2 mb-6">
-                                    {[{ key: 'posts', label: 'Posts' }, { key: 'member', label: 'Membro' }, { key: 'admin', label: 'Admin/Mod' }].map(sub => (
+                                    {[{ key: 'posts', label: t('userProfile.subtabPosts') }, { key: 'member', label: t('userProfile.subtabMember') }, { key: 'admin', label: t('userProfile.subtabAdmin') }].map(sub => (
                                         <button
                                             key={sub.key}
                                             className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${communitySubTab === sub.key
@@ -476,7 +481,7 @@ const UserProfile = () => {
                                         </div>
                                     ) : (
                                         <div className="text-center py-8">
-                                            <p className="text-gray-500 dark:text-gray-400">Nenhum post em comunidades ainda.</p>
+                                            <p className="text-gray-500 dark:text-gray-400">{t('userProfile.emptyCommunityPosts')}</p>
                                         </div>
                                     )
                                 )}
@@ -504,7 +509,7 @@ const UserProfile = () => {
                                                         <h4 className="font-semibold text-gray-900 dark:text-white truncate group-hover:text-purple-400 transition-colors">{comm.nome}</h4>
                                                         <p className="text-sm text-gray-500 dark:text-gray-400">
                                                             <FaUsers className="inline mr-1" />
-                                                            {comm.membros_count || 0} membros
+                                                            {comm.membros_count || 0} {t('userProfile.membersCount')}
                                                         </p>
                                                     </div>
                                                     {comm.user_role && (
@@ -514,9 +519,9 @@ const UserProfile = () => {
                                                                 ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
                                                                 : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
                                                             }`}>
-                                                            {comm.user_role === 'admin' && <><FaCrown className="inline mr-1" />Admin</>}
-                                                            {comm.user_role === 'moderator' && <><FaShieldAlt className="inline mr-1" />Mod</>}
-                                                            {comm.user_role === 'member' && 'Membro'}
+                                                            {comm.user_role === 'admin' && <><FaCrown className="inline mr-1" />{t('userProfile.roleAdmin')}</>}
+                                                            {comm.user_role === 'moderator' && <><FaShieldAlt className="inline mr-1" />{t('userProfile.roleMod')}</>}
+                                                            {comm.user_role === 'member' && t('userProfile.roleMember')}
                                                         </span>
                                                     )}
                                                 </Link>
@@ -525,7 +530,7 @@ const UserProfile = () => {
                                     ) : (
                                         <div className="text-center py-12">
                                             <FaUsers className="text-6xl text-gray-500 dark:text-gray-600 mx-auto mb-4" />
-                                            <p className="text-gray-500 dark:text-gray-400 text-lg">Este usuário não participa de nenhuma comunidade.</p>
+                                            <p className="text-gray-500 dark:text-gray-400 text-lg">{t('userProfile.emptyMemberCommunities')}</p>
                                         </div>
                                     )
                                 )}
@@ -553,14 +558,14 @@ const UserProfile = () => {
                                                         <h4 className="font-semibold text-gray-900 dark:text-white truncate group-hover:text-purple-400 transition-colors">{comm.nome}</h4>
                                                         <p className="text-sm text-gray-500 dark:text-gray-400">
                                                             <FaUsers className="inline mr-1" />
-                                                            {comm.membros_count || 0} membros
+                                                            {comm.membros_count || 0} {t('userProfile.membersCount')}
                                                         </p>
                                                     </div>
                                                     <span className={`px-3 py-1 rounded-full text-xs font-bold flex-shrink-0 ${comm.user_role === 'admin'
                                                         ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
                                                         : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
                                                         }`}>
-                                                        {comm.user_role === 'admin' ? <><FaCrown className="inline mr-1" />Admin</> : <><FaShieldAlt className="inline mr-1" />Mod</>}
+                                                        {comm.user_role === 'admin' ? <><FaCrown className="inline mr-1" />{t('userProfile.roleAdmin')}</> : <><FaShieldAlt className="inline mr-1" />{t('userProfile.roleMod')}</>}
                                                     </span>
                                                 </Link>
                                             ))}
@@ -568,7 +573,7 @@ const UserProfile = () => {
                                     ) : (
                                         <div className="text-center py-12">
                                             <FaCrown className="text-6xl text-gray-500 dark:text-gray-600 mx-auto mb-4" />
-                                            <p className="text-gray-500 dark:text-gray-400 text-lg">Este usuário não administra nenhuma comunidade.</p>
+                                            <p className="text-gray-500 dark:text-gray-400 text-lg">{t('userProfile.emptyAdminCommunities')}</p>
                                         </div>
                                     )
                                 )}
@@ -598,10 +603,10 @@ const UserProfile = () => {
                             <div className="text-center py-12">
                                 <FaImage className="text-6xl text-gray-500 dark:text-gray-600 mx-auto mb-4" />
                                 <p className="text-gray-500 dark:text-gray-400 text-lg mb-4">
-                                    Nenhum post com mídia ainda.
+                                    {t('userProfile.emptyMedia')}
                                 </p>
                                 <p className="text-gray-400 dark:text-gray-500">
-                                    Posts com imagens, vídeos e GIFs aparecerão aqui!
+                                    {t('userProfile.emptyMediaSub')}
                                 </p>
                             </div>
                         )}

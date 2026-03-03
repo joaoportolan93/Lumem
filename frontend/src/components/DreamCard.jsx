@@ -7,8 +7,10 @@ import { AnimatePresence } from 'framer-motion';
 import CommentSection from './CommentSection';
 import ReportModal from './ReportModal';
 import ReactMarkdown from 'react-markdown';
+import { useTranslation } from 'react-i18next';
 
 const DreamCard = ({ dream, onDelete, onEdit, currentUserId }) => {
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const [liked, setLiked] = useState(dream.is_liked || false);
     const [likesCount, setLikesCount] = useState(dream.likes_count || 0);
@@ -38,11 +40,11 @@ const DreamCard = ({ dream, onDelete, onEdit, currentUserId }) => {
         const diffHours = Math.floor(diffMs / 3600000);
         const diffDays = Math.floor(diffMs / 86400000);
 
-        if (diffMins < 1) return 'agora';
-        if (diffMins < 60) return `${diffMins}min`;
-        if (diffHours < 24) return `${diffHours}h`;
-        if (diffDays < 7) return `${diffDays}d`;
-        return date.toLocaleDateString('pt-BR');
+        if (diffMins < 1) return t('dreamCard.timeNow');
+        if (diffMins < 60) return `${diffMins}${t('dreamCard.timeMin')}`;
+        if (diffHours < 24) return `${diffHours}${t('dreamCard.timeHr')}`;
+        if (diffDays < 7) return `${diffDays}${t('dreamCard.timeDay')}`;
+        return date.toLocaleDateString(navigator.language || 'pt-BR');
     };
 
     const handleLike = async () => {
@@ -89,11 +91,11 @@ const DreamCard = ({ dream, onDelete, onEdit, currentUserId }) => {
     };
 
     const handleDelete = async () => {
-        if (!window.confirm('Tem certeza que deseja excluir este sonho?')) return;
+        if (!window.confirm(t('dreamCard.confirmDelete'))) return;
 
         if (!dream.id_publicacao) {
             console.error('Delete failed: dream.id_publicacao is undefined', dream);
-            alert('Erro: ID do post não encontrado.');
+            alert(t('dreamCard.errorDeleteId'));
             return;
         }
 
@@ -128,7 +130,7 @@ const DreamCard = ({ dream, onDelete, onEdit, currentUserId }) => {
     };
 
     const handleBlockToggle = async () => {
-        if (!window.confirm(isBlocked ? 'Desbloquear usuário?' : 'Bloquear usuário? Seus posts não aparecerão mais para você.')) return;
+        if (!window.confirm(isBlocked ? t('dreamCard.confirmUnblock') : t('dreamCard.confirmBlock'))) return;
         if (!dream.usuario?.id_usuario) return;
         const prev = isBlocked;
         setIsBlocked(!prev);
@@ -157,6 +159,11 @@ const DreamCard = ({ dream, onDelete, onEdit, currentUserId }) => {
     };
 
     const tipoSonhoColors = {
+        [t('createDream.typeLucid')]: 'bg-purple-500',
+        [t('createDream.typeNightmare')]: 'bg-red-500',
+        [t('createDream.typeNormal')]: 'bg-blue-500',
+        [t('createDream.typeRecurring')]: 'bg-yellow-500',
+        // Fallbacks back to Portuguese defaults just in case old posts have them hardcoded in the DB
         'Lúcido': 'bg-purple-500',
         'Pesadelo': 'bg-red-500',
         'Normal': 'bg-blue-500',
@@ -216,8 +223,8 @@ const DreamCard = ({ dream, onDelete, onEdit, currentUserId }) => {
                                 {dream.usuario?.nome_completo}
                             </Link>
                             {dream.visibilidade === 2 && (
-                                <div className="flex items-center gap-1 px-2 py-0.5 bg-green-500/20 rounded-full text-green-400 text-xs font-medium" title="Melhores Amigos">
-                                    <FaUserFriends size={10} /> <span>Close Friends</span>
+                                <div className="flex items-center gap-1 px-2 py-0.5 bg-green-500/20 rounded-full text-green-400 text-xs font-medium" title={t('createDream.visFriends')}>
+                                    <FaUserFriends size={10} /> <span>{t('createDream.visFriends')}</span>
                                 </div>
                             )}
                         </div>
@@ -230,7 +237,7 @@ const DreamCard = ({ dream, onDelete, onEdit, currentUserId }) => {
                         </p>
                         {dream.comunidade_id && (
                             <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                                Post feito na comunidade{' '}
+                                {t('dreamCard.postedInComm')}{' '}
                                 <Link
                                     to={`/community/${dream.comunidade_id}`}
                                     className="text-purple-500 hover:text-purple-400 font-semibold hover:underline"
@@ -259,14 +266,14 @@ const DreamCard = ({ dream, onDelete, onEdit, currentUserId }) => {
                                         onClick={() => { onEdit?.(dream); setShowMenu(false); }}
                                         className="w-full flex items-center gap-2 px-4 py-3 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
                                     >
-                                        <FaEdit /> Editar
+                                        <FaEdit /> {t('dreamCard.actionEdit')}
                                     </button>
                                     <button
                                         onClick={handleDelete}
                                         disabled={deleting}
                                         className="w-full flex items-center gap-2 px-4 py-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                                     >
-                                        <FaTrash /> {deleting ? 'Excluindo...' : 'Excluir'}
+                                        <FaTrash /> {deleting ? t('dreamCard.actionDeleting') : t('dreamCard.actionDelete')}
                                     </button>
                                 </>
                             )}
@@ -276,25 +283,25 @@ const DreamCard = ({ dream, onDelete, onEdit, currentUserId }) => {
                                         onClick={handleFollowToggle}
                                         className="w-full flex items-center gap-2 px-4 py-3 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
                                     >
-                                        {isFollowing ? <><FaUserCheck /> Seguindo</> : <><FaUserPlus /> Seguir</>}
+                                        {isFollowing ? <><FaUserCheck /> {t('dreamCard.actionFollowing')}</> : <><FaUserPlus /> {t('dreamCard.actionFollow')}</>}
                                     </button>
                                     <button
                                         onClick={handleMuteToggle}
                                         className="w-full flex items-center gap-2 px-4 py-3 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
                                     >
-                                        <FaVolumeMute /> {isMuted ? 'Desativar silêncio' : 'Silenciar'}
+                                        <FaVolumeMute /> {isMuted ? t('dreamCard.actionUnmute') : t('dreamCard.actionMute')}
                                     </button>
                                     <button
                                         onClick={handleBlockToggle}
                                         className="w-full flex items-center gap-2 px-4 py-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                                     >
-                                        <FaBan /> {isBlocked ? 'Desbloquear' : 'Bloquear'}
+                                        <FaBan /> {isBlocked ? t('dreamCard.actionUnblock') : t('dreamCard.actionBlock')}
                                     </button>
                                     <button
                                         onClick={() => { setShowReportModal(true); setShowMenu(false); }}
                                         className="w-full flex items-center gap-2 px-4 py-3 text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors"
                                     >
-                                        <FaFlag /> Denunciar
+                                        <FaFlag /> {t('dreamCard.actionReport')}
                                     </button>
                                 </>
                             )}
@@ -387,7 +394,7 @@ const DreamCard = ({ dream, onDelete, onEdit, currentUserId }) => {
                     onClick={handleSave}
                     disabled={saving}
                     className={`flex items-center gap-2 transition-colors ${saved ? 'text-primary' : 'text-gray-500 dark:text-gray-400 hover:text-primary'}`}
-                    title={saved ? "Remover dos salvos" : "Salvar"}
+                    title={saved ? t('dreamCard.tooltipUnsave') : t('dreamCard.tooltipSave')}
                 >
                     {saved ? <FaBookmark /> : <FaRegBookmark />}
                 </button>

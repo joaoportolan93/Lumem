@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { FaMoon, FaPlus, FaUserFriends, FaFire } from 'react-icons/fa';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import DreamCard from '../components/DreamCard';
 import CreateDreamModal from '../components/CreateDreamModal';
 import { getDreams, getProfile, getUserSettings } from '../services/api';
 
 const Home = () => {
+    const { t } = useTranslation();
     const [dreams, setDreams] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -35,7 +37,7 @@ const Home = () => {
             setDreams(response.data);
         } catch (err) {
             console.error('Error fetching dreams:', err);
-            setError('Erro ao carregar sonhos');
+            setError(t('home.errorLoading'));
         } finally {
             setLoading(false);
         }
@@ -105,13 +107,13 @@ const Home = () => {
     return (
         <div className="flex flex-col gap-6">
             <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Feed dos Sonhos</h1>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('home.feedTitle')}</h1>
                 <button
                     onClick={openCreateModal}
                     className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white font-semibold rounded-full hover:opacity-90 transition-all"
                 >
                     <FaPlus />
-                    Novo Sonho
+                    {t('sidebar.newDream')}
                 </button>
             </div>
 
@@ -125,7 +127,7 @@ const Home = () => {
                         }`}
                 >
                     <FaUserFriends className={activeTab === 'following' ? 'text-purple-400' : ''} />
-                    Seguindo
+                    {t('home.tabFollowing')}
                     {activeTab === 'following' && (
                         <span className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-500 to-pink-500 rounded-t-full" />
                     )}
@@ -139,7 +141,7 @@ const Home = () => {
                             }`}
                     >
                         <FaFire className={activeTab === 'foryou' ? 'text-orange-400' : ''} />
-                        Para você
+                        {t('home.tabForYou')}
                         {activeTab === 'foryou' && (
                             <span className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-orange-500 to-red-500 rounded-t-full" />
                         )}
@@ -167,14 +169,14 @@ const Home = () => {
                     <FaMoon className="text-6xl text-gray-600 mx-auto mb-4" />
                     <p className="text-gray-500 dark:text-gray-400 text-lg mb-2">
                         {activeTab === 'following'
-                            ? 'Nenhum sonho de quem você segue ainda'
-                            : 'Nenhum sonho em alta no momento'
+                            ? t('home.emptyFollowing')
+                            : t('home.emptyForYou')
                         }
                     </p>
                     <p className="text-gray-400 dark:text-gray-500">
                         {activeTab === 'following'
-                            ? 'Siga outros sonhadores para ver seus sonhos aqui!'
-                            : 'Volte mais tarde para ver os sonhos mais populares.'
+                            ? t('home.emptyFollowingDesc')
+                            : t('home.emptyForYouDesc')
                         }
                     </p>
                 </div>

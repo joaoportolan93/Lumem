@@ -4,8 +4,10 @@ import { motion } from 'framer-motion';
 import { FaSearch, FaUser, FaHashtag, FaMoon } from 'react-icons/fa';
 import DreamCard from '../components/DreamCard';
 import { search } from '../services/api';
+import { useTranslation } from 'react-i18next';
 
 const SearchPage = () => {
+    const { t } = useTranslation();
     const [results, setResults] = useState({ posts: [], users: [], hashtags: [] });
     const [counts, setCounts] = useState({ posts: 0, users: 0, hashtags: 0 });
     const [loading, setLoading] = useState(true);
@@ -38,17 +40,17 @@ const SearchPage = () => {
     };
 
     const tabs = [
-        { id: 'all', label: 'Tudo' },
-        { id: 'posts', label: 'Sonhos' },
-        { id: 'users', label: 'Pessoas' },
-        { id: 'hashtags', label: 'Hashtags' },
+        { id: 'all', label: t('search.tabAll') },
+        { id: 'posts', label: t('search.tabDreams') },
+        { id: 'users', label: t('search.tabPeople') },
+        { id: 'hashtags', label: t('search.tabHashtags') },
     ];
 
     if (!query) {
         return (
             <div className="flex flex-col items-center justify-center h-[calc(100vh-100px)] text-text-secondary dark:text-gray-400">
                 <FaSearch size={48} className="mb-4 opacity-50" />
-                <h2 className="text-xl font-semibold">Digite algo para buscar</h2>
+                <h2 className="text-xl font-semibold">{t('search.typeToSearch')}</h2>
             </div>
         );
     }
@@ -56,7 +58,7 @@ const SearchPage = () => {
     return (
         <div className="max-w-4xl mx-auto pb-20">
             <h1 className="text-2xl font-bold mb-6 text-text-primary dark:text-white px-4">
-                Resultados para "{query}"
+                {t('search.resultsFor', { query })}
             </h1>
 
             {/* Tabs */}
@@ -66,8 +68,8 @@ const SearchPage = () => {
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
                         className={`pb-3 px-2 text-sm font-medium transition-colors whitespace-nowrap ${activeTab === tab.id
-                                ? 'text-primary border-b-2 border-primary'
-                                : 'text-text-secondary dark:text-gray-400 hover:text-text-primary dark:hover:text-white'
+                            ? 'text-primary border-b-2 border-primary'
+                            : 'text-text-secondary dark:text-gray-400 hover:text-text-primary dark:hover:text-white'
                             }`}
                     >
                         {tab.label}
@@ -89,7 +91,7 @@ const SearchPage = () => {
                             className="bg-white dark:bg-card-dark rounded-xl p-4 shadow-sm border border-border dark:border-white/5"
                         >
                             <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-text-primary dark:text-white">
-                                <FaUser className="text-secondary" /> Pessoas
+                                <FaUser className="text-secondary" /> {t('search.people')}
                             </h3>
                             <div className="space-y-4">
                                 {results.users.map((user) => (
@@ -125,7 +127,7 @@ const SearchPage = () => {
                             className="bg-white dark:bg-card-dark rounded-xl p-4 shadow-sm border border-border dark:border-white/5"
                         >
                             <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-text-primary dark:text-white">
-                                <FaHashtag className="text-secondary" /> Hashtags
+                                <FaHashtag className="text-secondary" /> {t('search.hashtags')}
                             </h3>
                             <div className="flex flex-wrap gap-2">
                                 {results.hashtags.map((tag) => (
@@ -146,7 +148,7 @@ const SearchPage = () => {
                         <div className="space-y-4">
                             {activeTab !== 'all' && (
                                 <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-text-primary dark:text-white">
-                                    <FaMoon className="text-secondary" /> Sonhos
+                                    <FaMoon className="text-secondary" /> {t('search.dreams')}
                                 </h3>
                             )}
                             {results.posts?.length > 0 ? (
@@ -156,7 +158,7 @@ const SearchPage = () => {
                             ) : (
                                 activeTab === 'posts' && (
                                     <p className="text-center text-text-secondary dark:text-gray-400 py-8">
-                                        Nenhum sonho encontrado.
+                                        {t('search.noDreamsFound')}
                                     </p>
                                 )
                             )}
@@ -169,7 +171,7 @@ const SearchPage = () => {
                         !results.hashtags?.length &&
                         !results.posts?.length && (
                             <div className="text-center py-10">
-                                <p className="text-lg text-text-secondary dark:text-gray-400">Não encontramos nada para "{query}"</p>
+                                <p className="text-lg text-text-secondary dark:text-gray-400">{t('search.nothingFound', { query })}</p>
                             </div>
                         )}
                 </div>

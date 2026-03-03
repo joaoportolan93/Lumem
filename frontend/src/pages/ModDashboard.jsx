@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { getCommunityStats, getCommunityMembers, getBannedMembers, banCommunityMember, unbanCommunityMember, manageCommunityRole, getCommunity } from '../services/api';
 import { FaUsers, FaChartLine, FaFlag, FaUserShield, FaBan, FaArrowLeft, FaSpinner, FaCrown, FaStar, FaUser, FaTrash, FaChevronUp, FaChevronDown, FaTimes } from 'react-icons/fa';
 
 const ModDashboard = () => {
+    const { t } = useTranslation();
     const { id } = useParams();
     const navigate = useNavigate();
 
@@ -55,7 +57,7 @@ const ModDashboard = () => {
             setBanReason('');
             await loadData();
         } catch (err) {
-            alert(err.response?.data?.error || 'Erro ao banir usuário');
+            alert(err.response?.data?.error || t('modDashboard.errBan'));
         } finally {
             setBanning(false);
         }
@@ -67,7 +69,7 @@ const ModDashboard = () => {
             await unbanCommunityMember(id, userId);
             await loadData();
         } catch (err) {
-            alert(err.response?.data?.error || 'Erro ao desbanir');
+            alert(err.response?.data?.error || t('modDashboard.errUnban'));
         } finally {
             setActionLoading(null);
         }
@@ -79,7 +81,7 @@ const ModDashboard = () => {
             await manageCommunityRole(id, userId, newRole);
             await loadData();
         } catch (err) {
-            alert(err.response?.data?.error || 'Erro ao alterar cargo');
+            alert(err.response?.data?.error || t('modDashboard.errRole'));
         } finally {
             setActionLoading(null);
         }
@@ -94,11 +96,11 @@ const ModDashboard = () => {
     const getRoleBadge = (role) => {
         switch (role) {
             case 'admin':
-                return <span className="inline-flex items-center gap-1 text-[10px] bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full font-bold"><FaCrown size={8} /> Admin</span>;
+                return <span className="inline-flex items-center gap-1 text-[10px] bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full font-bold"><FaCrown size={8} /> {t('modDashboard.roleAdmin')}</span>;
             case 'moderator':
-                return <span className="inline-flex items-center gap-1 text-[10px] bg-indigo-500/20 text-indigo-400 px-2 py-0.5 rounded-full font-bold"><FaStar size={8} /> Mod</span>;
+                return <span className="inline-flex items-center gap-1 text-[10px] bg-indigo-500/20 text-indigo-400 px-2 py-0.5 rounded-full font-bold"><FaStar size={8} /> {t('modDashboard.roleMod')}</span>;
             default:
-                return <span className="inline-flex items-center gap-1 text-[10px] bg-gray-500/20 text-gray-400 px-2 py-0.5 rounded-full font-bold"><FaUser size={8} /> Membro</span>;
+                return <span className="inline-flex items-center gap-1 text-[10px] bg-gray-500/20 text-gray-400 px-2 py-0.5 rounded-full font-bold"><FaUser size={8} /> {t('modDashboard.roleMember')}</span>;
         }
     };
 
@@ -111,9 +113,9 @@ const ModDashboard = () => {
     }
 
     const tabs = [
-        { key: 'overview', label: 'Visão Geral', icon: FaChartLine },
-        { key: 'members', label: 'Membros', icon: FaUsers, count: members.length },
-        { key: 'banned', label: 'Banidos', icon: FaBan, count: bannedMembers.length },
+        { key: 'overview', label: t('modDashboard.tabOverview'), icon: FaChartLine },
+        { key: 'members', label: t('modDashboard.tabMembers'), icon: FaUsers, count: members.length },
+        { key: 'banned', label: t('modDashboard.tabBanned'), icon: FaBan, count: bannedMembers.length },
     ];
 
     return (
@@ -129,9 +131,9 @@ const ModDashboard = () => {
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                         <FaUserShield className="text-indigo-500" />
-                        Painel de Moderação
+                        {t('modDashboard.title')}
                     </h1>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">{community?.nome || 'Comunidade'}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{community?.nome || t('modDashboard.defaultComm')}</p>
                 </div>
             </div>
 
@@ -141,18 +143,16 @@ const ModDashboard = () => {
                     <button
                         key={tab.key}
                         onClick={() => setActiveTab(tab.key)}
-                        className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors border-b-2 ${
-                            activeTab === tab.key
+                        className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors border-b-2 ${activeTab === tab.key
                                 ? 'border-indigo-500 text-indigo-500'
                                 : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-                        }`}
+                            }`}
                     >
                         <tab.icon size={14} />
                         {tab.label}
                         {tab.count !== undefined && (
-                            <span className={`text-xs px-1.5 py-0.5 rounded-full ${
-                                activeTab === tab.key ? 'bg-indigo-500/20 text-indigo-400' : 'bg-gray-200 dark:bg-gray-700 text-gray-500'
-                            }`}>
+                            <span className={`text-xs px-1.5 py-0.5 rounded-full ${activeTab === tab.key ? 'bg-indigo-500/20 text-indigo-400' : 'bg-gray-200 dark:bg-gray-700 text-gray-500'
+                                }`}>
                                 {tab.count}
                             </span>
                         )}
@@ -164,28 +164,28 @@ const ModDashboard = () => {
             {activeTab === 'overview' && stats && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <StatCard
-                        title="Total de Membros"
+                        title={t('modDashboard.statTotalMembers')}
                         value={stats.total_members}
                         icon={<FaUsers className="text-indigo-500" size={20} />}
-                        subtitle={`+${stats.new_members_last_7_days} esta semana`}
+                        subtitle={t('modDashboard.statThisWeek', { count: stats.new_members_last_7_days })}
                     />
                     <StatCard
-                        title="Novos Membros (7 dias)"
+                        title={t('modDashboard.statNewMembers')}
                         value={stats.new_members_last_7_days}
                         icon={<FaChartLine className="text-green-500" size={20} />}
-                        subtitle="Últimos 7 dias"
+                        subtitle={t('modDashboard.statLast7Days')}
                     />
                     <StatCard
-                        title="Engajamento (Posts)"
+                        title={t('modDashboard.statEngagement')}
                         value={stats.engagement_posts_last_7_days || 0}
                         icon={<FaChartLine className="text-blue-500" size={20} />}
-                        subtitle="Posts na semana"
+                        subtitle={t('modDashboard.statPostsWeek')}
                     />
                     <StatCard
-                        title="Denúncias Pendentes"
+                        title={t('modDashboard.statPendingReports')}
                         value={stats.pending_reports}
                         icon={<FaFlag className="text-red-500" size={20} />}
-                        subtitle="Requerem ação"
+                        subtitle={t('modDashboard.statRequireAction')}
                         highlight={stats.pending_reports > 0}
                     />
                 </div>
@@ -396,9 +396,8 @@ const ModDashboard = () => {
 
 
 const StatCard = ({ title, value, icon, subtitle, highlight = false }) => (
-    <div className={`bg-white dark:bg-[#1a1a1b] rounded-lg border p-4 ${
-        highlight ? 'border-red-300 dark:border-red-500/30' : 'border-gray-200 dark:border-gray-700'
-    }`}>
+    <div className={`bg-white dark:bg-[#1a1a1b] rounded-lg border p-4 ${highlight ? 'border-red-300 dark:border-red-500/30' : 'border-gray-200 dark:border-gray-700'
+        }`}>
         <div className="flex items-center justify-between mb-3">
             <span className="text-sm font-medium text-gray-500">{title}</span>
             {icon}

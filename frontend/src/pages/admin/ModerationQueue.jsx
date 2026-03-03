@@ -5,8 +5,10 @@
 import React, { useState, useEffect } from 'react';
 import { FaCheck, FaTimes, FaBan, FaExclamationTriangle, FaUser, FaComment, FaMoon } from 'react-icons/fa';
 import api from '../../services/api';
+import { useTranslation } from 'react-i18next';
 
 const ModerationQueue = () => {
+    const { t } = useTranslation();
     const [reports, setReports] = useState([]);
     const [selectedReport, setSelectedReport] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -69,23 +71,23 @@ const ModerationQueue = () => {
             {/* Header */}
             <div className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-3xl font-bold text-white">Fila de Moderação</h1>
-                    <p className="text-gray-400 mt-1">{reports.length} denúncias pendentes</p>
+                    <h1 className="text-3xl font-bold text-white">{t('admin.moderation.title')}</h1>
+                    <p className="text-gray-400 mt-1">{t('admin.moderation.pendingCount', { count: reports.length })}</p>
                 </div>
             </div>
 
             {reports.length === 0 ? (
                 <div className="bg-[#1a1a1a] rounded-xl p-12 text-center border border-amber-500/10">
                     <FaCheck className="text-green-500 text-5xl mx-auto mb-4" />
-                    <h2 className="text-xl font-bold text-white">Nenhuma denúncia pendente</h2>
-                    <p className="text-gray-400 mt-2">Todas as denúncias foram processadas.</p>
+                    <h2 className="text-xl font-bold text-white">{t('admin.moderation.noPending')}</h2>
+                    <p className="text-gray-400 mt-2">{t('admin.moderation.allProcessed')}</p>
                 </div>
             ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[calc(100vh-200px)]">
                     {/* Left Panel - Report List */}
                     <div className="bg-[#1a1a1a] rounded-xl border border-amber-500/10 overflow-hidden flex flex-col">
                         <div className="p-4 border-b border-amber-500/10">
-                            <h2 className="font-bold text-white">Denúncias</h2>
+                            <h2 className="font-bold text-white">{t('admin.moderation.reportsList')}</h2>
                         </div>
                         <div className="flex-1 overflow-y-auto">
                             {reports.map((report) => (
@@ -93,8 +95,8 @@ const ModerationQueue = () => {
                                     key={report.id_denuncia}
                                     onClick={() => setSelectedReport(report)}
                                     className={`p-4 border-b border-amber-500/5 cursor-pointer transition-colors ${selectedReport?.id_denuncia === report.id_denuncia
-                                            ? 'bg-amber-500/10 border-l-4 border-l-amber-500'
-                                            : 'hover:bg-white/5'
+                                        ? 'bg-amber-500/10 border-l-4 border-l-amber-500'
+                                        : 'hover:bg-white/5'
                                         }`}
                                 >
                                     <div className="flex items-start gap-3">
@@ -103,7 +105,7 @@ const ModerationQueue = () => {
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <p className="font-medium text-white truncate">
-                                                {report.content?.titulo || report.content?.texto || report.content?.username || 'Conteúdo'}
+                                                {report.content?.titulo || report.content?.texto || report.content?.username || t('admin.moderation.contentFallback')}
                                             </p>
                                             <p className="text-sm text-amber-500">{report.motivo_display}</p>
                                             <p className="text-xs text-gray-500 font-mono mt-1">
@@ -123,7 +125,7 @@ const ModerationQueue = () => {
                             <div className="p-4 border-b border-amber-500/10 bg-amber-500/5">
                                 <div className="flex items-center gap-2 text-amber-500">
                                     <FaExclamationTriangle />
-                                    <span className="font-bold">Motivo: {selectedReport.motivo_display}</span>
+                                    <span className="font-bold">{t('admin.moderation.reason', { reason: selectedReport.motivo_display })}</span>
                                 </div>
                             </div>
 
@@ -133,13 +135,13 @@ const ModerationQueue = () => {
                                     {/* Meta Info */}
                                     <div className="bg-black/30 rounded-lg p-4 font-mono text-sm">
                                         <div className="grid grid-cols-2 gap-2 text-gray-400">
-                                            <span>Reporter ID:</span>
+                                            <span>{t('admin.moderation.reporterId')}</span>
                                             <span className="text-white">{selectedReport.reporter.id}</span>
-                                            <span>Reporter:</span>
+                                            <span>{t('admin.moderation.reporter')}</span>
                                             <span className="text-white">@{selectedReport.reporter.username}</span>
-                                            <span>Tipo:</span>
+                                            <span>{t('admin.moderation.type')}</span>
                                             <span className="text-white">{selectedReport.tipo_conteudo_display}</span>
-                                            <span>Content ID:</span>
+                                            <span>{t('admin.moderation.contentId')}</span>
                                             <span className="text-white">{selectedReport.id_conteudo}</span>
                                         </div>
                                     </div>
@@ -147,7 +149,7 @@ const ModerationQueue = () => {
                                     {/* Description */}
                                     {selectedReport.descricao_denuncia && (
                                         <div>
-                                            <h4 className="text-gray-400 text-sm mb-2">Descrição da Denúncia:</h4>
+                                            <h4 className="text-gray-400 text-sm mb-2">{t('admin.moderation.description')}</h4>
                                             <p className="text-white bg-black/30 rounded-lg p-4">
                                                 {selectedReport.descricao_denuncia}
                                             </p>
@@ -156,14 +158,14 @@ const ModerationQueue = () => {
 
                                     {/* Reported Content */}
                                     <div>
-                                        <h4 className="text-gray-400 text-sm mb-2">Conteúdo Reportado:</h4>
+                                        <h4 className="text-gray-400 text-sm mb-2">{t('admin.moderation.reportedContent')}</h4>
                                         <div className="bg-black/30 rounded-lg p-4 border border-red-500/20">
                                             {selectedReport.content?.type === 'post' && (
                                                 <div>
                                                     <p className="font-bold text-white mb-2">{selectedReport.content.titulo}</p>
                                                     <p className="text-gray-300">{selectedReport.content.conteudo_texto}</p>
                                                     <p className="text-xs text-gray-500 mt-2">
-                                                        Por: @{selectedReport.content.usuario?.username}
+                                                        {t('admin.moderation.by', { username: selectedReport.content.usuario?.username })}
                                                     </p>
                                                 </div>
                                             )}
@@ -171,7 +173,7 @@ const ModerationQueue = () => {
                                                 <div>
                                                     <p className="text-gray-300">{selectedReport.content.texto}</p>
                                                     <p className="text-xs text-gray-500 mt-2">
-                                                        Por: @{selectedReport.content.usuario?.username}
+                                                        {t('admin.moderation.by', { username: selectedReport.content.usuario?.username })}
                                                     </p>
                                                 </div>
                                             )}
@@ -194,21 +196,21 @@ const ModerationQueue = () => {
                                         disabled={actionLoading}
                                         className="flex-1 flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white py-3 px-4 rounded-lg font-medium transition-colors disabled:opacity-50"
                                     >
-                                        <FaCheck /> Ignorar
+                                        <FaCheck /> {t('admin.moderation.actionIgnore')}
                                     </button>
                                     <button
                                         onClick={() => handleAction('remove')}
                                         disabled={actionLoading}
                                         className="flex-1 flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white py-3 px-4 rounded-lg font-medium transition-colors disabled:opacity-50"
                                     >
-                                        <FaTimes /> Remover
+                                        <FaTimes /> {t('admin.moderation.actionRemove')}
                                     </button>
                                     <button
                                         onClick={() => handleAction('ban')}
                                         disabled={actionLoading}
                                         className="flex-1 flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-700 text-white py-3 px-4 rounded-lg font-medium transition-colors disabled:opacity-50"
                                     >
-                                        <FaBan /> Banir
+                                        <FaBan /> {t('admin.moderation.actionBan')}
                                     </button>
                                 </div>
                             </div>

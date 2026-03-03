@@ -6,6 +6,7 @@ import {
 } from 'react-icons/fa';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import ThemeToggle from './ThemeToggle';
 import { logout, getProfile } from '../services/api';
 
@@ -16,6 +17,7 @@ const Header = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const dropdownRef = useRef(null);
     const navigate = useNavigate();
+    const { t } = useTranslation();
 
     const handleSearch = () => {
         if (searchQuery.trim()) {
@@ -115,7 +117,7 @@ const Header = () => {
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             onKeyDown={handleKeyDown}
-                            placeholder="Busque sonhos, pessoas, hashtags..."
+                            placeholder={t('header.searchPlaceholder')}
                             className="w-full h-[40px] bg-background-input dark:bg-white/10 dark:text-white dark:placeholder-gray-400 rounded-full pl-5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
                         />
                         <button
@@ -171,7 +173,7 @@ const Header = () => {
                                     onClick={() => setShowDropdown(false)}
                                 >
                                     <FaUser size={16} />
-                                    Perfil
+                                    {t('header.profile')}
                                 </Link>
                                 <Link
                                     to="/edit-profile"
@@ -179,14 +181,14 @@ const Header = () => {
                                     onClick={() => setShowDropdown(false)}
                                 >
                                     <FaEdit size={16} />
-                                    Editar Perfil
+                                    {t('header.editProfile')}
                                 </Link>
                                 <button
                                     onClick={handleLogout}
                                     className="flex items-center gap-3 w-full px-4 py-2 text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                                 >
                                     <FaSignOutAlt size={16} />
-                                    Sair
+                                    {t('header.logout')}
                                 </button>
                             </div>
                         )}
@@ -243,33 +245,33 @@ const Header = () => {
                                     className="w-full py-3 mb-4 bg-gradient-to-r from-primary to-secondary text-white font-bold rounded-xl flex items-center justify-center gap-2 shadow-glow hover:opacity-90 transition-all font-sans"
                                 >
                                     <FaPlus />
-                                    Novo Sonho
+                                    {t('sidebar.newDream')}
                                 </button>
 
                                 <Link to="/" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-xl text-text-secondary dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-primary transition-colors font-medium">
-                                    <FaHome size={20} /> Início
+                                    <FaHome size={20} /> {t('sidebar.home')}
                                 </Link>
 
                                 <Link to="/explore" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-xl text-text-secondary dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-primary transition-colors font-medium">
-                                    <FaMoon size={20} /> Explorar
+                                    <FaMoon size={20} /> {t('sidebar.explore')}
                                 </Link>
 
                                 <Link to="/communities" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-xl text-text-secondary dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-primary transition-colors font-medium">
-                                    <FaUserFriends size={20} /> Comunidades
+                                    <FaUserFriends size={20} /> {t('sidebar.communities')}
                                 </Link>
 
                                 <Link to="/saved" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-xl text-text-secondary dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-primary transition-colors font-medium">
-                                    <FaBookmark size={20} /> Salvos
+                                    <FaBookmark size={20} /> {t('sidebar.saved')}
                                 </Link>
 
                                 <div className="border-t border-border dark:border-white/10 my-2"></div>
 
                                 <Link to="/settings" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-xl text-text-secondary dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-primary transition-colors font-medium">
-                                    <FaCog size={20} /> Configurações
+                                    <FaCog size={20} /> {t('settings.title')}
                                 </Link>
 
                                 <div className="mt-4 px-4 py-3 bg-gray-50 dark:bg-white/5 rounded-xl flex items-center justify-between">
-                                    <span className="text-sm font-medium text-text-secondary dark:text-gray-300">Tema do site</span>
+                                    <span className="text-sm font-medium text-text-secondary dark:text-gray-300">{t('header.siteTheme')}</span>
                                     <ThemeToggle />
                                 </div>
 

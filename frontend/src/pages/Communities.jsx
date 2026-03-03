@@ -3,8 +3,10 @@ import { FaUsers, FaPlus } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import CreateCommunityModal from '../components/CreateCommunityModal';
 import { getCommunities, createCommunity } from '../services/api';
+import { useTranslation } from 'react-i18next';
 
 const Communities = () => {
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [communities, setCommunities] = useState([]);
@@ -46,12 +48,12 @@ const Communities = () => {
     return (
         <div className="flex flex-col gap-6 relative">
             <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-bold text-primary">Comunidades</h1>
+                <h1 className="text-2xl font-bold text-primary">{t('communities.title')}</h1>
                 <button
                     onClick={() => setIsCreateModalOpen(true)}
                     className="bg-primary text-white px-4 py-2 rounded-full text-sm font-bold flex items-center gap-2 hover:bg-primary-dark transition-colors shadow-lg shadow-primary/20"
                 >
-                    <FaPlus /> Criar Comunidade
+                    <FaPlus /> {t('communities.btnCreate')}
                 </button>
             </div>
 
@@ -79,17 +81,17 @@ const Communities = () => {
                                     <div className="flex items-center justify-between">
                                         <span className="flex items-center gap-1 text-xs text-text-secondary dark:text-gray-500 font-medium">
                                             <FaUsers className="text-primary" />
-                                            {community.membros_count} membros
+                                            {community.membros_count} {t('communities.members')}
                                         </span>
                                         <div className="flex gap-2">
                                             <button
                                                 onClick={() => navigate(`/community/${community.id_comunidade}`)}
                                                 className="px-4 py-1.5 rounded-full text-sm font-bold bg-primary-light/10 text-primary hover:bg-primary hover:text-white transition-colors"
                                             >
-                                                Visitar
+                                                {t('communities.btnVisit')}
                                             </button>
                                             <button className="px-4 py-1.5 rounded-full text-sm font-bold border border-primary text-primary hover:bg-primary-light/10 transition-colors">
-                                                {community.is_member ? 'Sair' : 'Entrar'}
+                                                {community.is_member ? t('communities.btnLeave') : t('communities.btnJoin')}
                                             </button>
                                         </div>
                                     </div>

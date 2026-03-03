@@ -1,11 +1,13 @@
 import React from 'react';
 import { FaCloud, FaFeather } from 'react-icons/fa';
+import { useTranslation } from 'react-i18next';
 import SuggestionsCard from './SuggestionsCard';
 
 const SidebarRight = () => {
+    const { t } = useTranslation();
     const insights = [
-        { title: 'Voar em sonhos', desc: 'Sonhar que está voando geralmente representa sensação de liberdade e controle sobre a própria vida.', icon: FaCloud },
-        { title: 'Cair em sonhos', desc: 'Sensação de queda durante o sonho frequentemente está associada a inseguranças e perda de controle.', icon: FaFeather },
+        { title: t('sidebarRight.flyTitle'), desc: t('sidebarRight.flyDesc'), icon: FaCloud },
+        { title: t('sidebarRight.fallTitle'), desc: t('sidebarRight.fallDesc'), icon: FaFeather },
     ];
 
     return (
@@ -17,7 +19,7 @@ const SidebarRight = () => {
 
             {/* Insights Card */}
             <div className="bg-white dark:bg-cosmic-card dark:border dark:border-white/5 rounded-xl p-5 shadow-card transition-colors duration-300">
-                <h3 className="text-text-main dark:text-white font-bold text-sm mb-4">Insights de Sonhos</h3>
+                <h3 className="text-text-main dark:text-white font-bold text-sm mb-4">{t('sidebarRight.insightsTitle')}</h3>
                 <div className="flex flex-col gap-6">
                     {insights.map((item, index) => (
                         <div key={index} className="flex flex-col gap-2">

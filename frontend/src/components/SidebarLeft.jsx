@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FaHome, FaMoon, FaUserFriends, FaBookmark, FaPlus } from 'react-icons/fa';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { getTrends } from '../services/api';
 
 const SidebarLeft = () => {
@@ -11,12 +12,13 @@ const SidebarLeft = () => {
     // State to hold trending hashtags from backend
     const [trends, setTrends] = useState([]);
     const [loading, setLoading] = useState(true);
+    const { t } = useTranslation();
 
     const menuItems = [
-        { icon: FaHome, label: 'Início', path: '/' },
-        { icon: FaMoon, label: 'Explorar', path: '/explore' },
-        { icon: FaUserFriends, label: 'Comunidades', path: '/communities' },
-        { icon: FaBookmark, label: 'Salvos', path: '/saved' },
+        { icon: FaHome, label: t('sidebar.home'), path: '/' },
+        { icon: FaMoon, label: t('sidebar.explore'), path: '/explore' },
+        { icon: FaUserFriends, label: t('sidebar.communities'), path: '/communities' },
+        { icon: FaBookmark, label: t('sidebar.saved'), path: '/saved' },
     ];
 
     // Fetch trends on component mount
@@ -60,19 +62,19 @@ const SidebarLeft = () => {
                 className="w-full h-[45px] bg-gradient-to-r from-primary to-secondary text-white font-bold rounded-full flex items-center justify-center gap-2 shadow-glow hover:opacity-90 transition-all transform hover:scale-[1.02] mb-8"
             >
                 <FaPlus />
-                Novo Sonho
+                {t('sidebar.newDream')}
             </button>
 
             {/* Trends Section */}
             <div>
-                <h3 className="text-sm font-bold text-text-main dark:text-white mb-4 px-2">Tendências</h3>
+                <h3 className="text-sm font-bold text-text-main dark:text-white mb-4 px-2">{t('sidebar.trends')}</h3>
                 <div className="flex flex-col gap-4 px-2">
                     {loading ? (
                         <div className="flex justify-center py-4">
                             <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
                         </div>
                     ) : trends.length === 0 ? (
-                        <p className="text-xs text-text-secondary dark:text-gray-400">Nenhuma tendência no momento.</p>
+                        <p className="text-xs text-text-secondary dark:text-gray-400">{t('sidebar.noTrends')}</p>
                     ) : (
                         trends.map((trend, index) => (
                             <div key={index} className="flex flex-col cursor-pointer group">
@@ -80,7 +82,7 @@ const SidebarLeft = () => {
                                     #{trend.texto_hashtag}
                                 </span>
                                 <span className="text-xs text-text-secondary dark:text-gray-400">
-                                    {trend.contagem_uso} {trend.contagem_uso === 1 ? 'sonho' : 'sonhos'}
+                                    {trend.contagem_uso} {trend.contagem_uso === 1 ? t('sidebar.dreamSingular') : t('sidebar.dreamPlural')}
                                 </span>
                             </div>
                         ))

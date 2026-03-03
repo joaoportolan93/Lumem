@@ -6,6 +6,7 @@ from django.shortcuts import get_object_or_404
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import models, transaction
+from django.utils.translation import gettext as _
 import os
 import uuid
 from .serializers import RegisterSerializer, UserSerializer, UserUpdateSerializer, LogoutSerializer, PasswordResetSerializer
@@ -78,8 +79,8 @@ class CustomTokenObtainPairView(TokenObtainPairView):
                 user = User.objects.get(email=email)
                 if user.status == 2:  # Suspenso/Banido
                     return Response({
-                        'error': 'Conta banida',
-                        'message': 'Sua conta foi banida por tempo indeterminado devido a violação das regras da comunidade.',
+                        'error': _('Conta banida'),
+                        'message': _('Sua conta foi banida por tempo indeterminado devido a violação das regras da comunidade.'),
                         'banned': True
                     }, status=status.HTTP_403_FORBIDDEN)
             except User.DoesNotExist:
@@ -152,7 +153,7 @@ class UserDetailView(APIView):
         # Only allow users to update their own profile
         if request.user.id_usuario != pk:
             return Response(
-                {'error': 'Você só pode editar seu próprio perfil'},
+                {'error': _('Você só pode editar seu próprio perfil')},
                 status=status.HTTP_403_FORBIDDEN
             )
         
@@ -173,7 +174,7 @@ class LogoutView(APIView):
         serializer = LogoutSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
-            return Response({'message': 'Logout realizado com sucesso'}, status=status.HTTP_200_OK)
+            return Response({'message': _('Logout realizado com sucesso')}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class PasswordResetView(APIView):
@@ -185,7 +186,7 @@ class PasswordResetView(APIView):
         if serializer.is_valid():
             serializer.save()
             return Response(
-                {'message': 'Senha redefinida com sucesso!'},
+                {'message': _('Senha redefinida com sucesso!')},
                 status=status.HTTP_200_OK
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -201,7 +202,7 @@ class AvatarUploadView(APIView):
     def post(self, request):
         if 'avatar' not in request.FILES:
             return Response(
-                {'error': 'Nenhum arquivo enviado'},
+                {'error': _('Nenhum arquivo enviado')},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
@@ -211,14 +212,14 @@ class AvatarUploadView(APIView):
         ext = file.name.split('.')[-1].lower()
         if ext not in self.ALLOWED_EXTENSIONS:
             return Response(
-                {'error': f'Formato não permitido. Use: {", ".join(self.ALLOWED_EXTENSIONS)}'},
+                {'error': _('Formato não permitido. Use: %(ext)s') % {'ext': ', '.join(self.ALLOWED_EXTENSIONS)}},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
         # Validate file size
         if file.size > self.MAX_FILE_SIZE:
             return Response(
-                {'error': 'Arquivo muito grande. Máximo: 5MB'},
+                {'error': _('Arquivo muito grande. Máximo: 5MB')},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
@@ -253,7 +254,7 @@ class AvatarUploadView(APIView):
         absolute_avatar_url = request.build_absolute_uri(avatar_url)
         
         return Response({
-            'message': 'Avatar atualizado com sucesso',
+            'message': _('Avatar atualizado com sucesso'),
             'avatar_url': absolute_avatar_url
         }, status=status.HTTP_200_OK)
 
@@ -323,6 +324,16 @@ class PublicacaoViewSet(viewsets.ModelViewSet):
         )
         base_filter = Q(usuario__status=1) & ~Q(usuario__in=blocked_user_ids) & privacy_filter
 
+        # Post visibility rules:
+        # 1: Public -> Visible to all who pass base_filter
+        # 2: Close Friends/Followers -> Visible if current user follows author
+        # 3: Private -> Only visible to the author
+        visibility_q = (
+            Q(visibilidade=1) |
+            (Q(visibilidade=2) & Q(usuario__in=following_ids)) |
+            Q(usuario=user)
+        )
+
         if self.action == 'list':
             tab = self.request.query_params.get('tab', 'following')
             
@@ -336,6 +347,7 @@ class PublicacaoViewSet(viewsets.ModelViewSet):
                 # Saved Dreams: Posts saved by the user
                 return Publicacao.objects.filter(
                     base_filter,
+                    visibility_q,
                     publicacaosalva__usuario=user
                 ).order_by('-publicacaosalva__data_salvo')
             
@@ -344,6 +356,7 @@ class PublicacaoViewSet(viewsets.ModelViewSet):
                 if community_id:
                     return Publicacao.objects.filter(
                         base_filter,
+                        visibility_q,
                         comunidade_id=community_id
                     ).order_by('-data_publicacao')
 
@@ -367,6 +380,7 @@ class PublicacaoViewSet(viewsets.ModelViewSet):
                         return Publicacao.objects.none()
                     return Publicacao.objects.filter(
                         base_filter,
+                        visibility_q,
                         usuario_id=user_id,
                         comunidade__isnull=True
                     ).order_by('-data_publicacao')
@@ -383,6 +397,7 @@ class PublicacaoViewSet(viewsets.ModelViewSet):
                         return Publicacao.objects.none()
                     return Publicacao.objects.filter(
                         base_filter,
+                        visibility_q,
                         usuario_id=user_id,
                         comunidade__isnull=False
                     ).order_by('-data_publicacao')
@@ -400,6 +415,7 @@ class PublicacaoViewSet(viewsets.ModelViewSet):
                         return Publicacao.objects.none()
                     return Publicacao.objects.filter(
                         base_filter,
+                        visibility_q,
                         usuario_id=user_id
                     ).filter(media_filter).order_by('-data_publicacao')
                 else:
@@ -420,16 +436,15 @@ class PublicacaoViewSet(viewsets.ModelViewSet):
             # Following: Dreams from people user follows + own dreams
             return Publicacao.objects.filter(
                 base_filter,
+                visibility_q,
                 Q(usuario__in=following_ids) | Q(usuario=user)
             ).order_by('-data_publicacao')
 
         # For detailed actions (retrieve, like, etc), return all accessible posts
-        # Accessible = Public OR Own OR Followed (but not from banned users)
+        # Accessible = Satisfies visibility rules AND base filters
         return Publicacao.objects.filter(
             base_filter,
-            Q(visibilidade=1) | 
-            Q(usuario=user) | 
-            Q(usuario__in=following_ids)
+            visibility_q
         ).distinct()
     
     def perform_create(self, serializer):
@@ -458,7 +473,7 @@ class PublicacaoViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         if instance.usuario.id_usuario != request.user.id_usuario:
             return Response(
-                {'error': 'Você só pode editar seus próprios sonhos'},
+                {'error': _('Você só pode editar seus próprios sonhos')},
                 status=status.HTTP_403_FORBIDDEN
             )
         return super().update(request, *args, **kwargs)
@@ -467,7 +482,7 @@ class PublicacaoViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         if instance.usuario.id_usuario != request.user.id_usuario:
             return Response(
-                {'error': 'Você só pode excluir seus próprios sonhos'},
+                {'error': _('Você só pode excluir seus próprios sonhos')},
                 status=status.HTTP_403_FORBIDDEN
             )
         return super().destroy(request, *args, **kwargs)
@@ -519,14 +534,14 @@ class PublicacaoViewSet(viewsets.ModelViewSet):
         if existing_save:
             existing_save.delete()
             is_saved = False
-            message = 'Post removido dos salvos'
+            message = _('Post removido dos salvos')
         else:
             PublicacaoSalva.objects.create(
                 publicacao=dream,
                 usuario=request.user
             )
             is_saved = True
-            message = 'Post salvo com sucesso'
+            message = _('Post salvo com sucesso')
 
         return Response({
             'is_saved': is_saved,
@@ -545,7 +560,7 @@ class FollowView(APIView):
         # Can't follow yourself
         if request.user.id_usuario == pk:
             return Response(
-                {'error': 'Você não pode seguir a si mesmo'},
+                {'error': _('Você não pode seguir a si mesmo')},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
@@ -556,7 +571,7 @@ class FollowView(APIView):
             Q(usuario=user_to_follow, usuario_bloqueado=request.user)
         ).exists():
             return Response(
-                {'error': 'Não é possível seguir este usuário'},
+                {'error': _('Não é possível seguir este usuário')},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
@@ -569,12 +584,12 @@ class FollowView(APIView):
         if existing:
             if existing.status == 1:
                 return Response(
-                    {'error': 'Você já está seguindo este usuário'},
+                    {'error': _('Você já está seguindo este usuário')},
                     status=status.HTTP_400_BAD_REQUEST
                 )
             if existing.status == 3:
                 return Response(
-                    {'error': 'Solicitação já enviada', 'follow_status': 'pending'},
+                    {'error': _('Solicitação já enviada'), 'follow_status': 'pending'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
             # Reactivate if was blocked/inactive - check privacy
@@ -583,7 +598,7 @@ class FollowView(APIView):
                 existing.data_seguimento = timezone.now()
                 existing.save()
                 return Response({
-                    'message': f'Solicitação enviada para {user_to_follow.nome_usuario}',
+                    'message': _('Solicitação enviada para %(username)s') % {'username': user_to_follow.nome_usuario},
                     'follow_status': 'pending'
                 }, status=status.HTTP_200_OK)
             else:
@@ -606,7 +621,7 @@ class FollowView(APIView):
                     tipo=5  # New type for follow request
                 )
                 return Response({
-                    'message': f'Solicitação enviada para {user_to_follow.nome_usuario}',
+                    'message': _('Solicitação enviada para %(username)s') % {'username': user_to_follow.nome_usuario},
                     'follow_status': 'pending'
                 }, status=status.HTTP_200_OK)
             else:
@@ -626,7 +641,7 @@ class FollowView(APIView):
         )
         
         return Response({
-            'message': f'Você agora está seguindo {user_to_follow.nome_usuario}',
+            'message': _('Você agora está seguindo %(username)s') % {'username': user_to_follow.nome_usuario},
             'follow_status': 'following'
         }, status=status.HTTP_200_OK)
 
@@ -642,7 +657,7 @@ class FollowView(APIView):
         
         if not follow:
             return Response(
-                {'error': 'Você não está seguindo este usuário'},
+                {'error': _('Você não está seguindo este usuário')},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
@@ -650,7 +665,7 @@ class FollowView(APIView):
         follow.delete()
         
         return Response({
-            'message': f'Você deixou de seguir {user_to_unfollow.nome_usuario}' if not was_pending else 'Solicitação cancelada',
+            'message': _('Você deixou de seguir %(username)s') % {'username': user_to_unfollow.nome_usuario} if not was_pending else _('Solicitação cancelada'),
             'follow_status': 'none'
         }, status=status.HTTP_200_OK)
 
@@ -672,7 +687,7 @@ class UserFollowersView(APIView):
             ).exists()
             if not is_follower:
                 return Response(
-                    {'error': 'Esta conta é privada. Apenas seguidores aprovados podem ver esta lista.'},
+                    {'error': _('Esta conta é privada. Apenas seguidores aprovados podem ver esta lista.')},
                     status=status.HTTP_403_FORBIDDEN
                 )
 
@@ -720,7 +735,7 @@ class UserFollowingView(APIView):
             ).exists()
             if not is_follower:
                 return Response(
-                    {'error': 'Esta conta é privada. Apenas seguidores aprovados podem ver esta lista.'},
+                    {'error': _('Esta conta é privada. Apenas seguidores aprovados podem ver esta lista.')},
                     status=status.HTTP_403_FORBIDDEN
                 )
 
@@ -759,12 +774,12 @@ class BlockView(APIView):
         user_to_block = get_object_or_404(User, pk=pk)
         
         if request.user.id_usuario == pk:
-            return Response({'error': 'Você não pode bloquear a si mesmo'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': _('Você não pode bloquear a si mesmo')}, status=status.HTTP_400_BAD_REQUEST)
         
         # Check if already blocked
         from .models import Bloqueio
         if Bloqueio.objects.filter(usuario=request.user, usuario_bloqueado=user_to_block).exists():
-            return Response({'message': 'Usuário já está bloqueado'}, status=status.HTTP_200_OK)
+            return Response({'message': _('Usuário já está bloqueado')}, status=status.HTTP_200_OK)
         
         # Create block
         Bloqueio.objects.create(usuario=request.user, usuario_bloqueado=user_to_block)
@@ -773,7 +788,7 @@ class BlockView(APIView):
         Seguidor.objects.filter(usuario_seguidor=request.user, usuario_seguido=user_to_block).delete()
         Seguidor.objects.filter(usuario_seguidor=user_to_block, usuario_seguido=request.user).delete()
         
-        return Response({'message': f'Você bloqueou {user_to_block.nome_usuario}'}, status=status.HTTP_200_OK)
+        return Response({'message': _('Você bloqueou %(username)s') % {'username': user_to_block.nome_usuario}}, status=status.HTTP_200_OK)
 
     def delete(self, request, pk):
         """Unblock a user"""
@@ -783,9 +798,9 @@ class BlockView(APIView):
         deleted, _ = Bloqueio.objects.filter(usuario=request.user, usuario_bloqueado=user_to_unblock).delete()
         
         if not deleted:
-            return Response({'error': 'Este usuário não está bloqueado'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': _('Este usuário não está bloqueado')}, status=status.HTTP_400_BAD_REQUEST)
             
-        return Response({'message': f'Você desbloqueou {user_to_unblock.nome_usuario}'}, status=status.HTTP_200_OK)
+        return Response({'message': _('Você desbloqueou %(username)s') % {'username': user_to_unblock.nome_usuario}}, status=status.HTTP_200_OK)
 
 
 class MuteView(APIView):
@@ -797,15 +812,15 @@ class MuteView(APIView):
         user_to_mute = get_object_or_404(User, pk=pk)
         
         if request.user.id_usuario == pk:
-            return Response({'error': 'Você não pode silenciar a si mesmo'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': _('Você não pode silenciar a si mesmo')}, status=status.HTTP_400_BAD_REQUEST)
         
         from .models import Silenciamento
         if Silenciamento.objects.filter(usuario=request.user, usuario_silenciado=user_to_mute).exists():
-            return Response({'message': 'Usuário já está silenciado'}, status=status.HTTP_200_OK)
+            return Response({'message': _('Usuário já está silenciado')}, status=status.HTTP_200_OK)
         
         Silenciamento.objects.create(usuario=request.user, usuario_silenciado=user_to_mute)
         
-        return Response({'message': f'Você silenciou {user_to_mute.nome_usuario}'}, status=status.HTTP_200_OK)
+        return Response({'message': _('Você silenciou %(username)s') % {'username': user_to_mute.nome_usuario}}, status=status.HTTP_200_OK)
 
     def delete(self, request, pk):
         """Unmute a user"""
@@ -815,9 +830,9 @@ class MuteView(APIView):
         deleted, _ = Silenciamento.objects.filter(usuario=request.user, usuario_silenciado=user_to_unmute).delete()
         
         if not deleted:
-            return Response({'error': 'Este usuário não está silenciado'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': _('Este usuário não está silenciado')}, status=status.HTTP_400_BAD_REQUEST)
             
-        return Response({'message': f'Você deixou de silenciar {user_to_unmute.nome_usuario}'}, status=status.HTTP_200_OK)
+        return Response({'message': _('Você deixou de silenciar %(username)s') % {'username': user_to_unmute.nome_usuario}}, status=status.HTTP_200_OK)
 
 
 class FollowRequestsView(APIView):
@@ -860,7 +875,7 @@ class FollowRequestActionView(APIView):
         
         if not follow_request:
             return Response(
-                {'error': 'Solicitação não encontrada'},
+                {'error': _('Solicitação não encontrada')},
                 status=status.HTTP_404_NOT_FOUND
             )
         
@@ -877,19 +892,19 @@ class FollowRequestActionView(APIView):
             )
             
             return Response({
-                'message': 'Solicitação aceita',
+                'message': _('Solicitação aceita'),
                 'status': 'accepted'
             }, status=status.HTTP_200_OK)
         
         elif action == 'reject':
             follow_request.delete()
             return Response({
-                'message': 'Solicitação recusada',
+                'message': _('Solicitação recusada'),
                 'status': 'rejected'
             }, status=status.HTTP_200_OK)
         
         return Response(
-            {'error': 'Ação inválida. Use "accept" ou "reject"'},
+            {'error': _('Ação inválida. Use "accept" ou "reject"')},
             status=status.HTTP_400_BAD_REQUEST
         )
 
@@ -994,7 +1009,7 @@ class ComentarioViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         if instance.usuario.id_usuario != request.user.id_usuario:
             return Response(
-                {'error': 'Você só pode editar seus próprios comentários'},
+                {'error': _('Você só pode editar seus próprios comentários')},
                 status=status.HTTP_403_FORBIDDEN
             )
         return super().update(request, *args, **kwargs)
@@ -1003,14 +1018,14 @@ class ComentarioViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         if instance.usuario.id_usuario != request.user.id_usuario:
             return Response(
-                {'error': 'Você só pode excluir seus próprios comentários'},
+                {'error': _('Você só pode excluir seus próprios comentários')},
                 status=status.HTTP_403_FORBIDDEN
             )
         
         # Prevent deletion if comment has replies to preserve thread structure
         if instance.respostas.filter(status=1).exists():
             return Response(
-                {'error': 'Não é possível excluir um comentário que possui respostas. Exclua as respostas primeiro.'},
+                {'error': _('Não é possível excluir um comentário que possui respostas. Exclua as respostas primeiro.')},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
@@ -1204,9 +1219,9 @@ class AdminUserDetailView(APIView):
         if new_status in [1, 2, 3]:
             user.status = new_status
             user.save()
-            return Response({'message': 'Status atualizado', 'status': new_status})
+            return Response({'message': _('Status atualizado'), 'status': new_status})
         
-        return Response({'error': 'Status inválido'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'error': _('Status inválido')}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class AdminReportsView(APIView):
@@ -1288,7 +1303,7 @@ class AdminReportActionView(APIView):
             report.acao_tomada = 1  # Nenhuma
             report.data_resolucao = timezone.now()
             report.save()
-            return Response({'message': 'Denúncia ignorada'})
+            return Response({'message': _('Denúncia ignorada')})
 
         elif action == 'remove':
             # Remove content based on type
@@ -1301,7 +1316,7 @@ class AdminReportActionView(APIView):
             report.acao_tomada = 2  # Removido
             report.data_resolucao = timezone.now()
             report.save()
-            return Response({'message': 'Conteúdo removido'})
+            return Response({'message': _('Conteúdo removido')})
 
         elif action == 'ban':
             # Get user to ban based on content type
@@ -1325,9 +1340,9 @@ class AdminReportActionView(APIView):
             report.acao_tomada = 3  # Usuário Suspenso
             report.data_resolucao = timezone.now()
             report.save()
-            return Response({'message': 'Usuário banido'})
+            return Response({'message': _('Usuário banido')})
 
-        return Response({'error': 'Ação inválida'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'error': _('Ação inválida')}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class CreateReportView(APIView):
@@ -1342,34 +1357,34 @@ class CreateReportView(APIView):
 
         if not all([id_conteudo, tipo_conteudo, motivo_denuncia]):
             return Response(
-                {'error': 'Campos obrigatórios: id_conteudo, tipo_conteudo, motivo_denuncia'},
+                {'error': _('Campos obrigatórios: id_conteudo, tipo_conteudo, motivo_denuncia')},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
         # Validate tipo_conteudo
         if tipo_conteudo not in [1, 2, 3]:
             return Response(
-                {'error': 'tipo_conteudo inválido. Use: 1 (Post), 2 (Comment), 3 (User)'},
+                {'error': _('tipo_conteudo inválido. Use: 1 (Post), 2 (Comment), 3 (User)')},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
         # Validate motivo_denuncia
         if motivo_denuncia not in [1, 2, 3]:
             return Response(
-                {'error': 'motivo_denuncia inválido. Use: 1, 2 ou 3'},
+                {'error': _('motivo_denuncia inválido. Use: 1, 2 ou 3')},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
         # Check if content exists
         if tipo_conteudo == 1:
             if not Publicacao.objects.filter(id_publicacao=id_conteudo).exists():
-                return Response({'error': 'Publicação não encontrada'}, status=status.HTTP_404_NOT_FOUND)
+                return Response({'error': _('Publicação não encontrada')}, status=status.HTTP_404_NOT_FOUND)
         elif tipo_conteudo == 2:
             if not Comentario.objects.filter(id_comentario=id_conteudo).exists():
-                return Response({'error': 'Comentário não encontrado'}, status=status.HTTP_404_NOT_FOUND)
+                return Response({'error': _('Comentário não encontrado')}, status=status.HTTP_404_NOT_FOUND)
         elif tipo_conteudo == 3:
             if not User.objects.filter(id_usuario=id_conteudo).exists():
-                return Response({'error': 'Usuário não encontrado'}, status=status.HTTP_404_NOT_FOUND)
+                return Response({'error': _('Usuário não encontrado')}, status=status.HTTP_404_NOT_FOUND)
 
         # Create report
         report = Denuncia.objects.create(
@@ -1382,7 +1397,7 @@ class CreateReportView(APIView):
         )
 
         return Response({
-            'message': 'Denúncia enviada com sucesso',
+            'message': _('Denúncia enviada com sucesso'),
             'id_denuncia': report.id_denuncia
         }, status=status.HTTP_201_CREATED)
 
@@ -1452,7 +1467,7 @@ class ToggleCloseFriendView(APIView):
         return Response({
             'id_usuario': pk,
             'is_close_friend': follow.is_close_friend,
-            'message': 'Amigo próximo adicionado' if follow.is_close_friend else 'Amigo próximo removido'
+            'message': _('Amigo próximo adicionado') if follow.is_close_friend else _('Amigo próximo removido')
         }, status=status.HTTP_200_OK)
 # ==========================================
 # COMMUNITIES VIEWS
@@ -1475,9 +1490,9 @@ class ComunidadeViewSet(viewsets.ModelViewSet):
         """Validate uploaded image file"""
         ext = file.name.split('.')[-1].lower()
         if ext not in self.ALLOWED_EXTENSIONS:
-            return False, f'Formato não permitido. Use: {", ".join(self.ALLOWED_EXTENSIONS)}'
+            return False, _('Formato não permitido. Use: %(ext)s') % {'ext': ', '.join(self.ALLOWED_EXTENSIONS)}
         if file.size > self.MAX_FILE_SIZE:
-            return False, 'Arquivo muito grande. Máximo: 5MB'
+            return False, _('Arquivo muito grande. Máximo: 5MB')
         return True, ext
 
     def _check_moderator(self, request, community):
@@ -1493,7 +1508,7 @@ class ComunidadeViewSet(viewsets.ModelViewSet):
         """Upload community icon image (moderators only)"""
         community = self.get_object()
         if not self._check_moderator(request, community):
-            return Response({'error': 'Apenas moderadores podem alterar o ícone'}, status=status.HTTP_403_FORBIDDEN)
+            return Response({'error': _('Apenas moderadores podem alterar o ícone')}, status=status.HTTP_403_FORBIDDEN)
 
         if 'image' not in request.FILES:
             return Response({'error': 'Nenhum arquivo enviado'}, status=status.HTTP_400_BAD_REQUEST)
@@ -1516,14 +1531,14 @@ class ComunidadeViewSet(viewsets.ModelViewSet):
 
         # Build absolute URL for response
         image_url = request.build_absolute_uri(community.imagem.url)
-        return Response({'message': 'Ícone atualizado!', 'imagem': image_url}, status=status.HTTP_200_OK)
+        return Response({'message': _('Ícone atualizado!'), 'imagem': image_url}, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['post'], url_path='upload-banner')
     def upload_banner(self, request, pk=None):
         """Upload community banner image (moderators only)"""
         community = self.get_object()
         if not self._check_moderator(request, community):
-            return Response({'error': 'Apenas moderadores podem alterar o banner'}, status=status.HTTP_403_FORBIDDEN)
+            return Response({'error': _('Apenas moderadores podem alterar o banner')}, status=status.HTTP_403_FORBIDDEN)
 
         if 'image' not in request.FILES:
             return Response({'error': 'Nenhum arquivo enviado'}, status=status.HTTP_400_BAD_REQUEST)
@@ -1546,7 +1561,7 @@ class ComunidadeViewSet(viewsets.ModelViewSet):
 
         # Build absolute URL for response
         banner_url = request.build_absolute_uri(community.banner.url)
-        return Response({'message': 'Banner atualizado!', 'banner': banner_url}, status=status.HTTP_200_OK)
+        return Response({'message': _('Banner atualizado!'), 'banner': banner_url}, status=status.HTTP_200_OK)
 
     def get_serializer_context(self):
         return {'request': self.request}
@@ -1596,10 +1611,10 @@ class ComunidadeViewSet(viewsets.ModelViewSet):
         ).exists()
         
         if not is_community_admin and not user.is_admin:
-            return Response({'error': 'Apenas administradores podem excluir a comunidade'}, status=status.HTTP_403_FORBIDDEN)
+            return Response({'error': _('Apenas administradores podem excluir a comunidade')}, status=status.HTTP_403_FORBIDDEN)
         
         community.delete()
-        return Response({'message': 'Comunidade excluída com sucesso'}, status=status.HTTP_200_OK)
+        return Response({'message': _('Comunidade excluída com sucesso')}, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['post'])
     def join(self, request, pk=None):
@@ -1609,15 +1624,15 @@ class ComunidadeViewSet(viewsets.ModelViewSet):
         
         # Check if already member
         if MembroComunidade.objects.filter(comunidade=community, usuario=user).exists():
-            return Response({'error': 'Você já é membro desta comunidade'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': _('Você já é membro desta comunidade')}, status=status.HTTP_400_BAD_REQUEST)
         
         # Check if banned
         if BanimentoComunidade.objects.filter(comunidade=community, usuario=user).exists():
-            return Response({'error': 'Você está banido desta comunidade'}, status=status.HTTP_403_FORBIDDEN)
+            return Response({'error': _('Você está banido desta comunidade')}, status=status.HTTP_403_FORBIDDEN)
             
         MembroComunidade.objects.create(comunidade=community, usuario=user, role='member')
         return Response({
-            'message': 'Bem-vindo à comunidade!',
+            'message': _('Bem-vindo à comunidade!'),
             'is_member': True,
             'membros_count': community.membros.count()
         }, status=status.HTTP_200_OK)
@@ -1630,17 +1645,17 @@ class ComunidadeViewSet(viewsets.ModelViewSet):
         
         membership = MembroComunidade.objects.filter(comunidade=community, usuario=user).first()
         if not membership:
-             return Response({'error': 'Você não é membro desta comunidade'}, status=status.HTTP_400_BAD_REQUEST)
+             return Response({'error': _('Você não é membro desta comunidade')}, status=status.HTTP_400_BAD_REQUEST)
         
         # Prevent last admin from leaving
         if membership.role == 'admin':
             admin_count = MembroComunidade.objects.filter(comunidade=community, role='admin').count()
             if admin_count <= 1:
-                return Response({'error': 'Você é o único admin. Promova outro membro antes de sair.'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({'error': _('Você é o único admin. Promova outro membro antes de sair.')}, status=status.HTTP_400_BAD_REQUEST)
         
         membership.delete()
         return Response({
-            'message': 'Você saiu da comunidade',
+            'message': _('Você saiu da comunidade'),
             'is_member': False,
             'membros_count': community.membros.count()
         }, status=status.HTTP_200_OK)
@@ -1659,16 +1674,16 @@ class ComunidadeViewSet(viewsets.ModelViewSet):
         ).exists()
         
         if not is_admin and not user.is_admin:
-            return Response({'error': 'Apenas administradores podem gerenciar roles'}, status=status.HTTP_403_FORBIDDEN)
+            return Response({'error': _('Apenas administradores podem gerenciar roles')}, status=status.HTTP_403_FORBIDDEN)
         
         target_user_id = request.data.get('user_id')
         new_role = request.data.get('role')
         
         if not target_user_id or not new_role:
-            return Response({'error': 'Campos obrigatórios: user_id, role'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': _('Campos obrigatórios: user_id, role')}, status=status.HTTP_400_BAD_REQUEST)
         
         if new_role not in ['member', 'moderator', 'admin']:
-            return Response({'error': 'Role inválido. Use: member, moderator, admin'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': _('Role inválido. Use: member, moderator, admin')}, status=status.HTTP_400_BAD_REQUEST)
         
         membership = MembroComunidade.objects.filter(
             comunidade=community, 
@@ -1676,20 +1691,20 @@ class ComunidadeViewSet(viewsets.ModelViewSet):
         ).first()
         
         if not membership:
-            return Response({'error': 'Usuário não é membro desta comunidade'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'error': _('Usuário não é membro desta comunidade')}, status=status.HTTP_404_NOT_FOUND)
         
         # Prevent removing own admin role if last admin
         if membership.usuario == user and membership.role == 'admin' and new_role != 'admin':
             admin_count = MembroComunidade.objects.filter(comunidade=community, role='admin').count()
             if admin_count <= 1:
-                return Response({'error': 'Você é o único admin. Promova outro membro antes de se rebaixar.'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({'error': _('Você é o único admin. Promova outro membro antes de se rebaixar.')}, status=status.HTTP_400_BAD_REQUEST)
         
         membership.role = new_role
         membership.save()
         
-        role_names = {'member': 'Membro', 'moderator': 'Moderador', 'admin': 'Administrador'}
+        role_names = {'member': _('Membro'), 'moderator': _('Moderador'), 'admin': _('Administrador')}
         return Response({
-            'message': f'Usuário agora é {role_names.get(new_role)}',
+            'message': _('Usuário agora é %(role)s') % {'role': role_names.get(new_role)},
             'user_id': target_user_id,
             'new_role': new_role
         }, status=status.HTTP_200_OK)
@@ -1729,7 +1744,7 @@ class ComunidadeViewSet(viewsets.ModelViewSet):
 
         if not is_mod and not user.is_admin:
              return Response(
-                {'error': 'Apenas moderadores podem ver estatísticas'}, 
+                {'error': _('Apenas moderadores podem ver estatísticas')}, 
                 status=status.HTTP_403_FORBIDDEN
             )
 
@@ -1770,14 +1785,14 @@ class ComunidadeViewSet(viewsets.ModelViewSet):
         """Update community info (Moderators/Admins only)"""
         community = self.get_object()
         if not self._check_moderator(request, community):
-            return Response({'error': 'Apenas moderadores podem editar a comunidade'}, status=status.HTTP_403_FORBIDDEN)
+            return Response({'error': _('Apenas moderadores podem editar a comunidade')}, status=status.HTTP_403_FORBIDDEN)
         
         # Only allow updating specific fields
         allowed_fields = {'nome', 'descricao', 'regras'}
         update_data = {k: v for k, v in request.data.items() if k in allowed_fields}
         
         if not update_data:
-            return Response({'error': 'Nenhum campo válido para atualizar'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': _('Nenhum campo válido para atualizar')}, status=status.HTTP_400_BAD_REQUEST)
         
         for field, value in update_data.items():
             setattr(community, field, value)
@@ -1795,30 +1810,30 @@ class ComunidadeViewSet(viewsets.ModelViewSet):
         """Ban a member from the community (Moderators only)"""
         community = self.get_object()
         if not self._check_moderator(request, community):
-            return Response({'error': 'Apenas moderadores podem banir membros'}, status=status.HTTP_403_FORBIDDEN)
+            return Response({'error': _('Apenas moderadores podem banir membros')}, status=status.HTTP_403_FORBIDDEN)
         
         target_user_id = request.data.get('user_id')
         motivo = request.data.get('motivo', '')
         
         if not target_user_id:
-            return Response({'error': 'Campo obrigatório: user_id'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': _('Campo obrigatório: user_id')}, status=status.HTTP_400_BAD_REQUEST)
         
         target_user = User.objects.filter(id_usuario=target_user_id).first()
         if not target_user:
-            return Response({'error': 'Usuário não encontrado'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'error': _('Usuário não encontrado')}, status=status.HTTP_404_NOT_FOUND)
         
         # Prevent banning admins
         target_membership = MembroComunidade.objects.filter(comunidade=community, usuario=target_user).first()
         if target_membership and target_membership.role == 'admin':
-            return Response({'error': 'Não é possível banir um administrador'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': _('Não é possível banir um administrador')}, status=status.HTTP_400_BAD_REQUEST)
         
         # Prevent self-ban
         if target_user.id_usuario == request.user.id_usuario:
-            return Response({'error': 'Você não pode banir a si mesmo'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': _('Você não pode banir a si mesmo')}, status=status.HTTP_400_BAD_REQUEST)
         
         # Check if already banned
         if BanimentoComunidade.objects.filter(comunidade=community, usuario=target_user).exists():
-            return Response({'error': 'Usuário já está banido'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': _('Usuário já está banido')}, status=status.HTTP_400_BAD_REQUEST)
         
         # Remove membership if exists
         if target_membership:
@@ -1833,7 +1848,7 @@ class ComunidadeViewSet(viewsets.ModelViewSet):
         )
         
         return Response({
-            'message': f'Usuário {target_user.nome_usuario} foi banido da comunidade',
+            'message': _('Usuário %(username)s foi banido da comunidade') % {'username': target_user.nome_usuario},
             'user_id': target_user_id
         }, status=status.HTTP_200_OK)
 
@@ -1842,19 +1857,19 @@ class ComunidadeViewSet(viewsets.ModelViewSet):
         """Unban a member from the community (Moderators only)"""
         community = self.get_object()
         if not self._check_moderator(request, community):
-            return Response({'error': 'Apenas moderadores podem desbanir membros'}, status=status.HTTP_403_FORBIDDEN)
+            return Response({'error': _('Apenas moderadores podem desbanir membros')}, status=status.HTTP_403_FORBIDDEN)
         
         target_user_id = request.data.get('user_id')
         if not target_user_id:
-            return Response({'error': 'Campo obrigatório: user_id'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': _('Campo obrigatório: user_id')}, status=status.HTTP_400_BAD_REQUEST)
         
         ban = BanimentoComunidade.objects.filter(comunidade=community, usuario_id=target_user_id).first()
         if not ban:
-            return Response({'error': 'Usuário não está banido'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'error': _('Usuário não está banido')}, status=status.HTTP_404_NOT_FOUND)
         
         ban.delete()
         return Response({
-            'message': 'Usuário desbanido com sucesso',
+            'message': _('Usuário desbanido com sucesso'),
             'user_id': target_user_id
         }, status=status.HTTP_200_OK)
 
@@ -1863,7 +1878,7 @@ class ComunidadeViewSet(viewsets.ModelViewSet):
         """List banned members (Moderators only)"""
         community = self.get_object()
         if not self._check_moderator(request, community):
-            return Response({'error': 'Apenas moderadores podem ver banidos'}, status=status.HTTP_403_FORBIDDEN)
+            return Response({'error': _('Apenas moderadores podem ver banidos')}, status=status.HTTP_403_FORBIDDEN)
         
         bans = BanimentoComunidade.objects.filter(
             comunidade=community
@@ -1885,25 +1900,25 @@ class ComunidadeViewSet(viewsets.ModelViewSet):
         ).exists()
         
         if not is_admin and not request.user.is_admin:
-            return Response({'error': 'Apenas administradores podem convidar moderadores'}, status=status.HTTP_403_FORBIDDEN)
+            return Response({'error': _('Apenas administradores podem convidar moderadores')}, status=status.HTTP_403_FORBIDDEN)
         
         target_user_id = request.data.get('user_id')
         if not target_user_id:
-            return Response({'error': 'Campo obrigatório: user_id'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': _('Campo obrigatório: user_id')}, status=status.HTTP_400_BAD_REQUEST)
         
         target_user = User.objects.filter(id_usuario=target_user_id).first()
         if not target_user:
-            return Response({'error': 'Usuário não encontrado'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'error': _('Usuário não encontrado')}, status=status.HTTP_404_NOT_FOUND)
         
         # Check if banned
         if BanimentoComunidade.objects.filter(comunidade=community, usuario=target_user).exists():
-            return Response({'error': 'Usuário está banido desta comunidade'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': _('Usuário está banido desta comunidade')}, status=status.HTTP_400_BAD_REQUEST)
         
         # If already a member, promote to moderator
         membership = MembroComunidade.objects.filter(comunidade=community, usuario=target_user).first()
         if membership:
             if membership.role in ['moderator', 'admin']:
-                return Response({'error': 'Usuário já é moderador/admin'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({'error': _('Usuário já é moderador/admin')}, status=status.HTTP_400_BAD_REQUEST)
             membership.role = 'moderator'
             membership.save()
         else:
@@ -1915,7 +1930,7 @@ class ComunidadeViewSet(viewsets.ModelViewSet):
             )
         
         return Response({
-            'message': f'{target_user.nome_usuario} agora é moderador da comunidade',
+            'message': _('%(username)s agora é moderador da comunidade') % {'username': target_user.nome_usuario},
             'user_id': target_user_id,
             'role': 'moderator'
         }, status=status.HTTP_200_OK)

@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import DreamCard from '../components/DreamCard';
 import { getCommunity, joinCommunity, leaveCommunity, deleteCommunity, getDreams, uploadCommunityIcon, uploadCommunityBanner, updateCommunity, inviteModerator, search } from '../services/api';
 import { FaBirthdayCake, FaEllipsisH, FaChevronDown, FaChevronUp, FaPlus, FaPen, FaEnvelope, FaUserPlus, FaTrash, FaCamera, FaTimes, FaSearch, FaSpinner } from 'react-icons/fa';
 
 const CommunityPage = () => {
+    const { t } = useTranslation();
     const { id } = useParams();
     const navigate = useNavigate();
     const currentUserId = JSON.parse(localStorage.getItem('user'))?.id_usuario;
@@ -52,7 +54,7 @@ const CommunityPage = () => {
                 setPosts(postsResponse.data);
             } catch (err) {
                 console.error('Error loading community:', err);
-                setError('Comunidade não encontrada');
+                setError(t('communityPage.errNotFound'));
             } finally {
                 setLoading(false);
             }
@@ -73,21 +75,21 @@ const CommunityPage = () => {
             }));
         } catch (err) {
             console.error('Error joining/leaving community:', err);
-            alert(err.response?.data?.error || 'Erro ao processar solicitação');
+            alert(err.response?.data?.error || t('communityPage.errRequest'));
         }
     };
 
     const handleDelete = async () => {
-        if (!window.confirm('Tem certeza que deseja excluir esta comunidade? Esta ação não pode ser desfeita.')) {
+        if (!window.confirm(t('communityPage.confirmDelete'))) {
             return;
         }
         try {
             await deleteCommunity(id);
-            alert('Comunidade excluída com sucesso!');
+            alert(t('communityPage.successDelete'));
             navigate('/communities');
         } catch (err) {
             console.error('Error deleting community:', err);
-            alert(err.response?.data?.error || 'Erro ao excluir comunidade');
+            alert(err.response?.data?.error || t('communityPage.errDelete'));
         }
     };
 
@@ -99,7 +101,7 @@ const CommunityPage = () => {
             const res = await uploadCommunityBanner(id, file);
             setCommunity(prev => ({ ...prev, banner: res.data.banner }));
         } catch (err) {
-            alert(err.response?.data?.error || 'Erro ao alterar banner');
+            alert(err.response?.data?.error || t('communityPage.errBanner'));
         } finally {
             setUploadingBanner(false);
             e.target.value = '';
@@ -114,7 +116,7 @@ const CommunityPage = () => {
             const res = await uploadCommunityIcon(id, file);
             setCommunity(prev => ({ ...prev, imagem: res.data.imagem }));
         } catch (err) {
-            alert(err.response?.data?.error || 'Erro ao alterar ícone');
+            alert(err.response?.data?.error || t('communityPage.errIcon'));
         } finally {
             setUploadingIcon(false);
             e.target.value = '';
@@ -135,7 +137,7 @@ const CommunityPage = () => {
             setCommunity(res.data);
             setShowEditModal(false);
         } catch (err) {
-            alert(err.response?.data?.error || 'Erro ao salvar alterações');
+            alert(err.response?.data?.error || t('communityPage.errSaveEdit'));
         } finally {
             setSavingEdit(false);
         }
@@ -171,7 +173,7 @@ const CommunityPage = () => {
             setCommunity(res.data);
             setShowRulesModal(false);
         } catch (err) {
-            alert(err.response?.data?.error || 'Erro ao salvar regras');
+            alert(err.response?.data?.error || t('communityPage.errSaveRules'));
         } finally {
             setSavingRules(false);
         }
@@ -243,7 +245,7 @@ const CommunityPage = () => {
             setInviteSearch('');
             setInviteResults([]);
         } catch (err) {
-            alert(err.response?.data?.error || 'Erro ao convidar moderador');
+            alert(err.response?.data?.error || t('communityPage.errInvite'));
         } finally {
             setInvitingUserId(null);
         }
@@ -257,9 +259,9 @@ const CommunityPage = () => {
 
     if (error || !community) return (
         <div className="flex flex-col items-center justify-center p-12 text-center">
-            <h2 className="text-2xl font-bold text-gray-400 mb-4">Comunidade não encontrada</h2>
+            <h2 className="text-2xl font-bold text-gray-400 mb-4">{t('communityPage.errNotFound')}</h2>
             <button onClick={() => navigate('/communities')} className="text-primary hover:underline">
-                Voltar para Comunidades
+                {t('communityPage.btnBack')}
             </button>
         </div>
     );
@@ -288,7 +290,7 @@ const CommunityPage = () => {
                         onClick={() => bannerInputRef.current?.click()}
                         disabled={uploadingBanner}
                         className="absolute right-4 top-4 bg-blue-500 hover:bg-blue-600 text-white p-2.5 rounded-full opacity-0 group-hover:opacity-100 transition-all"
-                        title="Alterar Banner"
+                        title={t('communityPage.changeBanner')}
                     >
                         {uploadingBanner ? (
                             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -345,7 +347,7 @@ const CommunityPage = () => {
                                     className="px-4 py-2 rounded-full font-bold bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-900 dark:text-white transition-colors flex items-center gap-2"
                                 >
                                     <FaPlus />
-                                    <span>Criar Post</span>
+                                    <span>{t('communityPage.btnCreatePost')}</span>
                                 </button>
 
                                 {/* More Options Button (...) */}
@@ -366,25 +368,25 @@ const CommunityPage = () => {
                                             }}
                                             className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-white/10 text-gray-700 dark:text-gray-200 text-sm"
                                         >
-                                            {community.is_member ? 'Sair da Comunidade' : 'Entrar na Comunidade'}
+                                            {community.is_member ? t('communityPage.menuLeave') : t('communityPage.menuJoin')}
                                         </button>
                                         {community.is_member && (
                                             <>
                                                 <button className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-white/10 text-gray-700 dark:text-gray-200 text-sm">
-                                                    Silenciar Comunidade
+                                                    {t('communityPage.menuMute')}
                                                 </button>
                                                 <button className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-white/10 text-gray-700 dark:text-gray-200 text-sm">
-                                                    Adicionar aos Favoritos
+                                                    {t('communityPage.menuFavorite')}
                                                 </button>
                                                 <button className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-white/10 text-red-500 text-sm">
-                                                    Denunciar
+                                                    {t('communityPage.menuReport')}
                                                 </button>
                                                 {(community.is_moderator || community.is_admin) && (
                                                     <button
                                                         onClick={() => navigate(`/community/${id}/mod-dashboard`)}
                                                         className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-white/10 text-blue-500 font-bold text-sm"
                                                     >
-                                                        FERRAMENTAS DE MODERAÇÃO
+                                                        {t('communityPage.menuModTools')}
                                                     </button>
                                                 )}
                                                 {community.is_admin && (
@@ -396,7 +398,7 @@ const CommunityPage = () => {
                                                         className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-white/10 text-red-600 font-bold text-sm flex items-center gap-2"
                                                     >
                                                         <FaTrash size={12} />
-                                                        EXCLUIR COMUNIDADE
+                                                        {t('communityPage.menuDelete')}
                                                     </button>
                                                 )}
                                             </>
@@ -427,8 +429,8 @@ const CommunityPage = () => {
                             ))
                         ) : (
                             <div className="bg-white dark:bg-[#1a1a1b] rounded border border-gray-200 dark:border-gray-700 p-12 text-center">
-                                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Não há posts por enquanto</h3>
-                                <p className="text-gray-500 dark:text-gray-400">Seja o primeiro a compartilhar um sonho nesta comunidade!</p>
+                                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">{t('communityPage.emptyPostsTitle')}</h3>
+                                <p className="text-gray-500 dark:text-gray-400">{t('communityPage.emptyPostsDesc')}</p>
                             </div>
                         )}
                     </div>
@@ -454,35 +456,35 @@ const CommunityPage = () => {
 
                             <div className="flex items-center gap-2 text-xs text-gray-500 mb-2">
                                 <FaBirthdayCake />
-                                Criada em {new Date(community.data_criacao).toLocaleDateString()}
+                                {t('communityPage.createdOn', { date: new Date(community.data_criacao).toLocaleDateString() })}
                             </div>
                             <div className="flex items-center gap-2 text-xs text-gray-500 mb-4">
-                                <span className="flex items-center gap-1"><div className="w-3 h-3 rounded-full border border-gray-500"></div> Pública</span>
+                                <span className="flex items-center gap-1"><div className="w-3 h-3 rounded-full border border-gray-500"></div> {t('communityPage.statusPublic')}</span>
                             </div>
 
                             <button className="w-full py-2 bg-indigo-700 hover:bg-indigo-600 text-white rounded-full font-bold text-sm transition-colors mb-6 shadow-md shadow-indigo-900/20 flex items-center justify-center gap-2">
                                 <FaBirthdayCake size={14} />
-                                Guia da comunidade
+                                {t('communityPage.btnGuide')}
                             </button>
 
                             {/* Stats */}
                             <div className="border-t border-gray-200 dark:border-gray-700/50 pt-4 pb-4">
                                 <div className="flex justify-between items-center mb-2">
-                                    <h3 className="text-xs font-bold text-gray-500 uppercase">Estatísticas</h3>
-                                    <span className="text-xs text-gray-500 cursor-pointer hover:text-gray-700 dark:hover:text-gray-300">Da última semana &gt;</span>
+                                    <h3 className="text-xs font-bold text-gray-500 uppercase">{t('communityPage.statsTitle')}</h3>
+                                    <span className="text-xs text-gray-500 cursor-pointer hover:text-gray-700 dark:hover:text-gray-300">{t('communityPage.statsLastWeek')}</span>
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <div className="text-xl font-medium text-gray-900 dark:text-white">
                                             {community.membros_count}
                                         </div>
-                                        <div className="text-xs text-gray-500">Visitantes</div>
+                                        <div className="text-xs text-gray-500">{t('communityPage.statVisitors')}</div>
                                     </div>
                                     <div>
                                         <div className="text-xl font-medium text-gray-900 dark:text-white flex items-center gap-1">
                                             12
                                         </div>
-                                        <div className="text-xs text-gray-500">Contribuição</div>
+                                        <div className="text-xs text-gray-500">{t('communityPage.statContribution')}</div>
                                     </div>
                                 </div>
                             </div>
@@ -495,7 +497,7 @@ const CommunityPage = () => {
                         {/* Rules Section */}
                         <div className="p-4">
                             <div className="flex justify-between items-center mb-4">
-                                <h3 className="font-bold text-gray-500 text-xs uppercase">Regras do r/{community.nome}</h3>
+                                <h3 className="font-bold text-gray-500 text-xs uppercase">{t('communityPage.rulesTitle', { name: community.nome })}</h3>
                                 {community.is_moderator && <FaPen className="cursor-pointer text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors" onClick={openRulesModal} size={12} />}
                             </div>
 
@@ -527,7 +529,7 @@ const CommunityPage = () => {
                                 </div>
                             ) : (
                                 <div className="text-sm text-gray-500 italic py-2 text-center border border-dashed border-gray-300 dark:border-gray-700 rounded">
-                                    Nenhuma regra definida
+                                    {t('communityPage.emptyRules')}
                                 </div>
                             )}
                         </div>
@@ -537,10 +539,10 @@ const CommunityPage = () => {
 
                         {/* Moderators Section */}
                         <div className="p-4">
-                            <h3 className="font-bold text-gray-500 text-xs uppercase mb-4">Moderadores</h3>
+                            <h3 className="font-bold text-gray-500 text-xs uppercase mb-4">{t('communityPage.modsTitle')}</h3>
                             <button className="w-full py-2 mb-4 bg-indigo-700 hover:bg-indigo-600 text-white rounded-full font-bold text-sm transition-colors flex items-center justify-center gap-2 shadow-md shadow-indigo-900/20">
                                 <FaEnvelope />
-                                Contatar a moderação
+                                {t('communityPage.btnContactMods')}
                             </button>
 
                             {community.is_admin && (
@@ -551,7 +553,7 @@ const CommunityPage = () => {
                                     <div className="p-1 rounded bg-indigo-500/10">
                                         <FaUserPlus size={10} />
                                     </div>
-                                    Convidar mod
+                                    {t('communityPage.btnInviteMod')}
                                 </button>
                             )}
 
@@ -567,12 +569,12 @@ const CommunityPage = () => {
                                         </div>
                                         <span>u/{mod.username}</span>
                                         {mod.role === 'admin' && (
-                                            <span className="text-[10px] bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded font-bold">ADMIN</span>
+                                            <span className="text-[10px] bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded font-bold">{t('communityPage.roleAdmin')}</span>
                                         )}
                                     </Link>
                                 ))}
                                 {!community.moderators && (
-                                    <div className="text-xs text-gray-500 italic">Lista de moderadores indisponível</div>
+                                    <div className="text-xs text-gray-500 italic">{t('communityPage.emptyMods')}</div>
                                 )}
                             </div>
                         </div>
@@ -587,14 +589,14 @@ const CommunityPage = () => {
                 <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={() => setShowEditModal(false)}>
                     <div className="bg-white dark:bg-[#1a1a1b] rounded-xl w-full max-w-md shadow-2xl border border-gray-200 dark:border-gray-700" onClick={e => e.stopPropagation()}>
                         <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-                            <h3 className="font-bold text-lg text-gray-900 dark:text-white">Editar Comunidade</h3>
+                            <h3 className="font-bold text-lg text-gray-900 dark:text-white">{t('communityPage.modalEditTitle')}</h3>
                             <button onClick={() => setShowEditModal(false)} className="text-gray-500 hover:text-gray-700 dark:hover:text-white transition-colors">
                                 <FaTimes />
                             </button>
                         </div>
                         <div className="p-4 space-y-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nome da comunidade</label>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('communityPage.modalEditNameLabel')}</label>
                                 <input
                                     type="text"
                                     value={editName}
@@ -604,7 +606,7 @@ const CommunityPage = () => {
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Descrição</label>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('communityPage.modalEditDescLabel')}</label>
                                 <textarea
                                     value={editDesc}
                                     onChange={e => setEditDesc(e.target.value)}
@@ -615,7 +617,7 @@ const CommunityPage = () => {
                         </div>
                         <div className="flex justify-end gap-2 p-4 border-t border-gray-200 dark:border-gray-700">
                             <button onClick={() => setShowEditModal(false)} className="px-4 py-2 text-sm font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full transition-colors">
-                                Cancelar
+                                {t('communityPage.btnCancel')}
                             </button>
                             <button
                                 onClick={handleSaveEdit}
@@ -623,7 +625,7 @@ const CommunityPage = () => {
                                 className="px-4 py-2 text-sm font-bold bg-indigo-600 hover:bg-indigo-500 text-white rounded-full transition-colors disabled:opacity-50 flex items-center gap-2"
                             >
                                 {savingEdit && <FaSpinner className="animate-spin" size={12} />}
-                                Salvar
+                                {t('communityPage.btnSave')}
                             </button>
                         </div>
                     </div>
@@ -635,7 +637,7 @@ const CommunityPage = () => {
                 <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={() => setShowRulesModal(false)}>
                     <div className="bg-white dark:bg-[#1a1a1b] rounded-xl w-full max-w-lg shadow-2xl border border-gray-200 dark:border-gray-700 max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
                         <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-                            <h3 className="font-bold text-lg text-gray-900 dark:text-white">Editar Regras</h3>
+                            <h3 className="font-bold text-lg text-gray-900 dark:text-white">{t('communityPage.modalRulesTitle')}</h3>
                             <button onClick={() => setShowRulesModal(false)} className="text-gray-500 hover:text-gray-700 dark:hover:text-white transition-colors">
                                 <FaTimes />
                             </button>
@@ -649,13 +651,13 @@ const CommunityPage = () => {
                                             type="text"
                                             value={rule.title}
                                             onChange={e => handleRuleChange(idx, 'title', e.target.value)}
-                                            placeholder="Título da regra"
+                                            placeholder={t('communityPage.ruleTitlePlaceholder')}
                                             className="flex-1 px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#1a1a1b] text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
                                         />
                                         <button
                                             onClick={() => handleRemoveRule(idx)}
                                             className="text-red-400 hover:text-red-600 transition-colors p-1"
-                                            title="Remover regra"
+                                            title={t('communityPage.btnRemoveRule')}
                                         >
                                             <FaTrash size={12} />
                                         </button>
@@ -663,7 +665,7 @@ const CommunityPage = () => {
                                     <textarea
                                         value={rule.description || ''}
                                         onChange={e => handleRuleChange(idx, 'description', e.target.value)}
-                                        placeholder="Descrição (opcional)"
+                                        placeholder={t('communityPage.ruleDescPlaceholder')}
                                         rows={2}
                                         className="w-full px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#1a1a1b] text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none resize-none"
                                     />
@@ -674,12 +676,12 @@ const CommunityPage = () => {
                                 className="w-full py-2 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-500 hover:text-indigo-500 hover:border-indigo-500 transition-colors flex items-center justify-center gap-2"
                             >
                                 <FaPlus size={10} />
-                                Adicionar regra
+                                {t('communityPage.btnAddRule')}
                             </button>
                         </div>
                         <div className="flex justify-end gap-2 p-4 border-t border-gray-200 dark:border-gray-700">
                             <button onClick={() => setShowRulesModal(false)} className="px-4 py-2 text-sm font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full transition-colors">
-                                Cancelar
+                                {t('communityPage.btnCancel')}
                             </button>
                             <button
                                 onClick={handleSaveRules}
@@ -687,7 +689,7 @@ const CommunityPage = () => {
                                 className="px-4 py-2 text-sm font-bold bg-indigo-600 hover:bg-indigo-500 text-white rounded-full transition-colors disabled:opacity-50 flex items-center gap-2"
                             >
                                 {savingRules && <FaSpinner className="animate-spin" size={12} />}
-                                Salvar Regras
+                                {t('communityPage.btnSaveRules')}
                             </button>
                         </div>
                     </div>
@@ -699,7 +701,7 @@ const CommunityPage = () => {
                 <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={() => setShowInviteModal(false)}>
                     <div className="bg-white dark:bg-[#1a1a1b] rounded-xl w-full max-w-md shadow-2xl border border-gray-200 dark:border-gray-700" onClick={e => e.stopPropagation()}>
                         <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-                            <h3 className="font-bold text-lg text-gray-900 dark:text-white">Convidar Moderador</h3>
+                            <h3 className="font-bold text-lg text-gray-900 dark:text-white">{t('communityPage.modalInviteTitle')}</h3>
                             <button onClick={() => { setShowInviteModal(false); setInviteSearch(''); setInviteResults([]); }} className="text-gray-500 hover:text-gray-700 dark:hover:text-white transition-colors">
                                 <FaTimes />
                             </button>
@@ -711,7 +713,7 @@ const CommunityPage = () => {
                                     type="text"
                                     value={inviteSearch}
                                     onChange={e => handleInviteSearch(e.target.value)}
-                                    placeholder="Buscar usuário por nome..."
+                                    placeholder={t('communityPage.inviteSearchPlaceholder')}
                                     className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#272729] text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
                                     autoFocus
                                 />
@@ -748,18 +750,18 @@ const CommunityPage = () => {
                                                     ) : (
                                                         <FaUserPlus size={10} />
                                                     )}
-                                                    Convidar
+                                                    {t('communityPage.btnInvite')}
                                                 </button>
                                             </div>
                                         ))}
                                     </div>
                                 ) : inviteSearch.length >= 2 ? (
                                     <div className="text-center text-sm text-gray-500 py-4">
-                                        Nenhum usuário encontrado
+                                        {t('communityPage.emptyInviteSearch')}
                                     </div>
                                 ) : (
                                     <div className="text-center text-sm text-gray-500 py-4">
-                                        Digite pelo menos 2 caracteres para buscar
+                                        {t('communityPage.inviteSearchHint')}
                                     </div>
                                 )}
                             </div>

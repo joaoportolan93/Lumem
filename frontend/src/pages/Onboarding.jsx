@@ -3,9 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaUser, FaEye, FaLock } from 'react-icons/fa';
 import { getProfile, updateUser, uploadAvatar } from '../services/api';
+import { useTranslation } from 'react-i18next';
 import '../styles/Auth.css';
 
 const Onboarding = () => {
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const fileInputRef = useRef(null);
 
@@ -41,7 +43,7 @@ const Onboarding = () => {
     const handleNext = () => {
         if (step === 1) {
             if (!displayName.trim()) {
-                setError('Por favor, insira seu nome de exibição.');
+                setError(t('onboarding.errEmptyDisplayName'));
                 return;
             }
             setError('');
@@ -81,7 +83,7 @@ const Onboarding = () => {
             navigate('/');
         } catch (err) {
             console.error('Onboarding error:', err);
-            setError('Ocorreu um erro ao salvar seu perfil. Tente novamente.');
+            setError(t('onboarding.errSaveProfile'));
         } finally {
             setLoading(false);
         }
@@ -123,12 +125,12 @@ const Onboarding = () => {
                 </div>
 
                 <h1 className="auth-title">
-                    {step === 1 ? 'Configure seu Perfil' : 'Privacidade'}
+                    {step === 1 ? t('onboarding.step1Title') : t('onboarding.step2Title')}
                 </h1>
                 <p className="auth-subtitle">
                     {step === 1
-                        ? 'Como você quer ser conhecido na comunidade?'
-                        : 'Quem pode ver seus sonhos?'}
+                        ? t('onboarding.step1Subtitle')
+                        : t('onboarding.step2Subtitle')}
                 </p>
 
                 {error && (
@@ -175,7 +177,7 @@ const Onboarding = () => {
                             <input
                                 type="text"
                                 className="auth-input"
-                                placeholder="Nome de Exibição"
+                                placeholder={t('onboarding.placeholderDisplayName')}
                                 value={displayName}
                                 onChange={(e) => setDisplayName(e.target.value)}
                             />
@@ -183,7 +185,7 @@ const Onboarding = () => {
                             {/* Bio */}
                             <textarea
                                 className="auth-textarea"
-                                placeholder="Conte um pouco sobre você e seus sonhos..."
+                                placeholder={t('onboarding.placeholderBio')}
                                 value={bio}
                                 onChange={(e) => setBio(e.target.value)}
                             ></textarea>
@@ -207,16 +209,16 @@ const Onboarding = () => {
                                     onClick={() => setPrivacy('public')}
                                 >
                                     <FaEye />
-                                    <h3>Público</h3>
-                                    <p>Todos podem ver seus sonhos e segui-lo</p>
+                                    <h3>{t('onboarding.privacyPublic')}</h3>
+                                    <p>{t('onboarding.privacyPublicDesc')}</p>
                                 </div>
                                 <div
                                     className={`privacy-card ${privacy === 'private' ? 'selected' : ''}`}
                                     onClick={() => setPrivacy('private')}
                                 >
                                     <FaLock />
-                                    <h3>Privado</h3>
-                                    <p>Apenas seguidores aprovados veem seus sonhos</p>
+                                    <h3>{t('onboarding.privacyPrivate')}</h3>
+                                    <p>{t('onboarding.privacyPrivateDesc')}</p>
                                 </div>
                             </div>
                         </motion.div>
@@ -233,7 +235,7 @@ const Onboarding = () => {
                                 handleBack();
                             }}
                         >
-                            Voltar
+                            {t('onboarding.btnBack')}
                         </button>
                     )}
                     {step < 2 ? (
@@ -244,12 +246,12 @@ const Onboarding = () => {
                                     paginate(1);
                                     handleNext();
                                 } else {
-                                    setError('Por favor, insira seu nome de exibição.');
+                                    setError(t('onboarding.errEmptyDisplayName'));
                                 }
                             }}
                             style={{ flex: step > 1 ? 1 : 'none', width: step === 1 ? '100%' : 'auto' }}
                         >
-                            Próximo
+                            {t('onboarding.btnNext')}
                         </button>
                     ) : (
                         <button
@@ -258,7 +260,7 @@ const Onboarding = () => {
                             disabled={loading}
                             style={{ flex: 1 }}
                         >
-                            {loading ? 'Salvando...' : 'Concluir'}
+                            {loading ? t('onboarding.btnSaving') : t('onboarding.btnFinish')}
                         </button>
                     )}
                 </div>

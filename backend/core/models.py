@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 import uuid6
@@ -49,25 +50,25 @@ class Usuario(AbstractBaseUser):
     
     # Security question for password reset
     PERGUNTA_SECRETA_CHOICES = (
-        (1, 'Qual o nome do seu primeiro animal de estimação?'),
-        (2, 'Qual o nome da sua cidade natal?'),
-        (3, 'Qual era o nome da sua escola primária?'),
-        (4, 'Qual o nome do seu melhor amigo de infância?'),
-        (5, 'Qual o modelo do seu primeiro carro?'),
+        (1, _('Qual o nome do seu primeiro animal de estimação?')),
+        (2, _('Qual o nome da sua cidade natal?')),
+        (3, _('Qual era o nome da sua escola primária?')),
+        (4, _('Qual o nome do seu melhor amigo de infância?')),
+        (5, _('Qual o modelo do seu primeiro carro?')),
     )
     pergunta_secreta = models.SmallIntegerField(choices=PERGUNTA_SECRETA_CHOICES, null=True, blank=True)
     resposta_secreta = models.CharField(max_length=128, null=True, blank=True)  # Stored as hash
     
     STATUS_CHOICES = (
-        (1, 'Ativo'),
-        (2, 'Suspenso'),
-        (3, 'Desativado'),
+        (1, _('Ativo')),
+        (2, _('Suspenso')),
+        (3, _('Desativado')),
     )
     status = models.SmallIntegerField(choices=STATUS_CHOICES, default=1)
     
     PRIVACIDADE_CHOICES = (
-        (1, 'Público'),
-        (2, 'Privado'),
+        (1, _('Público')),
+        (2, _('Privado')),
     )
     privacidade_padrao = models.SmallIntegerField(choices=PRIVACIDADE_CHOICES, default=1)
 
@@ -99,9 +100,9 @@ class Seguidor(models.Model):
     data_seguimento = models.DateTimeField(default=timezone.now)
     
     STATUS_CHOICES = (
-        (1, 'Ativo'),
-        (2, 'Bloqueado'),
-        (3, 'Pendente'),
+        (1, _('Ativo')),
+        (2, _('Bloqueado')),
+        (3, _('Pendente')),
     )
     status = models.SmallIntegerField(choices=STATUS_CHOICES, default=1)
     is_close_friend = models.BooleanField(default=False)
@@ -123,9 +124,9 @@ class Publicacao(models.Model):
     comunidade = models.ForeignKey('Comunidade', on_delete=models.SET_NULL, null=True, blank=True, related_name='publicacoes', db_column='id_comunidade')
     
     VISIBILIDADE_CHOICES = (
-        (1, 'Público'),
-        (2, 'Lista de Amigos'),
-        (3, 'Privado'),
+        (1, _('Público')),
+        (2, _('Lista de Amigos')),
+        (3, _('Privado')),
     )
     visibilidade = models.SmallIntegerField(choices=VISIBILIDADE_CHOICES, default=1)
     localizacao = models.CharField(max_length=100, null=True, blank=True)
@@ -142,10 +143,10 @@ class MidiaPublicacao(models.Model):
     publicacao = models.ForeignKey(Publicacao, on_delete=models.CASCADE, db_column='id_publicacao')
     
     TIPO_MIDIA_CHOICES = (
-        (1, 'Imagem'),
-        (2, 'Vídeo'),
-        (3, 'GIF'),
-        (4, 'Áudio'),
+        (1, _('Imagem')),
+        (2, _('Vídeo')),
+        (3, _('GIF')),
+        (4, _('Áudio')),
     )
     tipo_midia = models.SmallIntegerField(choices=TIPO_MIDIA_CHOICES)
     url_midia = models.CharField(max_length=255)
@@ -197,9 +198,9 @@ class Comentario(models.Model):
     views_count = models.IntegerField(default=0)
     
     STATUS_CHOICES = (
-        (1, 'Ativo'),
-        (2, 'Removido'),
-        (3, 'Denunciado'),
+        (1, _('Ativo')),
+        (2, _('Removido')),
+        (3, _('Denunciado')),
     )
     status = models.SmallIntegerField(choices=STATUS_CHOICES, default=1)
 
@@ -233,11 +234,11 @@ class ReacaoComentario(models.Model):
     usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE, db_column='id_usuario')
     
     TIPO_REACAO_CHOICES = (
-        (1, 'Gostei'),
-        (2, 'Amei'),
-        (3, 'Confuso'),
-        (4, 'Assustado'),
-        (5, 'Relacionável'),
+        (1, _('Gostei')),
+        (2, _('Amei')),
+        (3, _('Confuso')),
+        (4, _('Assustado')),
+        (5, _('Relacionável')),
     )
     tipo_reacao = models.SmallIntegerField(choices=TIPO_REACAO_CHOICES)
     data_reacao = models.DateTimeField(default=timezone.now)
@@ -271,11 +272,11 @@ class Notificacao(models.Model):
     usuario_origem = models.ForeignKey(Usuario, on_delete=models.SET_NULL, null=True, blank=True, related_name='notificacoes_geradas', db_column='id_usuario_origem')
     
     TIPO_NOTIFICACAO_CHOICES = (
-        (1, 'Nova Publicação'),
-        (2, 'Comentário'),
-        (3, 'Curtida'),
-        (4, 'Seguidor Novo'),
-        (5, 'Solicitação de Seguidor'),
+        (1, _('Nova Publicação')),
+        (2, _('Comentário')),
+        (3, _('Curtida')),
+        (4, _('Seguidor Novo')),
+        (5, _('Solicitação de Seguidor')),
     )
     tipo_notificacao = models.SmallIntegerField(choices=TIPO_NOTIFICACAO_CHOICES)
     id_referencia = models.CharField(max_length=36, null=True, blank=True)
@@ -325,34 +326,34 @@ class Denuncia(models.Model):
     usuario_denunciante = models.ForeignKey(Usuario, on_delete=models.CASCADE, db_column='id_usuario_denunciante')
     
     TIPO_CONTEUDO_CHOICES = (
-        (1, 'Publicação'),
-        (2, 'Comentário'),
-        (3, 'Usuário'),
+        (1, _('Publicação')),
+        (2, _('Comentário')),
+        (3, _('Usuário')),
     )
     tipo_conteudo = models.SmallIntegerField(choices=TIPO_CONTEUDO_CHOICES)
     id_conteudo = models.CharField(max_length=36)
     
     MOTIVO_DENUNCIA_CHOICES = (
-        (1, 'Conteúdo Inadequado'),
-        (2, 'Assédio'),
-        (3, 'Spam'),
+        (1, _('Conteúdo Inadequado')),
+        (2, _('Assédio')),
+        (3, _('Spam')),
     )
     motivo_denuncia = models.SmallIntegerField(choices=MOTIVO_DENUNCIA_CHOICES)
     descricao_denuncia = models.TextField(null=True, blank=True)
     data_denuncia = models.DateTimeField(default=timezone.now)
     
     STATUS_DENUNCIA_CHOICES = (
-        (1, 'Pendente'),
-        (2, 'Analisada'),
-        (3, 'Resolvida'),
+        (1, _('Pendente')),
+        (2, _('Analisada')),
+        (3, _('Resolvida')),
     )
     status_denuncia = models.SmallIntegerField(choices=STATUS_DENUNCIA_CHOICES, default=1)
     data_resolucao = models.DateTimeField(null=True, blank=True)
     
     ACAO_TOMADA_CHOICES = (
-        (1, 'Nenhuma'),
-        (2, 'Removido'),
-        (3, 'Usuário Suspenso'),
+        (1, _('Nenhuma')),
+        (2, _('Removido')),
+        (3, _('Usuário Suspenso')),
     )
     acao_tomada = models.SmallIntegerField(choices=ACAO_TOMADA_CHOICES, null=True, blank=True)
 
@@ -381,9 +382,9 @@ class ConfiguracaoUsuario(models.Model):
     notificacoes_mensagens_diretas = models.BooleanField(default=True)
     
     TEMA_INTERFACE_CHOICES = (
-        (1, 'Claro'),
-        (2, 'Escuro'),
-        (3, 'Sistema'),
+        (1, _('Claro')),
+        (2, _('Escuro')),
+        (3, _('Sistema')),
     )
     tema_interface = models.SmallIntegerField(choices=TEMA_INTERFACE_CHOICES, default=1)
     idioma = models.CharField(max_length=10, default='pt-BR')
@@ -418,9 +419,9 @@ class MembroComunidade(models.Model):
     data_entrada = models.DateTimeField(default=timezone.now)
     
     ROLE_CHOICES = (
-        ('member', 'Membro'),
-        ('moderator', 'Moderador'),
-        ('admin', 'Administrador'),
+        ('member', _('Membro')),
+        ('moderator', _('Moderador')),
+        ('admin', _('Administrador')),
     )
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='member')
     is_moderator = models.BooleanField(default=False)
@@ -469,9 +470,9 @@ class Rascunho(models.Model):
     conteudo_texto = models.TextField(blank=True, default='')
     
     TIPO_POST_CHOICES = (
-        ('texto', 'Texto'),
-        ('multimidia', 'Multimídia'),
-        ('link', 'Link'),
+        ('texto', _('Texto')),
+        ('multimidia', _('Multimídia')),
+        ('link', _('Link')),
     )
     tipo_post = models.CharField(max_length=20, choices=TIPO_POST_CHOICES, default='texto')
     imagem = models.ImageField(upload_to='drafts/', null=True, blank=True)

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import { motion } from 'framer-motion';
 import { FaPlay, FaPause } from 'react-icons/fa';
@@ -12,6 +13,11 @@ const Login = () => {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const [isPlaying, setIsPlaying] = useState(true);
+    const { t, i18n } = useTranslation();
+
+    const changeLanguage = (lng) => {
+        i18n.changeLanguage(lng);
+    };
 
     // Refs para Efeito Ambilight
     const videoRef = useRef(null);
@@ -82,13 +88,13 @@ const Login = () => {
         } catch (err) {
             if (err.response?.status === 403 && err.response?.data?.banned) {
                 // User is banned
-                setError(err.response.data.message || 'Sua conta foi banida por tempo indeterminado.');
+                setError(err.response.data.message || t('login.errorBanned'));
             } else if (err.response?.status === 401) {
-                setError('Email ou senha inválidos. Por favor, tente novamente.');
+                setError(t('login.errorUnauthorized'));
             } else if (err.response?.data?.detail) {
                 setError(err.response.data.detail);
             } else {
-                setError('Ocorreu um erro ao fazer login. Tente novamente.');
+                setError(t('login.errorGeneric'));
             }
         } finally {
             setLoading(false);
@@ -115,7 +121,7 @@ const Login = () => {
                         style={{ opacity: 0.25, transition: 'opacity 0.3s', cursor: 'pointer' }}
                         onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
                         onMouseLeave={(e) => e.currentTarget.style.opacity = '0.25'}
-                        title={isPlaying ? "Pausar vídeo" : "Reproduzir vídeo"}
+                        title={isPlaying ? t('login.pauseVideo') : t('login.playVideo')}
                     >
                         {isPlaying ? <FaPause size={16} /> : <FaPlay size={16} />}
                     </button>
@@ -131,18 +137,37 @@ const Login = () => {
                     <div className="panel-overlay" />
 
                     <div className="welcome-hero-text">
-                        <h1>Olá, Seja muito bem-vindo(a)!</h1>
+                        <h1>{t('login.welcome')}</h1>
                         <div className="quote-section">
-                            <p className="quote">"Os sonhos são as ilustrações do livro que sua alma está escrevendo sobre você."</p>
-                            <p className="quote-author">— Marsha Norman</p>
+                            <p className="quote">{t('login.quote')}</p>
+                            <p className="quote-author">{t('login.quoteAuthor')}</p>
                         </div>
                     </div>
                 </div>
 
                 {/* Lado Direito: Formulário com Glassmorphism */}
-                <div className="login-right-panel">
+                <div className="login-right-panel" style={{ position: 'relative' }}>
+
+                    {/* Language Switcher */}
+                    <div className="absolute top-6 right-8 flex space-x-2 z-10">
+                        <button
+                            type="button"
+                            onClick={() => changeLanguage('pt-BR')}
+                            className={`px-2 py-1 text-xs rounded transition-colors ${i18n.language === 'pt-BR' ? 'bg-indigo-600 text-white' : 'bg-white/20 text-indigo-900 hover:bg-white/40'}`}
+                        >
+                            PT
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => changeLanguage('en')}
+                            className={`px-2 py-1 text-xs rounded transition-colors ${i18n.language === 'en' ? 'bg-indigo-600 text-white' : 'bg-white/20 text-indigo-900 hover:bg-white/40'}`}
+                        >
+                            EN
+                        </button>
+                    </div>
+
                     <h2 className="auth-title">Lumen</h2>
-                    <p className="auth-subtitle">Entre ou crie uma conta para começar a notar e compartilhar seus sonhos</p>
+                    <p className="auth-subtitle">{t('login.subtitle')}</p>
 
                     {error && (
                         <motion.div
@@ -158,7 +183,7 @@ const Login = () => {
                         <input
                             type="email"
                             className="auth-input immersive-input"
-                            placeholder="Email"
+                            placeholder={t('login.emailPlaceholder')}
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             required
@@ -166,25 +191,25 @@ const Login = () => {
                         <input
                             type="password"
                             className="auth-input immersive-input"
-                            placeholder="Senha"
+                            placeholder={t('login.passwordPlaceholder')}
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             required
                         />
                         <div className="forgot-password-link">
-                            <Link to="/forgot-password">Esqueceu a senha?</Link>
+                            <Link to="/forgot-password">{t('login.forgotPassword')}</Link>
                         </div>
                         <button
                             type="submit"
                             className="btn-dream glow-btn"
                             disabled={loading}
                         >
-                            {loading ? 'Entrando...' : 'Entrar'}
+                            {loading ? t('login.buttonLoading') : t('login.buttonSubmit')}
                         </button>
                     </form>
 
                     <p className="auth-link">
-                        Não tem uma conta? <Link to="/register">Criar conta</Link>
+                        {t('login.noAccount')} <Link to="/register">{t('login.createAccount')}</Link>
                     </p>
                 </div>
             </motion.div>

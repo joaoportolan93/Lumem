@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { FaCog, FaBell, FaLock, FaPalette, FaUser, FaSave, FaArrowLeft, FaShieldAlt, FaStar, FaSearch, FaUserFriends, FaFire } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { getProfile, getUserSettings, updateUserSettings, getCloseFriendsManage, toggleCloseFriend, patchUser } from '../services/api';
 
 const Settings = () => {
@@ -11,6 +12,7 @@ const Settings = () => {
     const [loading, setLoading] = useState(true);
     const [currentUser, setCurrentUser] = useState(null);
     const [activeTab, setActiveTab] = useState('general');
+    const { t, i18n } = useTranslation();
 
     // Close Friends state
     const [followers, setFollowers] = useState([]);
@@ -27,7 +29,7 @@ const Settings = () => {
         notificacoes_mensagens_diretas: true,
         // Appearance
         tema_interface: 2, // 1=Light, 2=Dark, 3=System
-        idioma: 'pt-BR',
+        idioma: i18n.language || 'pt-BR',
         mostrar_feed_algoritmico: true,
     });
 
@@ -50,10 +52,14 @@ const Settings = () => {
             try {
                 setLoading(true);
                 const response = await getUserSettings();
-                setSettings(response.data);
+                setSettings(prev => ({ ...prev, ...response.data }));
+                // Update i18n instance if backend language matches one of the options
+                if (response.data.idioma && (response.data.idioma === 'pt-BR' || response.data.idioma === 'en')) {
+                    i18n.changeLanguage(response.data.idioma);
+                }
             } catch (err) {
                 console.error('Error fetching settings:', err);
-                setError('Erro ao carregar configurações');
+                setError(t('settings.errorLoad'));
             } finally {
                 setLoading(false);
             }
@@ -86,6 +92,9 @@ const Settings = () => {
 
     const handleSelectChange = (key, value) => {
         setSettings(prev => ({ ...prev, [key]: value }));
+        if (key === 'idioma') {
+            i18n.changeLanguage(value);
+        }
     };
 
     const handleSave = async () => {
@@ -116,11 +125,11 @@ const Settings = () => {
                 }
             }
 
-            setSuccess('Configurações salvas com sucesso!');
+            setSuccess(t('settings.successSave'));
             setTimeout(() => setSuccess(''), 3000);
         } catch (err) {
             console.error('Error saving settings:', err);
-            setError('Erro ao salvar configurações');
+            setError(t('settings.errorSave'));
             setTimeout(() => setError(''), 3000);
         } finally {
             setSaving(false);
@@ -161,11 +170,11 @@ const Settings = () => {
 
         try {
             await patchUser(currentUser.id_usuario, { privacidade_padrao: newStatus });
-            setSuccess(`Visibilidade alterada para ${newStatus === 2 ? 'Privada' : 'Pública'}`);
+            setSuccess(t('settings.privacySuccess', { status: newStatus === 2 ? t('settings.statusPrivate') : t('settings.statusPublic') }));
             setTimeout(() => setSuccess(''), 3000);
         } catch (err) {
             console.error('Error updating privacy:', err);
-            setError('Erro ao alterar privacidade');
+            setError(t('settings.privacyError'));
             // Revert
             setCurrentUser(prev => ({ ...prev, privacidade_padrao: isPrivate ? 2 : 1 }));
             setTimeout(() => setError(''), 3000);
@@ -237,14 +246,14 @@ const Settings = () => {
                 </button>
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
                     <FaCog className="text-primary" />
-                    Configurações
+                    {t('settings.title')}
                 </h1>
             </div>
 
             {/* Tab Navigation */}
             <div className="flex gap-3 mb-6">
-                <TabButton id="general" icon={FaCog} label="Geral" active={activeTab === 'general'} />
-                <TabButton id="closefriends" icon={FaUserFriends} label="Amigos Próximos" active={activeTab === 'closefriends'} />
+                <TabButton id="general" icon={FaCog} label={t('settings.tabGeneral')} active={activeTab === 'general'} />
+                <TabButton id="closefriends" icon={FaUserFriends} label={t('settings.tabCloseFriends')} active={activeTab === 'closefriends'} />
             </div>
 
             {/* Success/Error Messages */}
@@ -266,26 +275,26 @@ const Settings = () => {
                     <div className="bg-white dark:bg-white/5 shadow-card dark:shadow-none backdrop-blur-sm rounded-2xl p-6 mb-6 border border-white/10">
                         <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                             <FaBell className="text-primary" />
-                            Notificações
+                            {t('settings.notifications')}
                         </h2>
 
-                        <SettingRow icon={FaUser} label="Novos seguidores" description="Receber notificação quando alguém seguir você">
+                        <SettingRow icon={FaUser} label={t('settings.notifFollowers')} description={t('settings.notifFollowersDesc')}>
                             <ToggleSwitch enabled={settings.notificacoes_seguidor_novo} onToggle={() => handleToggle('notificacoes_seguidor_novo')} />
                         </SettingRow>
 
-                        <SettingRow icon={FaBell} label="Comentários" description="Notificar sobre comentários em seus sonhos">
+                        <SettingRow icon={FaBell} label={t('settings.notifComments')} description={t('settings.notifCommentsDesc')}>
                             <ToggleSwitch enabled={settings.notificacoes_comentarios} onToggle={() => handleToggle('notificacoes_comentarios')} />
                         </SettingRow>
 
-                        <SettingRow icon={FaBell} label="Curtidas" description="Notificar sobre curtidas em seus sonhos">
+                        <SettingRow icon={FaBell} label={t('settings.notifLikes')} description={t('settings.notifLikesDesc')}>
                             <ToggleSwitch enabled={settings.notificacoes_reacoes} onToggle={() => handleToggle('notificacoes_reacoes')} />
                         </SettingRow>
 
-                        <SettingRow icon={FaBell} label="Mensagens" description="Notificar sobre novas mensagens">
+                        <SettingRow icon={FaBell} label={t('settings.notifMessages')} description={t('settings.notifMessagesDesc')}>
                             <ToggleSwitch enabled={settings.notificacoes_mensagens_diretas} onToggle={() => handleToggle('notificacoes_mensagens_diretas')} />
                         </SettingRow>
 
-                        <SettingRow icon={FaBell} label="Novas publicações" description="Notificar sobre novas publicações de quem você segue">
+                        <SettingRow icon={FaBell} label={t('settings.notifPosts')} description={t('settings.notifPostsDesc')}>
                             <ToggleSwitch enabled={settings.notificacoes_novas_publicacoes} onToggle={() => handleToggle('notificacoes_novas_publicacoes')} />
                         </SettingRow>
                     </div>
@@ -294,13 +303,13 @@ const Settings = () => {
                     <div className="bg-white dark:bg-white/5 shadow-card dark:shadow-none backdrop-blur-sm rounded-2xl p-6 mb-6 border border-white/10">
                         <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                             <FaLock className="text-primary" />
-                            Privacidade
+                            {t('settings.privacy')}
                         </h2>
 
                         <SettingRow
                             icon={FaLock}
-                            label="Conta Privada"
-                            description="Quando sua conta é privada, apenas pessoas que você aprovar podem ver seus sonhos e perfil."
+                            label={t('settings.privAccount')}
+                            description={t('settings.privAccountDesc')}
                         >
                             <ToggleSwitch
                                 enabled={currentUser?.privacidade_padrao === 2}
@@ -314,30 +323,29 @@ const Settings = () => {
                     <div className="bg-white dark:bg-white/5 shadow-card dark:shadow-none backdrop-blur-sm rounded-2xl p-6 mb-6 border border-white/10">
                         <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                             <FaPalette className="text-primary" />
-                            Aparência
+                            {t('settings.appearance')}
                         </h2>
 
-                        <SettingRow icon={FaPalette} label="Tema" description="Escolha o tema da interface">
+                        <SettingRow icon={FaPalette} label={t('settings.theme')} description={t('settings.themeDesc')}>
                             <select
                                 value={settings.tema_interface}
                                 onChange={(e) => handleSelectChange('tema_interface', parseInt(e.target.value))}
                                 className="bg-gray-100 dark:bg-white/10 border border-gray-200 dark:border-white/20 rounded-lg px-4 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary"
                             >
-                                <option value={2}>Escuro</option>
-                                <option value={1}>Claro</option>
-                                <option value={3}>Sistema</option>
+                                <option value={2}>{t('settings.themeDark')}</option>
+                                <option value={1}>{t('settings.themeLight')}</option>
+                                <option value={3}>{t('settings.themeSystem')}</option>
                             </select>
                         </SettingRow>
 
-                        <SettingRow icon={FaPalette} label="Idioma" description="Idioma da interface">
+                        <SettingRow icon={FaPalette} label={t('settings.language')} description={t('settings.languageDesc')}>
                             <select
-                                value={settings.idioma}
+                                value={i18n.language || settings.idioma}
                                 onChange={(e) => handleSelectChange('idioma', e.target.value)}
                                 className="bg-gray-100 dark:bg-white/10 border border-gray-200 dark:border-white/20 rounded-lg px-4 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary"
                             >
                                 <option value="pt-BR">Português (BR)</option>
                                 <option value="en">English</option>
-                                <option value="es">Español</option>
                             </select>
                         </SettingRow>
                     </div>
@@ -346,13 +354,13 @@ const Settings = () => {
                     <div className="bg-white dark:bg-white/5 shadow-card dark:shadow-none backdrop-blur-sm rounded-2xl p-6 mb-6 border border-white/10">
                         <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                             <FaFire className="text-primary" />
-                            Conteúdo do Feed
+                            {t('settings.feed')}
                         </h2>
 
                         <SettingRow
                             icon={FaFire}
-                            label="Feed 'Para Você'"
-                            description="Mostrar o feed de recomendação algorítmica na página inicial. Se desativado, você verá apenas conteúdos de quem você segue."
+                            label={t('settings.feedForYou')}
+                            description={t('settings.feedForYouDesc')}
                         >
                             <ToggleSwitch
                                 enabled={settings.mostrar_feed_algoritmico}
@@ -366,17 +374,17 @@ const Settings = () => {
                         <div className="bg-amber-500/10 border border-amber-500/30 backdrop-blur-sm rounded-2xl p-6 mb-6">
                             <h2 className="text-lg font-semibold text-amber-500 mb-4 flex items-center gap-2">
                                 <FaShieldAlt />
-                                Administração do Sistema
+                                {t('settings.adminTitle')}
                             </h2>
                             <p className="text-gray-500 dark:text-gray-400 mb-4">
-                                Você tem privilégios de administrador. Acesse o painel para gerenciar usuários, moderação e estatísticas.
+                                {t('settings.adminDesc')}
                             </p>
                             <button
                                 onClick={() => navigate('/admin')}
                                 className="w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-amber-500 to-orange-600 text-black font-bold rounded-xl hover:opacity-90 transition-all"
                             >
                                 <FaShieldAlt />
-                                Acessar Painel Admin
+                                {t('settings.btnAdmin')}
                             </button>
                         </div>
                     )}
@@ -390,12 +398,12 @@ const Settings = () => {
                         {saving ? (
                             <>
                                 <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div>
-                                Salvando...
+                                {t('settings.saving')}
                             </>
                         ) : (
                             <>
                                 <FaSave />
-                                Salvar Configurações
+                                {t('settings.btnSave')}
                             </>
                         )}
                     </button>
@@ -407,10 +415,10 @@ const Settings = () => {
                 <div className="bg-white dark:bg-white/5 shadow-card dark:shadow-none backdrop-blur-sm rounded-2xl p-6 border border-white/10">
                     <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
                         <FaStar className="text-amber-400" />
-                        Gerenciar Amigos Próximos
+                        {t('settings.cfTitle')}
                     </h2>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-                        Selecione quem pode ver seus sonhos marcados como "Amigos Próximos". Apenas seus seguidores podem ser adicionados.
+                        {t('settings.cfDesc')}
                     </p>
 
                     {/* Search Bar */}
@@ -418,7 +426,7 @@ const Settings = () => {
                         <FaSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
                         <input
                             type="text"
-                            placeholder="Buscar seguidores..."
+                            placeholder={t('settings.cfSearchPlaceholder')}
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
@@ -435,8 +443,8 @@ const Settings = () => {
                             <FaUserFriends className="text-4xl text-gray-500 mx-auto mb-3" />
                             <p className="text-gray-400">
                                 {followers.length === 0
-                                    ? 'Você ainda não tem seguidores'
-                                    : 'Nenhum seguidor encontrado'
+                                    ? t('settings.cfNoFollowers')
+                                    : t('settings.cfNotFound')
                                 }
                             </p>
                         </div>
@@ -481,7 +489,7 @@ const Settings = () => {
                                             ? 'bg-amber-500/20 text-amber-400 shadow-lg shadow-amber-500/20'
                                             : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-gray-300'
                                             }`}
-                                        title={follower.is_close_friend ? 'Remover dos amigos próximos' : 'Adicionar aos amigos próximos'}
+                                        title={follower.is_close_friend ? t('settings.cfRemoveTooltip') : t('settings.cfAddTooltip')}
                                     >
                                         <FaStar className={`text-xl ${follower.is_close_friend ? 'fill-current' : ''}`} />
                                     </button>
@@ -497,7 +505,7 @@ const Settings = () => {
                                 <span className="text-amber-400 font-bold">
                                     {followers.filter(f => f.is_close_friend).length}
                                 </span>
-                                {' '}amigo(s) próximo(s) selecionado(s)
+                                {' '}{t('settings.cfSelectedCount')}
                             </span>
                         </div>
                     )}

@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaTimes, FaMoon, FaImage, FaVideo, FaSmile, FaGlobeAmericas, FaUserFriends } from 'react-icons/fa';
+import { useTranslation } from 'react-i18next';
 import { createDream, updateDream, getProfile } from '../services/api';
 
 const CreateDreamModal = ({ isOpen, onClose, onSuccess, editingDream = null, communityId = null }) => {
+    const { t } = useTranslation();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [user, setUser] = useState(null);
@@ -19,13 +21,20 @@ const CreateDreamModal = ({ isOpen, onClose, onSuccess, editingDream = null, com
     const [videoPreview, setVideoPreview] = useState(null);
 
     const dreamTypes = [
-        { value: 'Lúcido', icon: '✨', color: 'text-purple-400' },
-        { value: 'Normal', icon: '💭', color: 'text-blue-400' },
-        { value: 'Pesadelo', icon: '😱', color: 'text-red-400' },
-        { value: 'Recorrente', icon: '🔄', color: 'text-yellow-400' },
+        { value: t('createDream.typeLucid'), icon: '✨', color: 'text-purple-400' },
+        { value: t('createDream.typeNormal'), icon: '💭', color: 'text-blue-400' },
+        { value: t('createDream.typeNightmare'), icon: '😱', color: 'text-red-400' },
+        { value: t('createDream.typeRecurring'), icon: '🔄', color: 'text-yellow-400' },
     ];
 
-    const emotionOptions = ['😊 Feliz', '😨 Medo', '😮 Surpresa', '😢 Triste', '🤔 Confuso', '😌 Paz'];
+    const emotionOptions = [
+        `😊 ${t('createDream.emotionHappy')}`,
+        `😨 ${t('createDream.emotionFear')}`,
+        `😮 ${t('createDream.emotionSurprise')}`,
+        `😢 ${t('createDream.emotionSad')}`,
+        `🤔 ${t('createDream.emotionConfused')}`,
+        `😌 ${t('createDream.emotionPeace')}`
+    ];
 
     useEffect(() => {
         getProfile().then(res => setUser(res.data)).catch(console.error);
@@ -56,7 +65,7 @@ const CreateDreamModal = ({ isOpen, onClose, onSuccess, editingDream = null, com
 
     const handleSubmit = async () => {
         if (!content.trim()) {
-            setError('Conte sobre seu sonho antes de publicar.');
+            setError(t('createDream.errorEmpty'));
             return;
         }
 
@@ -83,7 +92,7 @@ const CreateDreamModal = ({ isOpen, onClose, onSuccess, editingDream = null, com
             onClose();
         } catch (err) {
             console.error('Error saving dream:', err);
-            setError('Erro ao publicar. Tente novamente.');
+            setError(t('createDream.errorPublish'));
         } finally {
             setLoading(false);
         }
@@ -155,7 +164,7 @@ const CreateDreamModal = ({ isOpen, onClose, onSuccess, editingDream = null, com
                             <FaTimes className="text-white text-lg" />
                         </button>
                         <button className="text-primary text-sm font-medium hover:underline">
-                            Rascunhos
+                            {t('createDream.drafts')}
                         </button>
                     </div>
 
@@ -178,28 +187,28 @@ const CreateDreamModal = ({ isOpen, onClose, onSuccess, editingDream = null, com
                                         className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-primary/50 text-primary text-sm hover:bg-primary/10 transition-colors"
                                     >
                                         {visibility === 1 ? (
-                                            <><FaGlobeAmericas size={12} /> Qualquer pessoa</>
+                                            <><FaGlobeAmericas size={12} /> {t('createDream.visPublic')}</>
                                         ) : (
-                                            <><FaUserFriends size={12} /> Melhores amigos</>
+                                            <><FaUserFriends size={12} /> {t('createDream.visFriends')}</>
                                         )}
                                         <span className="text-xs">▼</span>
                                     </button>
 
                                     {showVisibilityMenu && (
                                         <div className="absolute top-full left-0 mt-1 bg-gray-800 border border-white/10 rounded-xl shadow-xl z-20 min-w-[200px] py-2">
-                                            <p className="px-4 py-2 text-white font-semibold text-sm">Quem pode ver?</p>
+                                            <p className="px-4 py-2 text-white font-semibold text-sm">{t('createDream.whoCanSee')}</p>
                                             <button
                                                 onClick={() => { setVisibility(1); setShowVisibilityMenu(false); }}
                                                 className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 ${visibility === 1 ? 'text-primary' : 'text-white'}`}
                                             >
-                                                <FaGlobeAmericas /> Qualquer pessoa
+                                                <FaGlobeAmericas /> {t('createDream.visPublic')}
                                                 {visibility === 1 && <span className="ml-auto">✓</span>}
                                             </button>
                                             <button
                                                 onClick={() => { setVisibility(2); setShowVisibilityMenu(false); }}
                                                 className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 ${visibility === 2 ? 'text-primary' : 'text-white'}`}
                                             >
-                                                <FaUserFriends /> Melhores amigos
+                                                <FaUserFriends /> {t('createDream.visFriends')}
                                                 {visibility === 2 && <span className="ml-auto">✓</span>}
                                             </button>
                                         </div>
@@ -210,7 +219,7 @@ const CreateDreamModal = ({ isOpen, onClose, onSuccess, editingDream = null, com
                                 <textarea
                                     value={content}
                                     onChange={(e) => setContent(e.target.value)}
-                                    placeholder="Conte sobre seu sonho..."
+                                    placeholder={t('createDream.placeholder')}
                                     className="w-full bg-transparent text-white text-lg placeholder-gray-500 resize-none focus:outline-none min-h-[120px]"
                                     autoFocus
                                 />
@@ -286,13 +295,13 @@ const CreateDreamModal = ({ isOpen, onClose, onSuccess, editingDream = null, com
                                 <button
                                     onClick={() => { setShowTypeMenu(!showTypeMenu); setShowEmotionsMenu(false); }}
                                     className={`p-2 rounded-full hover:bg-primary/20 transition-colors ${dreamType ? 'text-purple-400' : 'text-primary'}`}
-                                    title="Tipo de sonho"
+                                    title={t('createDream.dreamType')}
                                 >
                                     <FaMoon size={18} />
                                 </button>
                                 {showTypeMenu && (
                                     <div className="absolute bottom-full left-0 mb-2 bg-gray-800 border border-white/10 rounded-xl shadow-xl z-20 py-2 min-w-[160px]">
-                                        <p className="px-4 py-2 text-gray-400 text-xs uppercase">Tipo de sonho</p>
+                                        <p className="px-4 py-2 text-gray-400 text-xs uppercase">{t('createDream.dreamType')}</p>
                                         {dreamTypes.map(type => (
                                             <button
                                                 key={type.value}
@@ -311,13 +320,13 @@ const CreateDreamModal = ({ isOpen, onClose, onSuccess, editingDream = null, com
                                 <button
                                     onClick={() => { setShowEmotionsMenu(!showEmotionsMenu); setShowTypeMenu(false); }}
                                     className={`p-2 rounded-full hover:bg-primary/20 transition-colors ${emotions.length > 0 ? 'text-yellow-400' : 'text-primary'}`}
-                                    title="Emoções"
+                                    title={t('createDream.emotions')}
                                 >
                                     <FaSmile size={18} />
                                 </button>
                                 {showEmotionsMenu && (
                                     <div className="absolute bottom-full left-0 mb-2 bg-gray-800 border border-white/10 rounded-xl shadow-xl z-20 py-2 min-w-[220px]">
-                                        <p className="px-4 py-2 text-gray-400 text-xs uppercase">Emoções sentidas</p>
+                                        <p className="px-4 py-2 text-gray-400 text-xs uppercase">{t('createDream.emotionsSent')}</p>
                                         <div className="max-h-[200px] overflow-y-auto custom-scrollbar">
                                             {emotionOptions.map(emotion => (
                                                 <button
@@ -332,7 +341,7 @@ const CreateDreamModal = ({ isOpen, onClose, onSuccess, editingDream = null, com
                                         </div>
 
                                         <div className="px-4 py-2 mt-1 border-t border-white/10">
-                                            <p className="text-gray-400 text-xs mb-2">Adicionar personalizada</p>
+                                            <p className="text-gray-400 text-xs mb-2">{t('createDream.addCustom')}</p>
                                             <div className="flex gap-2">
                                                 <input
                                                     type="text"
@@ -344,7 +353,7 @@ const CreateDreamModal = ({ isOpen, onClose, onSuccess, editingDream = null, com
                                                             handleAddCustomEmotion();
                                                         }
                                                     }}
-                                                    placeholder="Ex: Saudade"
+                                                    placeholder={t('createDream.customPlaceholder')}
                                                     className="flex-1 bg-black/30 border border-white/10 rounded px-2 py-1 text-sm text-white focus:outline-none focus:border-primary"
                                                 />
                                                 <button
@@ -367,7 +376,7 @@ const CreateDreamModal = ({ isOpen, onClose, onSuccess, editingDream = null, com
                             disabled={loading || !content.trim()}
                             className="px-5 py-2 bg-primary text-white font-bold rounded-full hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            {loading ? 'Publicando...' : editingDream ? 'Salvar' : 'Sonhar'}
+                            {loading ? t('createDream.btnPublishing') : editingDream ? t('createDream.btnSave') : t('createDream.btnDream')}
                         </button>
                     </div>
                 </motion.div>

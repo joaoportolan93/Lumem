@@ -1,0 +1,610 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-03-03 15:30-0300\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+#: .\core\models.py:53
+msgid "Qual o nome do seu primeiro animal de estimação?"
+msgstr ""
+
+#: .\core\models.py:54
+msgid "Qual o nome da sua cidade natal?"
+msgstr ""
+
+#: .\core\models.py:55
+msgid "Qual era o nome da sua escola primária?"
+msgstr ""
+
+#: .\core\models.py:56
+msgid "Qual o nome do seu melhor amigo de infância?"
+msgstr ""
+
+#: .\core\models.py:57
+msgid "Qual o modelo do seu primeiro carro?"
+msgstr ""
+
+#: .\core\models.py:63 .\core\models.py:103 .\core\models.py:201
+msgid "Ativo"
+msgstr ""
+
+#: .\core\models.py:64
+msgid "Suspenso"
+msgstr ""
+
+#: .\core\models.py:65
+msgid "Desativado"
+msgstr ""
+
+#: .\core\models.py:70 .\core\models.py:127
+msgid "Público"
+msgstr ""
+
+#: .\core\models.py:71 .\core\models.py:129
+msgid "Privado"
+msgstr ""
+
+#: .\core\models.py:104
+msgid "Bloqueado"
+msgstr ""
+
+#: .\core\models.py:105 .\core\models.py:346
+msgid "Pendente"
+msgstr ""
+
+#: .\core\models.py:128
+msgid "Lista de Amigos"
+msgstr ""
+
+#: .\core\models.py:146
+msgid "Imagem"
+msgstr ""
+
+#: .\core\models.py:147
+msgid "Vídeo"
+msgstr ""
+
+#: .\core\models.py:148
+msgid "GIF"
+msgstr ""
+
+#: .\core\models.py:149
+msgid "Áudio"
+msgstr ""
+
+#: .\core\models.py:202 .\core\models.py:355
+msgid "Removido"
+msgstr ""
+
+#: .\core\models.py:203
+msgid "Denunciado"
+msgstr ""
+
+#: .\core\models.py:237
+msgid "Gostei"
+msgstr ""
+
+#: .\core\models.py:238
+msgid "Amei"
+msgstr ""
+
+#: .\core\models.py:239
+msgid "Confuso"
+msgstr ""
+
+#: .\core\models.py:240
+msgid "Assustado"
+msgstr ""
+
+#: .\core\models.py:241
+msgid "Relacionável"
+msgstr ""
+
+#: .\core\models.py:275
+msgid "Nova Publicação"
+msgstr ""
+
+#: .\core\models.py:276 .\core\models.py:330
+msgid "Comentário"
+msgstr ""
+
+#: .\core\models.py:277
+msgid "Curtida"
+msgstr ""
+
+#: .\core\models.py:278
+msgid "Seguidor Novo"
+msgstr ""
+
+#: .\core\models.py:279
+msgid "Solicitação de Seguidor"
+msgstr ""
+
+#: .\core\models.py:329
+msgid "Publicação"
+msgstr ""
+
+#: .\core\models.py:331
+msgid "Usuário"
+msgstr ""
+
+#: .\core\models.py:337
+msgid "Conteúdo Inadequado"
+msgstr ""
+
+#: .\core\models.py:338
+msgid "Assédio"
+msgstr ""
+
+#: .\core\models.py:339
+msgid "Spam"
+msgstr ""
+
+#: .\core\models.py:347
+msgid "Analisada"
+msgstr ""
+
+#: .\core\models.py:348
+msgid "Resolvida"
+msgstr ""
+
+#: .\core\models.py:354
+msgid "Nenhuma"
+msgstr ""
+
+#: .\core\models.py:356
+msgid "Usuário Suspenso"
+msgstr ""
+
+#: .\core\models.py:385
+msgid "Claro"
+msgstr ""
+
+#: .\core\models.py:386
+msgid "Escuro"
+msgstr ""
+
+#: .\core\models.py:387
+msgid "Sistema"
+msgstr ""
+
+#: .\core\models.py:422 .\core\views.py:1705
+msgid "Membro"
+msgstr ""
+
+#: .\core\models.py:423 .\core\views.py:1705
+msgid "Moderador"
+msgstr ""
+
+#: .\core\models.py:424 .\core\views.py:1705
+msgid "Administrador"
+msgstr ""
+
+#: .\core\models.py:473
+msgid "Texto"
+msgstr ""
+
+#: .\core\models.py:474
+msgid "Multimídia"
+msgstr ""
+
+#: .\core\models.py:475
+msgid "Link"
+msgstr ""
+
+#: .\core\serializers.py:141
+msgid ""
+"Não foi possível verificar sua identidade. Verifique o email e nome de "
+"usuário."
+msgstr ""
+
+#: .\core\serializers.py:147
+msgid ""
+"Este usuário não configurou uma pergunta secreta. Entre em contato com o "
+"suporte."
+msgstr ""
+
+#: .\core\serializers.py:151
+msgid "Resposta secreta incorreta."
+msgstr ""
+
+#: .\core\serializers.py:383
+msgid "Comentário deve ter texto ou mídia"
+msgstr ""
+
+#: .\core\views.py:82
+msgid "Conta banida"
+msgstr ""
+
+#: .\core\views.py:83
+msgid ""
+"Sua conta foi banida por tempo indeterminado devido a violação das regras da "
+"comunidade."
+msgstr ""
+
+#: .\core\views.py:156
+msgid "Você só pode editar seu próprio perfil"
+msgstr ""
+
+#: .\core\views.py:177
+msgid "Logout realizado com sucesso"
+msgstr ""
+
+#: .\core\views.py:189
+msgid "Senha redefinida com sucesso!"
+msgstr ""
+
+#: .\core\views.py:205
+msgid "Nenhum arquivo enviado"
+msgstr ""
+
+#: .\core\views.py:215 .\core\views.py:1493
+#, python-format
+msgid "Formato não permitido. Use: %(ext)s"
+msgstr ""
+
+#: .\core\views.py:222 .\core\views.py:1495
+msgid "Arquivo muito grande. Máximo: 5MB"
+msgstr ""
+
+#: .\core\views.py:257
+msgid "Avatar atualizado com sucesso"
+msgstr ""
+
+#: .\core\views.py:476
+msgid "Você só pode editar seus próprios sonhos"
+msgstr ""
+
+#: .\core\views.py:485
+msgid "Você só pode excluir seus próprios sonhos"
+msgstr ""
+
+#: .\core\views.py:537
+msgid "Post removido dos salvos"
+msgstr ""
+
+#: .\core\views.py:544
+msgid "Post salvo com sucesso"
+msgstr ""
+
+#: .\core\views.py:563
+msgid "Você não pode seguir a si mesmo"
+msgstr ""
+
+#: .\core\views.py:574
+msgid "Não é possível seguir este usuário"
+msgstr ""
+
+#: .\core\views.py:587
+msgid "Você já está seguindo este usuário"
+msgstr ""
+
+#: .\core\views.py:592
+msgid "Solicitação já enviada"
+msgstr ""
+
+#: .\core\views.py:601 .\core\views.py:624
+#, python-format
+msgid "Solicitação enviada para %(username)s"
+msgstr ""
+
+#: .\core\views.py:644
+#, python-format
+msgid "Você agora está seguindo %(username)s"
+msgstr ""
+
+#: .\core\views.py:660
+msgid "Você não está seguindo este usuário"
+msgstr ""
+
+#: .\core\views.py:668
+#, python-format
+msgid "Você deixou de seguir %(username)s"
+msgstr ""
+
+#: .\core\views.py:668
+msgid "Solicitação cancelada"
+msgstr ""
+
+#: .\core\views.py:690 .\core\views.py:738
+msgid "Esta conta é privada. Apenas seguidores aprovados podem ver esta lista."
+msgstr ""
+
+#: .\core\views.py:777
+msgid "Você não pode bloquear a si mesmo"
+msgstr ""
+
+#: .\core\views.py:782
+msgid "Usuário já está bloqueado"
+msgstr ""
+
+#: .\core\views.py:791
+#, python-format
+msgid "Você bloqueou %(username)s"
+msgstr ""
+
+#: .\core\views.py:801
+msgid "Este usuário não está bloqueado"
+msgstr ""
+
+#: .\core\views.py:803
+#, python-format
+msgid "Você desbloqueou %(username)s"
+msgstr ""
+
+#: .\core\views.py:815
+msgid "Você não pode silenciar a si mesmo"
+msgstr ""
+
+#: .\core\views.py:819
+msgid "Usuário já está silenciado"
+msgstr ""
+
+#: .\core\views.py:823
+#, python-format
+msgid "Você silenciou %(username)s"
+msgstr ""
+
+#: .\core\views.py:833
+msgid "Este usuário não está silenciado"
+msgstr ""
+
+#: .\core\views.py:835
+#, python-format
+msgid "Você deixou de silenciar %(username)s"
+msgstr ""
+
+#: .\core\views.py:878
+msgid "Solicitação não encontrada"
+msgstr ""
+
+#: .\core\views.py:895
+msgid "Solicitação aceita"
+msgstr ""
+
+#: .\core\views.py:902
+msgid "Solicitação recusada"
+msgstr ""
+
+#: .\core\views.py:907
+msgid "Ação inválida. Use \"accept\" ou \"reject\""
+msgstr ""
+
+#: .\core\views.py:1012
+msgid "Você só pode editar seus próprios comentários"
+msgstr ""
+
+#: .\core\views.py:1021
+msgid "Você só pode excluir seus próprios comentários"
+msgstr ""
+
+#: .\core\views.py:1028
+msgid ""
+"Não é possível excluir um comentário que possui respostas. Exclua as "
+"respostas primeiro."
+msgstr ""
+
+#: .\core\views.py:1222
+msgid "Status atualizado"
+msgstr ""
+
+#: .\core\views.py:1224
+msgid "Status inválido"
+msgstr ""
+
+#: .\core\views.py:1306
+msgid "Denúncia ignorada"
+msgstr ""
+
+#: .\core\views.py:1319
+msgid "Conteúdo removido"
+msgstr ""
+
+#: .\core\views.py:1343
+msgid "Usuário banido"
+msgstr ""
+
+#: .\core\views.py:1345
+msgid "Ação inválida"
+msgstr ""
+
+#: .\core\views.py:1360
+msgid "Campos obrigatórios: id_conteudo, tipo_conteudo, motivo_denuncia"
+msgstr ""
+
+#: .\core\views.py:1367
+msgid "tipo_conteudo inválido. Use: 1 (Post), 2 (Comment), 3 (User)"
+msgstr ""
+
+#: .\core\views.py:1374
+msgid "motivo_denuncia inválido. Use: 1, 2 ou 3"
+msgstr ""
+
+#: .\core\views.py:1381
+msgid "Publicação não encontrada"
+msgstr ""
+
+#: .\core\views.py:1384
+msgid "Comentário não encontrado"
+msgstr ""
+
+#: .\core\views.py:1387 .\core\views.py:1823 .\core\views.py:1911
+msgid "Usuário não encontrado"
+msgstr ""
+
+#: .\core\views.py:1400
+msgid "Denúncia enviada com sucesso"
+msgstr ""
+
+#: .\core\views.py:1470
+msgid "Amigo próximo adicionado"
+msgstr ""
+
+#: .\core\views.py:1470
+msgid "Amigo próximo removido"
+msgstr ""
+
+#: .\core\views.py:1511
+msgid "Apenas moderadores podem alterar o ícone"
+msgstr ""
+
+#: .\core\views.py:1534
+msgid "Ícone atualizado!"
+msgstr ""
+
+#: .\core\views.py:1541
+msgid "Apenas moderadores podem alterar o banner"
+msgstr ""
+
+#: .\core\views.py:1564
+msgid "Banner atualizado!"
+msgstr ""
+
+#: .\core\views.py:1614
+msgid "Apenas administradores podem excluir a comunidade"
+msgstr ""
+
+#: .\core\views.py:1617
+msgid "Comunidade excluída com sucesso"
+msgstr ""
+
+#: .\core\views.py:1627
+msgid "Você já é membro desta comunidade"
+msgstr ""
+
+#: .\core\views.py:1631
+msgid "Você está banido desta comunidade"
+msgstr ""
+
+#: .\core\views.py:1635
+msgid "Bem-vindo à comunidade!"
+msgstr ""
+
+#: .\core\views.py:1648
+msgid "Você não é membro desta comunidade"
+msgstr ""
+
+#: .\core\views.py:1654
+msgid "Você é o único admin. Promova outro membro antes de sair."
+msgstr ""
+
+#: .\core\views.py:1658
+msgid "Você saiu da comunidade"
+msgstr ""
+
+#: .\core\views.py:1677
+msgid "Apenas administradores podem gerenciar roles"
+msgstr ""
+
+#: .\core\views.py:1683
+msgid "Campos obrigatórios: user_id, role"
+msgstr ""
+
+#: .\core\views.py:1686
+msgid "Role inválido. Use: member, moderator, admin"
+msgstr ""
+
+#: .\core\views.py:1694
+msgid "Usuário não é membro desta comunidade"
+msgstr ""
+
+#: .\core\views.py:1700
+msgid "Você é o único admin. Promova outro membro antes de se rebaixar."
+msgstr ""
+
+#: .\core\views.py:1707
+#, python-format
+msgid "Usuário agora é %(role)s"
+msgstr ""
+
+#: .\core\views.py:1747
+msgid "Apenas moderadores podem ver estatísticas"
+msgstr ""
+
+#: .\core\views.py:1788
+msgid "Apenas moderadores podem editar a comunidade"
+msgstr ""
+
+#: .\core\views.py:1795
+msgid "Nenhum campo válido para atualizar"
+msgstr ""
+
+#: .\core\views.py:1813
+msgid "Apenas moderadores podem banir membros"
+msgstr ""
+
+#: .\core\views.py:1819 .\core\views.py:1864 .\core\views.py:1907
+msgid "Campo obrigatório: user_id"
+msgstr ""
+
+#: .\core\views.py:1828
+msgid "Não é possível banir um administrador"
+msgstr ""
+
+#: .\core\views.py:1832
+msgid "Você não pode banir a si mesmo"
+msgstr ""
+
+#: .\core\views.py:1836
+msgid "Usuário já está banido"
+msgstr ""
+
+#: .\core\views.py:1851
+#, python-format
+msgid "Usuário %(username)s foi banido da comunidade"
+msgstr ""
+
+#: .\core\views.py:1860
+msgid "Apenas moderadores podem desbanir membros"
+msgstr ""
+
+#: .\core\views.py:1868
+msgid "Usuário não está banido"
+msgstr ""
+
+#: .\core\views.py:1872
+msgid "Usuário desbanido com sucesso"
+msgstr ""
+
+#: .\core\views.py:1881
+msgid "Apenas moderadores podem ver banidos"
+msgstr ""
+
+#: .\core\views.py:1903
+msgid "Apenas administradores podem convidar moderadores"
+msgstr ""
+
+#: .\core\views.py:1915
+msgid "Usuário está banido desta comunidade"
+msgstr ""
+
+#: .\core\views.py:1921
+msgid "Usuário já é moderador/admin"
+msgstr ""
+
+#: .\core\views.py:1933
+#, python-format
+msgid "%(username)s agora é moderador da comunidade"
+msgstr ""
+
+#: .\dreamshare_backend\settings.py:123
+msgid "Português Brasileiro"
+msgstr ""
+
+#: .\dreamshare_backend\settings.py:124
+msgid "English"
+msgstr ""

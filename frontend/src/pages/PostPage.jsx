@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { FaArrowLeft, FaHeart, FaRegHeart, FaComment, FaShare, FaEllipsisH, FaEdit, FaTrash, FaFlag, FaBookmark, FaRegBookmark, FaUserFriends, FaChevronDown, FaRobot } from 'react-icons/fa';
 import { getDream, deleteDream, likeDream, saveDream, getComments, createComment, getProfile } from '../services/api';
+import { useTranslation } from 'react-i18next';
 import ReplyComposer from '../components/ReplyComposer';
 import CommentItem from '../components/CommentItem';
 import CommentDetailModal from '../components/CommentDetailModal';
@@ -14,7 +15,9 @@ const SORT_OPTIONS = [
     { key: 'likes', label: 'Mais Curtidos' },
 ];
 
+
 const PostPage = () => {
+    const { t } = useTranslation();
     const { id } = useParams();
     const navigate = useNavigate();
 
@@ -78,7 +81,7 @@ const PostPage = () => {
             setSaved(response.data.is_saved || false);
         } catch (err) {
             console.error('Error fetching post:', err);
-            setError('Post não encontrado');
+            setError(t('post.errNotFound'));
         } finally {
             setLoading(false);
         }
@@ -141,7 +144,7 @@ const PostPage = () => {
     };
 
     const handleDelete = async () => {
-        if (!window.confirm('Tem certeza que deseja excluir este post?')) return;
+        if (!window.confirm(t('post.confirmDelete'))) return;
         try {
             await deleteDream(id);
             navigate(-1);
@@ -257,10 +260,10 @@ const PostPage = () => {
         const diffHours = Math.floor(diffMs / 3600000);
         const diffDays = Math.floor(diffMs / 86400000);
 
-        if (diffMins < 1) return 'agora';
-        if (diffMins < 60) return `${diffMins}min`;
-        if (diffHours < 24) return `${diffHours}h`;
-        if (diffDays < 7) return `${diffDays}d`;
+        if (diffMins < 1) return t('post.timeJustNow');
+        if (diffMins < 60) return `${diffMins}${t('post.timeMins')}`;
+        if (diffHours < 24) return `${diffHours}${t('post.timeHours')}`;
+        if (diffDays < 7) return `${diffDays}${t('post.timeDays')}`;
         return date.toLocaleDateString('pt-BR');
     };
 
@@ -281,12 +284,12 @@ const PostPage = () => {
     if (error || !post) {
         return (
             <div className="min-h-screen bg-gray-50 dark:bg-[#0f0d1a] flex flex-col items-center justify-center">
-                <p className="text-gray-500 dark:text-gray-400 text-lg mb-4">{error || 'Post não encontrado'}</p>
+                <p className="text-gray-500 dark:text-gray-400 text-lg mb-4">{error || t('post.errNotFound')}</p>
                 <button
                     onClick={() => navigate(-1)}
                     className="text-primary hover:underline"
                 >
-                    Voltar
+                    {t('post.btnBack')}
                 </button>
             </div>
         );
@@ -303,7 +306,7 @@ const PostPage = () => {
                     >
                         <FaArrowLeft className="text-gray-800 dark:text-white" />
                     </button>
-                    <h1 className="text-xl font-bold text-gray-900 dark:text-white">Post</h1>
+                    <h1 className="text-xl font-bold text-gray-900 dark:text-white">{t('post.pageTitle')}</h1>
                 </div>
             </div>
 
@@ -356,13 +359,13 @@ const PostPage = () => {
                                         {isOwner ? (
                                             <>
                                                 <button className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/10">
-                                                    <FaEdit /> Editar
+                                                    <FaEdit /> {t('post.menuEdit')}
                                                 </button>
                                                 <button
                                                     onClick={handleDelete}
                                                     className="w-full flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
                                                 >
-                                                    <FaTrash /> Excluir
+                                                    <FaTrash /> {t('post.menuDelete')}
                                                 </button>
                                             </>
                                         ) : (
@@ -370,7 +373,7 @@ const PostPage = () => {
                                                 onClick={() => { setShowReportModal(true); setShowMenu(false); }}
                                                 className="w-full flex items-center gap-3 px-4 py-3 text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/20"
                                             >
-                                                <FaFlag /> Denunciar
+                                                <FaFlag /> {t('post.menuReport')}
                                             </button>
                                         )}
                                     </div>
@@ -407,7 +410,7 @@ const PostPage = () => {
                                 className="w-full h-auto max-h-[600px] object-contain"
                                 preload="metadata"
                             >
-                                Seu navegador não suporta a tag de vídeo.
+                                {t('post.videoNotSupported')}
                             </video>
                         </div>
                     )}
@@ -431,10 +434,10 @@ const PostPage = () => {
                     {/* Stats Bar */}
                     <div className="flex gap-6 mb-4">
                         <span className="text-gray-900 dark:text-white">
-                            <strong>{likesCount}</strong> <span className="text-gray-500">Curtidas</span>
+                            <strong>{likesCount}</strong> <span className="text-gray-500">{t('post.likesCount')}</span>
                         </span>
                         <span className="text-gray-900 dark:text-white">
-                            <strong>{post.comentarios_count || 0}</strong> <span className="text-gray-500">Comentários</span>
+                            <strong>{post.comentarios_count || 0}</strong> <span className="text-gray-500">{t('post.commentsCount')}</span>
                         </span>
                     </div>
 
@@ -468,7 +471,7 @@ const PostPage = () => {
                 <div className="bg-white dark:bg-transparent px-6 sm:px-0 max-w-2xl mx-auto -mt-2 mb-4">
                     <ReplyComposer
                         mode="inline"
-                        placeholder="Postar sua resposta"
+                        placeholder={t('post.replyPlaceholder')}
                         currentUser={user}
                         onSubmit={(formData) => handleReplySubmit(formData, null)}
                     />
@@ -479,13 +482,13 @@ const PostPage = () => {
 
                     {/* Compact Sort Header */}
                     <div className="px-4 py-3 flex items-center justify-between border-b border-gray-200 dark:border-white/5">
-                        <h3 className="text-lg font-bold text-gray-900 dark:text-white">Comentários</h3>
+                        <h3 className="text-lg font-bold text-gray-900 dark:text-white">{t('post.commentsTitle')}</h3>
                         <div className="relative">
                             <button
                                 onClick={() => setShowSortMenu(!showSortMenu)}
                                 className="flex items-center gap-2 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-primary transition-colors bg-gray-100 dark:bg-white/5 px-3 py-1.5 rounded-full"
                             >
-                                {SORT_OPTIONS.find(o => o.key === sortBy)?.label}
+                                {t(`post.sortOptions.${sortBy}`)}
                                 <FaChevronDown size={10} />
                             </button>
 
@@ -500,7 +503,7 @@ const PostPage = () => {
                                                 className={`w-full text-left px-4 py-3 text-sm hover:bg-gray-50 dark:hover:bg-white/5 transition-colors ${sortBy === option.key ? 'text-primary font-bold' : 'text-gray-700 dark:text-gray-300'
                                                     }`}
                                             >
-                                                {option.label}
+                                                {t(`post.sortOptions.${option.key}`)}
                                             </button>
                                         ))}
                                     </div>
@@ -515,12 +518,12 @@ const PostPage = () => {
                         </div>
                     ) : displayComments.length === 0 && spamComments.length === 0 ? (
                         <div className="text-center py-8">
-                            <p className="text-gray-500 dark:text-gray-400">Nenhum comentário ainda</p>
+                            <p className="text-gray-500 dark:text-gray-400">{t('post.noComments')}</p>
                             <button
                                 onClick={() => document.querySelector('textarea')?.focus()}
                                 className="mt-2 text-primary hover:underline"
                             >
-                                Seja o primeiro a comentar
+                                {t('post.beFirstComment')}
                             </button>
                         </div>
                     ) : (
@@ -559,10 +562,10 @@ const PostPage = () => {
                                             </div>
                                             <div className="text-left">
                                                 <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                                                    Provável Spam
+                                                    {t('post.probableSpam')}
                                                 </p>
                                                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                                                    {spamComments.length} comentários ocultos
+                                                    {spamComments.length} {t('post.hiddenComments')}
                                                 </p>
                                             </div>
                                         </div>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import {
     FaChevronDown, FaFont, FaImage, FaLink, FaPoll, FaQuestionCircle,
@@ -11,6 +12,7 @@ import {
 } from '../services/api';
 
 const CreatePostPage = () => {
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const { communityId } = useParams();
     const [searchParams] = useSearchParams();
@@ -39,11 +41,11 @@ const CreatePostPage = () => {
     const textareaRef = useRef(null);
 
     const postTabs = [
-        { id: 'texto', label: 'Texto', icon: FaFont, enabled: true },
-        { id: 'multimidia', label: 'Multimídia', icon: FaImage, enabled: true },
-        { id: 'link', label: 'Link', icon: FaLink, enabled: true },
-        { id: 'enquete', label: 'Enquete', icon: FaPoll, enabled: false },
-        { id: 'ama', label: 'AMA', icon: FaQuestionCircle, enabled: false },
+        { id: 'texto', label: t('createPost.tabs.text'), icon: FaFont, enabled: true },
+        { id: 'multimidia', label: t('createPost.tabs.multimedia'), icon: FaImage, enabled: true },
+        { id: 'link', label: t('createPost.tabs.link'), icon: FaLink, enabled: true },
+        { id: 'enquete', label: t('createPost.tabs.poll'), icon: FaPoll, enabled: false },
+        { id: 'ama', label: t('createPost.tabs.ama'), icon: FaQuestionCircle, enabled: false },
     ];
 
     // Helper function to insert markdown syntax at cursor position
@@ -55,14 +57,14 @@ const CreatePostPage = () => {
         const end = textarea.selectionEnd;
         const selectedText = content.substring(start, end);
         const textToInsert = selectedText || placeholder;
-        
-        const newContent = 
-            content.substring(0, start) + 
-            prefix + textToInsert + suffix + 
+
+        const newContent =
+            content.substring(0, start) +
+            prefix + textToInsert + suffix +
             content.substring(end);
-        
+
         setContent(newContent);
-        
+
         // Set cursor position after insertion
         setTimeout(() => {
             textarea.focus();
@@ -75,11 +77,11 @@ const CreatePostPage = () => {
     };
 
     // Toolbar button handlers
-    const handleBold = () => insertMarkdown('**', '**', 'texto em negrito');
-    const handleItalic = () => insertMarkdown('*', '*', 'texto em itálico');
-    const handleStrikethrough = () => insertMarkdown('~~', '~~', 'texto riscado');
+    const handleBold = () => insertMarkdown('**', '**', t('createPost.formatting.bold'));
+    const handleItalic = () => insertMarkdown('*', '*', t('createPost.formatting.italic'));
+    const handleStrikethrough = () => insertMarkdown('~~', '~~', t('createPost.formatting.strikethrough'));
     const handleLink = () => {
-        const url = prompt('Digite a URL:');
+        const url = prompt(t('createPost.prompts.enterUrl'));
         if (!url) {
             return;
         }
@@ -91,28 +93,28 @@ const CreatePostPage = () => {
         try {
             const parsed = new URL(trimmedUrl, window.location.origin);
             if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-                alert('Por favor, insira uma URL que comece com http:// ou https://');
+                alert(t('createPost.alerts.invalidProtocol'));
                 return;
             }
             safeHref = parsed.href;
         } catch (e) {
-            alert('Por favor, insira uma URL válida.');
+            alert(t('createPost.alerts.invalidUrl'));
             return;
         }
-        insertMarkdown('[', `](${safeHref})`, 'texto do link');
+        insertMarkdown('[', `](${safeHref})`, t('createPost.formatting.linkText'));
     };
-    const handleUnorderedList = () => insertMarkdown('\n- ', '', 'item da lista');
-    const handleOrderedList = () => insertMarkdown('\n1. ', '', 'item da lista');
-    const handleQuote = () => insertMarkdown('\n> ', '', 'citação');
+    const handleUnorderedList = () => insertMarkdown('\n- ', '', t('createPost.formatting.listItem'));
+    const handleOrderedList = () => insertMarkdown('\n1. ', '', t('createPost.formatting.listItem'));
+    const handleQuote = () => insertMarkdown('\n> ', '', t('createPost.formatting.quote'));
     const handleCode = () => {
         const textarea = textareaRef.current;
         if (!textarea) return;
         const selectedText = content.substring(textarea.selectionStart, textarea.selectionEnd);
         // Use code block for multiline, inline for single line
         if (selectedText.includes('\n')) {
-            insertMarkdown('\n```\n', '\n```\n', 'código');
+            insertMarkdown('\n```\n', '\n```\n', t('createPost.formatting.code'));
         } else {
-            insertMarkdown('`', '`', 'código');
+            insertMarkdown('`', '`', t('createPost.formatting.code'));
         }
     };
 
@@ -212,7 +214,7 @@ const CreatePostPage = () => {
 
     const saveDraft = async () => {
         if (!selectedCommunity) {
-            setError('Selecione uma comunidade para salvar o rascunho');
+            setError(t('createPost.errors.selectCommunityDraft'));
             return;
         }
 
@@ -238,7 +240,7 @@ const CreatePostPage = () => {
             setDrafts(draftsRes.data);
         } catch (err) {
             console.error('Error saving draft:', err);
-            setError('Erro ao salvar rascunho');
+            setError(t('createPost.errors.saveDraft'));
         } finally {
             setSaving(false);
         }
@@ -246,22 +248,22 @@ const CreatePostPage = () => {
 
     const handleSubmit = async () => {
         if (!selectedCommunity) {
-            setError('Selecione uma comunidade');
+            setError(t('createPost.errors.selectCommunity'));
             return;
         }
 
         if (!title.trim()) {
-            setError('Digite um título para o post');
+            setError(t('createPost.errors.enterTitle'));
             return;
         }
 
         if (activeTab === 'texto' && !content.trim()) {
-            setError('Digite o conteúdo do post');
+            setError(t('createPost.errors.enterContent'));
             return;
         }
 
         if (activeTab === 'link' && !linkUrl.trim()) {
-            setError('Digite uma URL válida');
+            setError(t('createPost.errors.enterValidUrl'));
             return;
         }
 
@@ -296,7 +298,7 @@ const CreatePostPage = () => {
 
         } catch (err) {
             console.error('Error creating post:', err);
-            setError('Erro ao publicar. Tente novamente.');
+            setError(t('createPost.errors.publish'));
         } finally {
             setLoading(false);
         }
@@ -307,7 +309,7 @@ const CreatePostPage = () => {
             <div className="max-w-3xl mx-auto px-4 py-6">
                 {/* Header */}
                 <div className="flex items-center justify-between mb-6">
-                    <h1 className="text-xl font-semibold text-blue-400">Postar</h1>
+                    <h1 className="text-xl font-semibold text-blue-400">{t('createPost.title')}</h1>
                     <button
                         onClick={() => navigate(-1)}
                         className="text-gray-400 hover:text-white transition-colors"
@@ -320,7 +322,7 @@ const CreatePostPage = () => {
                 {drafts.length > 0 && (
                     <div className="flex justify-end mb-4">
                         <button className="text-red-400 text-sm hover:underline">
-                            Rascunhos {drafts.length}
+                            {t('createPost.drafts')} {drafts.length}
                         </button>
                     </div>
                 )}
@@ -339,7 +341,7 @@ const CreatePostPage = () => {
                                 <span className="text-sm">r/{selectedCommunity.nome}</span>
                             </>
                         ) : (
-                            <span className="text-gray-400 text-sm">Selecione uma comunidade</span>
+                            <span className="text-gray-400 text-sm">{t('createPost.selectCommunity')}</span>
                         )}
                         <FaChevronDown className="ml-auto text-gray-400" size={12} />
                     </button>
@@ -351,7 +353,7 @@ const CreatePostPage = () => {
                             className="absolute top-full left-0 mt-2 w-72 bg-[#1a1a1b] border border-gray-700 rounded-lg shadow-xl z-50 max-h-80 overflow-y-auto"
                         >
                             <div className="p-2 border-b border-gray-700">
-                                <p className="text-xs text-gray-500 uppercase px-2">Suas comunidades</p>
+                                <p className="text-xs text-gray-500 uppercase px-2">{t('createPost.yourCommunities')}</p>
                             </div>
                             {communities.length > 0 ? (
                                 communities.map(community => (
@@ -368,13 +370,13 @@ const CreatePostPage = () => {
                                         </div>
                                         <div>
                                             <p className="text-sm font-medium">r/{community.nome}</p>
-                                            <p className="text-xs text-gray-500">{community.membros_count} membros</p>
+                                            <p className="text-xs text-gray-500">{community.membros_count} {t('createPost.members')}</p>
                                         </div>
                                     </button>
                                 ))
                             ) : (
                                 <div className="px-4 py-6 text-center text-gray-500 text-sm">
-                                    Você ainda não é membro de nenhuma comunidade
+                                    {t('createPost.noCommunities')}
                                 </div>
                             )}
                         </motion.div>
@@ -414,7 +416,7 @@ const CreatePostPage = () => {
                                 type="text"
                                 value={title}
                                 onChange={(e) => setTitle(e.target.value.slice(0, 300))}
-                                placeholder="Título*"
+                                placeholder={t('createPost.placeholders.title')}
                                 className="w-full bg-transparent text-white placeholder-gray-500 text-base focus:outline-none pr-16"
                             />
                             <span className="absolute right-0 top-1/2 -translate-y-1/2 text-xs text-gray-500">
@@ -444,7 +446,7 @@ const CreatePostPage = () => {
                                     onChange={(e) => setTagInput(e.target.value)}
                                     onKeyDown={handleKeyDown}
                                     onBlur={() => { addTag(); setShowTagInput(false); }}
-                                    placeholder="Digite a tag..."
+                                    placeholder={t('createPost.placeholders.tag')}
                                     className="bg-transparent text-sm text-white placeholder-gray-500 focus:outline-none w-32"
                                     autoFocus
                                 />
@@ -454,7 +456,7 @@ const CreatePostPage = () => {
                                     className="flex items-center gap-1 px-3 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-full text-sm transition-colors"
                                 >
                                     <FaPlus size={10} />
-                                    Adicionar tags
+                                    {t('createPost.buttons.addTags')}
                                 </button>
                             )}
                         </div>
@@ -467,21 +469,21 @@ const CreatePostPage = () => {
                                 ref={textareaRef}
                                 value={content}
                                 onChange={(e) => setContent(e.target.value)}
-                                placeholder="Texto do post (opcional)"
+                                placeholder={t('createPost.placeholders.text')}
                                 className="w-full h-48 bg-transparent text-white placeholder-gray-500 resize-none focus:outline-none text-base leading-relaxed"
                             />
 
                             {/* Text Formatting Toolbar */}
                             <div className="flex items-center gap-1 pt-4 border-t border-gray-700/50 text-gray-500">
-                                <button onClick={handleBold} className="p-2 hover:bg-white/5 hover:text-white rounded transition-colors" title="Negrito (Ctrl+B)" aria-label="Aplicar negrito ao texto"><FaBold size={14} /></button>
-                                <button onClick={handleItalic} className="p-2 hover:bg-white/5 hover:text-white rounded transition-colors" title="Itálico (Ctrl+I)" aria-label="Aplicar itálico ao texto"><FaItalic size={14} /></button>
-                                <button onClick={handleStrikethrough} className="p-2 hover:bg-white/5 hover:text-white rounded transition-colors" title="Tachado" aria-label="Aplicar tachado ao texto"><FaStrikethrough size={14} /></button>
+                                <button onClick={handleBold} className="p-2 hover:bg-white/5 hover:text-white rounded transition-colors" title={t('createPost.toolbar.bold')} aria-label={t('createPost.aria.bold')}><FaBold size={14} /></button>
+                                <button onClick={handleItalic} className="p-2 hover:bg-white/5 hover:text-white rounded transition-colors" title={t('createPost.toolbar.italic')} aria-label={t('createPost.aria.italic')}><FaItalic size={14} /></button>
+                                <button onClick={handleStrikethrough} className="p-2 hover:bg-white/5 hover:text-white rounded transition-colors" title={t('createPost.toolbar.strikethrough')} aria-label={t('createPost.aria.strikethrough')}><FaStrikethrough size={14} /></button>
                                 <span className="w-px h-5 bg-gray-700 mx-1" />
-                                <button onClick={handleLink} className="p-2 hover:bg-white/5 hover:text-white rounded transition-colors" title="Inserir Link" aria-label="Inserir link no texto"><FaLink size={14} /></button>
-                                <button onClick={handleUnorderedList} className="p-2 hover:bg-white/5 hover:text-white rounded transition-colors" title="Lista não ordenada" aria-label="Inserir lista não ordenada"><FaListUl size={14} /></button>
-                                <button onClick={handleOrderedList} className="p-2 hover:bg-white/5 hover:text-white rounded transition-colors" title="Lista ordenada" aria-label="Inserir lista ordenada"><FaListOl size={14} /></button>
-                                <button onClick={handleQuote} className="p-2 hover:bg-white/5 hover:text-white rounded transition-colors" title="Citação" aria-label="Inserir citação"><FaQuoteRight size={14} /></button>
-                                <button onClick={handleCode} className="p-2 hover:bg-white/5 hover:text-white rounded transition-colors" title="Código" aria-label="Inserir código"><FaCode size={14} /></button>
+                                <button onClick={handleLink} className="p-2 hover:bg-white/5 hover:text-white rounded transition-colors" title={t('createPost.toolbar.link')} aria-label={t('createPost.aria.link')}><FaLink size={14} /></button>
+                                <button onClick={handleUnorderedList} className="p-2 hover:bg-white/5 hover:text-white rounded transition-colors" title={t('createPost.toolbar.unorderedList')} aria-label={t('createPost.aria.unorderedList')}><FaListUl size={14} /></button>
+                                <button onClick={handleOrderedList} className="p-2 hover:bg-white/5 hover:text-white rounded transition-colors" title={t('createPost.toolbar.orderedList')} aria-label={t('createPost.aria.orderedList')}><FaListOl size={14} /></button>
+                                <button onClick={handleQuote} className="p-2 hover:bg-white/5 hover:text-white rounded transition-colors" title={t('createPost.toolbar.quote')} aria-label={t('createPost.aria.quote')}><FaQuoteRight size={14} /></button>
+                                <button onClick={handleCode} className="p-2 hover:bg-white/5 hover:text-white rounded transition-colors" title={t('createPost.toolbar.code')} aria-label={t('createPost.aria.code')}><FaCode size={14} /></button>
                             </div>
                         </div>
                     )}
@@ -511,7 +513,7 @@ const CreatePostPage = () => {
                                 >
                                     <FaUpload className="text-gray-500 mb-3" size={24} />
                                     <p className="text-gray-400 text-sm">
-                                        Arraste aqui ou envie uma mídia
+                                        {t('createPost.dragDrop')}
                                     </p>
                                     <input
                                         ref={fileInputRef}
@@ -527,7 +529,7 @@ const CreatePostPage = () => {
                             <textarea
                                 value={content}
                                 onChange={(e) => setContent(e.target.value)}
-                                placeholder="Adicione uma legenda (opcional)"
+                                placeholder={t('createPost.placeholders.caption')}
                                 className="w-full h-24 mt-4 bg-transparent text-white placeholder-gray-500 resize-none focus:outline-none text-base border-t border-gray-700/50 pt-4"
                             />
                         </div>
@@ -539,13 +541,13 @@ const CreatePostPage = () => {
                                 type="url"
                                 value={linkUrl}
                                 onChange={(e) => setLinkUrl(e.target.value)}
-                                placeholder="Cole o link aqui..."
+                                placeholder={t('createPost.placeholders.link')}
                                 className="w-full bg-transparent text-white placeholder-gray-500 text-base focus:outline-none border-b border-gray-700/50 pb-4 mb-4"
                             />
                             <textarea
                                 value={content}
                                 onChange={(e) => setContent(e.target.value)}
-                                placeholder="Adicione uma descrição (opcional)"
+                                placeholder={t('createPost.placeholders.description')}
                                 className="w-full h-24 bg-transparent text-white placeholder-gray-500 resize-none focus:outline-none text-base"
                             />
                         </div>
@@ -566,14 +568,14 @@ const CreatePostPage = () => {
                         disabled={saving || !selectedCommunity}
                         className="px-5 py-2 text-gray-400 hover:text-white transition-colors disabled:opacity-50"
                     >
-                        {saving ? 'Salvando...' : 'Salvar rascunho'}
+                        {saving ? t('createPost.buttons.saving') : t('createPost.buttons.saveDraft')}
                     </button>
                     <button
                         onClick={handleSubmit}
                         disabled={loading || !selectedCommunity || !title.trim()}
                         className="px-6 py-2 bg-white text-black font-bold rounded-full hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        {loading ? 'Publicando...' : 'Postar'}
+                        {loading ? t('createPost.buttons.publishing') : t('createPost.buttons.publish')}
                     </button>
                 </div>
             </div>

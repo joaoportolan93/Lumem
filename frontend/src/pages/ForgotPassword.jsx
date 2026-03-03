@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { passwordReset } from '../services/api';
+import { useTranslation } from 'react-i18next';
 import '../styles/Auth.css';
 
 const ForgotPassword = () => {
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const [email, setEmail] = useState('');
     const [nomeUsuario, setNomeUsuario] = useState('');
@@ -20,12 +22,12 @@ const ForgotPassword = () => {
         setError('');
 
         if (newPassword !== confirmPassword) {
-            setError('As senhas não coincidem.');
+            setError(t('forgotPassword.errPasswordMismatch'));
             return;
         }
 
         if (newPassword.length < 6) {
-            setError('A nova senha deve ter pelo menos 6 caracteres.');
+            setError(t('forgotPassword.errPasswordLength'));
             return;
         }
 
@@ -45,7 +47,7 @@ const ForgotPassword = () => {
             } else if (err.response?.data?.detail) {
                 setError(err.response.data.detail);
             } else {
-                setError('Não foi possível redefinir a senha. Verifique seus dados e tente novamente.');
+                setError(t('forgotPassword.errGeneric'));
             }
         } finally {
             setLoading(false);
@@ -85,16 +87,16 @@ const ForgotPassword = () => {
                                     <polyline points="22 4 12 14.01 9 11.01" />
                                 </svg>
                                 <h2 className="text-[#f8fafc] text-xl mb-2 text-center font-medium">
-                                    Senha redefinida!
+                                    {t('forgotPassword.successTitle')}
                                 </h2>
                                 <p className="text-[#94a3b8] text-sm text-center mb-6">
-                                    Sua senha foi alterada com sucesso. Agora você pode entrar com a nova senha.
+                                    {t('forgotPassword.successMessage')}
                                 </p>
                                 <button
                                     className="btn-dream glow-btn w-full"
                                     onClick={() => navigate('/login')}
                                 >
-                                    Ir para o Login
+                                    {t('forgotPassword.btnGoToLogin')}
                                 </button>
                             </div>
                         </motion.div>
@@ -107,7 +109,7 @@ const ForgotPassword = () => {
                             transition={{ duration: 0.3 }}
                         >
                             <p className="auth-subtitle text-center mb-6">
-                                Informe seu email, nome de usuário e resposta secreta para redefinir sua senha
+                                {t('forgotPassword.subtitle')}
                             </p>
 
                             {error && (
@@ -124,7 +126,7 @@ const ForgotPassword = () => {
                                 <input
                                     type="email"
                                     className="auth-input immersive-input mb-4"
-                                    placeholder="Email"
+                                    placeholder={t('forgotPassword.placeholderEmail')}
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     required
@@ -132,7 +134,7 @@ const ForgotPassword = () => {
                                 <input
                                     type="text"
                                     className="auth-input immersive-input mb-4"
-                                    placeholder="Nome de usuário"
+                                    placeholder={t('forgotPassword.placeholderUsername')}
                                     value={nomeUsuario}
                                     onChange={(e) => setNomeUsuario(e.target.value)}
                                     required
@@ -140,7 +142,7 @@ const ForgotPassword = () => {
                                 <input
                                     type="text"
                                     className="auth-input immersive-input mb-4"
-                                    placeholder="Resposta secreta"
+                                    placeholder={t('forgotPassword.placeholderSecretAnswer')}
                                     value={respostaSecreta}
                                     onChange={(e) => setRespostaSecreta(e.target.value)}
                                     required
@@ -148,7 +150,7 @@ const ForgotPassword = () => {
                                 <input
                                     type="password"
                                     className="auth-input immersive-input mb-4"
-                                    placeholder="Nova senha"
+                                    placeholder={t('forgotPassword.placeholderNewPassword')}
                                     value={newPassword}
                                     onChange={(e) => setNewPassword(e.target.value)}
                                     required
@@ -156,7 +158,7 @@ const ForgotPassword = () => {
                                 <input
                                     type="password"
                                     className="auth-input immersive-input mb-6"
-                                    placeholder="Confirmar nova senha"
+                                    placeholder={t('forgotPassword.placeholderConfirmNewPassword')}
                                     value={confirmPassword}
                                     onChange={(e) => setConfirmPassword(e.target.value)}
                                     required
@@ -166,12 +168,12 @@ const ForgotPassword = () => {
                                     className="btn-dream glow-btn w-full"
                                     disabled={loading}
                                 >
-                                    {loading ? 'Redefinindo...' : 'Redefinir Senha'}
+                                    {loading ? t('forgotPassword.btnResetting') : t('forgotPassword.btnReset')}
                                 </button>
                             </form>
 
                             <p className="auth-link text-center mt-6">
-                                Lembrou a senha? <Link to="/login" className="text-[#a78bfa] hover:text-[#c4b5fd] transition-colors">Voltar ao login</Link>
+                                {t('forgotPassword.rememberedPassword')} <Link to="/login" className="text-[#a78bfa] hover:text-[#c4b5fd] transition-colors">{t('forgotPassword.linkBackToLogin')}</Link>
                             </p>
                         </motion.div>
                     )}

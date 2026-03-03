@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { register, login } from '../services/api';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import '../styles/Auth.css';
 
 const Register = () => {
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const [formData, setFormData] = useState({
         username: '',
@@ -18,7 +20,7 @@ const Register = () => {
     const [loading, setLoading] = useState(false);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-    const perguntasSecretas = [
+    const perguntasSecretas = t('register.securityQuestionsList', { returnObjects: true }) || [
         { id: 1, text: 'Qual o nome do seu primeiro animal de estimação?' },
         { id: 2, text: 'Qual o nome da sua cidade natal?' },
         { id: 3, text: 'Qual era o nome da sua escola primária?' },
@@ -28,7 +30,7 @@ const Register = () => {
 
     const getPerguntaText = (id) => {
         const p = perguntasSecretas.find(p => p.id === Number(id));
-        return p ? p.text : 'Selecione uma pergunta secreta';
+        return p ? p.text : t('register.selectSecurityQuestion');
     };
 
     const handleChange = (e) => {
@@ -51,17 +53,17 @@ const Register = () => {
         setError('');
 
         if (!formData.pergunta_secreta) {
-            setError('Por favor, selecione uma pergunta secreta.');
+            setError(t('register.errSelectQuestion'));
             return;
         }
 
         if (formData.password !== formData.confirmPassword) {
-            setError('As senhas não coincidem.');
+            setError(t('register.errPasswordMismatch'));
             return;
         }
 
         if (formData.password.length < 6) {
-            setError('A senha deve ter pelo menos 6 caracteres.');
+            setError(t('register.errPasswordLength'));
             return;
         }
 
@@ -88,13 +90,13 @@ const Register = () => {
             navigate('/onboarding');
         } catch (err) {
             if (err.response?.data?.email) {
-                setError('Este email já está em uso.');
+                setError(t('register.errEmailInUse'));
             } else if (err.response?.data?.username) {
-                setError('Este nome de usuário já está em uso.');
+                setError(t('register.errUsernameInUse'));
             } else if (err.response?.data?.detail) {
                 setError(err.response.data.detail);
             } else {
-                setError('Ocorreu um erro ao criar a conta. Tente novamente.');
+                setError(t('register.errGeneric'));
             }
         } finally {
             setLoading(false);
@@ -116,8 +118,8 @@ const Register = () => {
                 transition={{ duration: 0.6, ease: "easeOut" }}
             >
                 <div className="text-center mb-6">
-                    <h1 className="auth-title">Criar Conta</h1>
-                    <p className="auth-subtitle">Junte-se à comunidade de sonhadores</p>
+                    <h1 className="auth-title">{t('register.title')}</h1>
+                    <p className="auth-subtitle">{t('register.subtitle')}</p>
                 </div>
 
                 {error && (
@@ -135,7 +137,7 @@ const Register = () => {
                         type="text"
                         name="username"
                         className="auth-input immersive-input mb-4"
-                        placeholder="Nome de usuário"
+                        placeholder={t('register.placeholderUsername')}
                         value={formData.username}
                         onChange={handleChange}
                         required
@@ -144,7 +146,7 @@ const Register = () => {
                         type="email"
                         name="email"
                         className="auth-input immersive-input mb-4"
-                        placeholder="Email"
+                        placeholder={t('register.placeholderEmail')}
                         value={formData.email}
                         onChange={handleChange}
                         required
@@ -153,7 +155,7 @@ const Register = () => {
                         type="password"
                         name="password"
                         className="auth-input immersive-input mb-4"
-                        placeholder="Senha"
+                        placeholder={t('register.placeholderPassword')}
                         value={formData.password}
                         onChange={handleChange}
                         required
@@ -162,7 +164,7 @@ const Register = () => {
                         type="password"
                         name="confirmPassword"
                         className="auth-input immersive-input mb-4"
-                        placeholder="Confirmar senha"
+                        placeholder={t('register.placeholderConfirmPassword')}
                         value={formData.confirmPassword}
                         onChange={handleChange}
                         required
@@ -202,7 +204,7 @@ const Register = () => {
                         type="text"
                         name="resposta_secreta"
                         className="auth-input immersive-input mb-6"
-                        placeholder="Resposta secreta"
+                        placeholder={t('register.placeholderSecretAnswer')}
                         value={formData.resposta_secreta}
                         onChange={handleChange}
                         required
@@ -212,12 +214,12 @@ const Register = () => {
                         className="btn-dream glow-btn w-full"
                         disabled={loading}
                     >
-                        {loading ? 'Criando conta...' : 'Criar conta'}
+                        {loading ? t('register.btnCreating') : t('register.btnCreate')}
                     </button>
                 </form>
 
                 <p className="auth-link text-center mt-6">
-                    Já tem uma conta? <Link to="/login" className="text-[#a78bfa] hover:text-[#c4b5fd] transition-colors">Entrar</Link>
+                    {t('register.alreadyHaveAccount')} <Link to="/login" className="text-[#a78bfa] hover:text-[#c4b5fd] transition-colors">{t('register.linkLogin')}</Link>
                 </p>
             </motion.div>
         </div>

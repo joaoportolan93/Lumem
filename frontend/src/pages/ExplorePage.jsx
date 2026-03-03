@@ -20,8 +20,10 @@ import {
 } from 'react-icons/fa';
 import { getTrends, getTopCommunityPosts } from '../services/api';
 import SuggestionsCard from '../components/SuggestionsCard';
+import { useTranslation } from 'react-i18next';
 
 const ExplorePage = () => {
+    const { t } = useTranslation();
     const navigate = useNavigate();
 
 
@@ -36,7 +38,7 @@ const ExplorePage = () => {
     const [activeTrendTab, setActiveTrendTab] = useState('hashtags');
 
     // Randomized tips
-    const allTips = [
+    const allTips = t('explore.tips', { returnObjects: true }) || [
         { icon: <FaMoon className="text-blue-300" />, text: "Mantenha um horário de sono regular." },
         { icon: <FaEye className="text-purple-300" />, text: "Antes de dormir, repita mentalmente: 'Hoje eu vou lembrar dos meus sonhos'. Parece mágica, mas a neurociência chama de Memória Prospectiva. Funciona!" },
         { icon: <FaMobileAlt className="text-red-300" />, text: "Evite telas 1h antes de dormir." },
@@ -46,9 +48,21 @@ const ExplorePage = () => {
         { icon: <FaMoon className="text-indigo-300" />, text: "Pesadelos muitas vezes são o cérebro tentando processar emoções difíceis do dia. Registrá-los ajuda a entender seus medos e superar traumas." },
         { icon: <FaEye className="text-amber-300" />, text: "A cafeína tem uma 'meia-vida' longa. Aquele espresso das 17h ainda está 50% ativo no seu sangue na hora de dormir, impedindo você de entrar no sono REM profundo onde os sonhos acontecem." },
     ];
+    // Attach icons back since JSON doesn't store JSX components
+    const icons = [
+        <FaMoon className="text-blue-300" />,
+        <FaEye className="text-purple-300" />,
+        <FaMobileAlt className="text-red-300" />,
+        <FaCloud className="text-white/60" />,
+        <FaCloud className="text-cyan-300" />,
+        <FaStar className="text-yellow-300" />,
+        <FaMoon className="text-indigo-300" />,
+        <FaEye className="text-amber-300" />
+    ];
+    const tipsWithIcons = allTips.map((tip, idx) => ({ ...tip, icon: icons[idx % icons.length] }));
 
     const shuffleTips = () => {
-        const shuffled = [...allTips].sort(() => Math.random() - 0.5);
+        const shuffled = [...tipsWithIcons].sort(() => Math.random() - 0.5);
         return shuffled.slice(0, 4);
     };
 
@@ -118,10 +132,10 @@ const ExplorePage = () => {
 
                         <div className="relative z-10 max-w-2xl">
                             <h1 className="text-4xl md:text-5xl font-bold mb-4 tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white to-purple-200 drop-shadow-sm">
-                                Explorar Sonhos
+                                {t('explore.heroTitle')}
                             </h1>
                             <p className="text-lg text-blue-100 max-w-lg leading-relaxed">
-                                Mergulhe em um universo de subconscientes compartilhados. Descubra, inspire-se e conecte-se através das infinitas possibilidades do mundo onírico.
+                                {t('explore.heroDesc')}
                             </p>
                         </div>
                     </div>
@@ -133,26 +147,26 @@ const ExplorePage = () => {
                         <div className="flex items-center justify-between mb-5">
                             <div className="flex items-center gap-2">
                                 <FaFire className="text-orange-400 text-xl" />
-                                <h2 className="text-xl font-bold text-text-main dark:text-white">O que está rolando</h2>
+                                <h2 className="text-xl font-bold text-text-main dark:text-white">{t('explore.trendsTitle')}</h2>
                             </div>
                         </div>
 
                         {/* Trend Sub-tabs */}
                         <div className="flex gap-2 mb-5 border-b border-border dark:border-white/10 pb-3">
                             <TrendTab
-                                label="Hashtags"
+                                label={t('explore.tabHashtags')}
                                 icon={<FaHashtag />}
                                 active={activeTrendTab === 'hashtags'}
                                 onClick={() => setActiveTrendTab('hashtags')}
                             />
                             <TrendTab
-                                label="Emoções"
+                                label={t('explore.tabEmotions')}
                                 icon={<FaTheaterMasks />}
                                 active={activeTrendTab === 'emocoes'}
                                 onClick={() => setActiveTrendTab('emocoes')}
                             />
                             <TrendTab
-                                label="Tipos de Sonho"
+                                label={t('explore.tabTypes')}
                                 icon={<FaMoon />}
                                 active={activeTrendTab === 'tipos_sonho'}
                                 onClick={() => setActiveTrendTab('tipos_sonho')}
@@ -166,7 +180,7 @@ const ExplorePage = () => {
                             </div>
                         ) : currentTrendItems.length === 0 ? (
                             <p className="text-center text-text-secondary dark:text-cosmic-text-muted py-6 text-sm">
-                                Nenhuma tendência encontrada ainda. Publique sonhos para criar tendências!
+                                {t('explore.emptyTrends')}
                             </p>
                         ) : (
                             <div className="flex flex-wrap gap-3">
@@ -190,13 +204,13 @@ const ExplorePage = () => {
                         <div className="flex items-center justify-between mb-5">
                             <div className="flex items-center gap-2">
                                 <FaTrophy className="text-yellow-400 text-xl" />
-                                <h2 className="text-xl font-bold text-text-main dark:text-white">Destaques das Comunidades</h2>
+                                <h2 className="text-xl font-bold text-text-main dark:text-white">{t('explore.highlightsTitle')}</h2>
                             </div>
                             <button
                                 onClick={fetchTopPosts}
                                 className="flex items-center gap-1 text-xs text-primary dark:text-cosmic-accent hover:text-primary-dark dark:hover:text-white transition-colors font-semibold uppercase tracking-wide"
                             >
-                                <FaRandom size={10} /> Sortear
+                                <FaRandom size={10} /> {t('explore.btnShuffle')}
                             </button>
                         </div>
 
@@ -228,7 +242,7 @@ const ExplorePage = () => {
                             </div>
                         ) : topPosts.posts.length === 0 ? (
                             <p className="text-center text-text-secondary dark:text-cosmic-text-muted py-6 text-sm">
-                                Nenhum post de comunidade encontrado. Entre em comunidades e compartilhe sonhos!
+                                {t('explore.emptyCommPosts')}
                             </p>
                         ) : (
                             <div className="space-y-3">
@@ -256,12 +270,12 @@ const ExplorePage = () => {
                             <div className="flex items-center justify-between mb-5">
                                 <div className="flex items-center gap-2 text-yellow-600 dark:text-yellow-300">
                                     <FaStar className="text-xl" />
-                                    <h3 className="text-lg font-bold uppercase tracking-wider text-text-main dark:text-white">Dicas de Sono</h3>
+                                    <h3 className="text-lg font-bold uppercase tracking-wider text-text-main dark:text-white">{t('explore.tipsTitle')}</h3>
                                 </div>
                                 <button
                                     onClick={() => setRandomTips(shuffleTips())}
                                     className="p-1.5 rounded-lg text-text-secondary dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-primary dark:hover:text-cosmic-accent transition-colors"
-                                    title="Novas dicas"
+                                    title={t('explore.tooltipNewTips')}
                                 >
                                     <FaSyncAlt size={12} />
                                 </button>
@@ -294,27 +308,27 @@ const ExplorePage = () => {
                                 <FaCloud size={24} />
                             </div>
                             <div>
-                                <h4 className="font-bold text-lg text-text-main dark:text-white">Voar em sonhos</h4>
-                                <span className="text-xs text-primary dark:text-purple-300 uppercase font-semibold tracking-wide">Insight Semanal</span>
+                                <h4 className="font-bold text-lg text-text-main dark:text-white">{t('explore.insightFlyTitle')}</h4>
+                                <span className="text-xs text-primary dark:text-purple-300 uppercase font-semibold tracking-wide">{t('explore.insightWeekly')}</span>
                             </div>
                         </div>
                         <p className="text-sm text-text-secondary dark:text-gray-300 leading-relaxed mb-4">
-                            Sonhar que está voando geralmente indica um desejo de liberdade ou sucesso em superar obstáculos. Você já teve esse sonho esta semana?
+                            {t('explore.insightFlyDesc')}
                         </p>
                         <div className="flex gap-2">
                             <div className="h-1 flex-1 bg-gray-200 dark:bg-white/10 rounded-full overflow-hidden">
                                 <div className="h-full w-3/4 bg-purple-500 rounded-full"></div>
                             </div>
-                            <span className="text-xs text-text-secondary dark:text-gray-400">75% dos usuários</span>
+                            <span className="text-xs text-text-secondary dark:text-gray-400">{t('explore.insightStat')}</span>
                         </div>
                     </div>
 
                     {/* Small Footer Links */}
                     <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-text-secondary/50 dark:text-white/20 px-2 text-center justify-center">
-                        <button onClick={() => navigate('/about')} className="hover:text-text-main dark:hover:text-white/50 transition-colors">Sobre</button>
-                        <button onClick={() => navigate('/privacy')} className="hover:text-text-main dark:hover:text-white/50 transition-colors">Privacidade</button>
-                        <button onClick={() => navigate('/terms')} className="hover:text-text-main dark:hover:text-white/50 transition-colors">Termos</button>
-                        <button onClick={() => navigate('/help')} className="hover:text-text-main dark:hover:text-white/50 transition-colors">Ajuda</button>
+                        <button onClick={() => navigate('/about')} className="hover:text-text-main dark:hover:text-white/50 transition-colors">{t('explore.footerAbout')}</button>
+                        <button onClick={() => navigate('/privacy')} className="hover:text-text-main dark:hover:text-white/50 transition-colors">{t('explore.footerPrivacy')}</button>
+                        <button onClick={() => navigate('/terms')} className="hover:text-text-main dark:hover:text-white/50 transition-colors">{t('explore.footerTerms')}</button>
+                        <button onClick={() => navigate('/help')} className="hover:text-text-main dark:hover:text-white/50 transition-colors">{t('explore.footerHelp')}</button>
                         <span>© 2025 DreamShare</span>
                     </div>
 
@@ -372,6 +386,7 @@ const TrendPill = ({ text, count, rank, type }) => {
 };
 
 const TopPostItem = ({ post, rank, navigate }) => {
+    const { t } = useTranslation();
     const rankColors = {
         1: 'text-yellow-500 bg-yellow-500/10',
         2: 'text-gray-400 bg-gray-400/10',
@@ -402,7 +417,7 @@ const TopPostItem = ({ post, rank, navigate }) => {
                     {post.titulo || post.conteudo_texto?.substring(0, 60) + '...'}
                 </h4>
                 <div className="flex items-center gap-3 mt-1.5 text-[11px] text-text-secondary dark:text-gray-400">
-                    <span>por <strong className="text-text-main dark:text-white">{post.usuario?.nome_usuario}</strong></span>
+                    <span>{t('explore.postBy')} <strong className="text-text-main dark:text-white">{post.usuario?.nome_usuario}</strong></span>
                     <span className="flex items-center gap-1"><FaHeart size={10} /> {post.likes_count || 0}</span>
                     <span className="flex items-center gap-1"><FaRegCommentDots size={10} /> {post.comentarios_count || 0}</span>
                 </div>

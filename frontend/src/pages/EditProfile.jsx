@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { FaCamera, FaSave, FaArrowLeft } from 'react-icons/fa';
 import { getProfile, updateUser, uploadAvatar } from '../services/api';
 
 const EditProfile = () => {
     const navigate = useNavigate();
+    const { t } = useTranslation();
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
@@ -31,7 +33,7 @@ const EditProfile = () => {
                 });
                 setAvatarPreview(response.data.avatar_url);
             } catch (err) {
-                setError('Erro ao carregar perfil');
+                setError(t('editProfile.errors.loadProfile'));
             } finally {
                 setLoading(false);
             }
@@ -75,7 +77,7 @@ const EditProfile = () => {
             // Update profile data
             await updateUser(user.id_usuario, cleanedData);
 
-            setSuccess('Perfil atualizado com sucesso!');
+            setSuccess(t('editProfile.success'));
             setTimeout(() => navigate('/profile'), 1500);
         } catch (err) {
             // Tenta mostrar erros detalhados do serializer
@@ -86,7 +88,7 @@ const EditProfile = () => {
                     .join(' | ');
                 setError(messages);
             } else {
-                setError(errData?.error || 'Erro ao atualizar perfil');
+                setError(errData?.error || t('editProfile.errors.updateProfile'));
             }
         } finally {
             setSaving(false);
@@ -112,7 +114,7 @@ const EditProfile = () => {
                     <FaArrowLeft className="text-gray-600 dark:text-gray-300" />
                 </button>
                 <h1 className="text-2xl font-bold text-gray-800 dark:text-white">
-                    Editar Perfil
+                    {t('editProfile.title')}
                 </h1>
             </div>
 
@@ -153,7 +155,7 @@ const EditProfile = () => {
                 {/* Username */}
                 <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Nome de usuário
+                        {t('editProfile.labels.username')}
                     </label>
                     <div className="relative">
                         <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">@</span>
@@ -171,7 +173,7 @@ const EditProfile = () => {
                 {/* Full Name */}
                 <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Nome completo
+                        {t('editProfile.labels.fullName')}
                     </label>
                     <input
                         type="text"
@@ -179,14 +181,14 @@ const EditProfile = () => {
                         value={formData.nome_completo}
                         onChange={handleInputChange}
                         className="w-full px-4 py-3 bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:text-white transition-all"
-                        placeholder="Seu nome completo"
+                        placeholder={t('editProfile.placeholders.fullName')}
                     />
                 </div>
 
                 {/* Bio */}
                 <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Bio
+                        {t('editProfile.labels.bio')}
                     </label>
                     <textarea
                         name="bio"
@@ -194,14 +196,14 @@ const EditProfile = () => {
                         onChange={handleInputChange}
                         rows={4}
                         className="w-full px-4 py-3 bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:text-white transition-all resize-none"
-                        placeholder="Conte um pouco sobre você e seus sonhos..."
+                        placeholder={t('editProfile.placeholders.bio')}
                     />
                 </div>
 
                 {/* Birth Date */}
                 <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Data de nascimento
+                        {t('editProfile.labels.birthDate')}
                     </label>
                     <input
                         type="date"
@@ -221,12 +223,12 @@ const EditProfile = () => {
                     {saving ? (
                         <>
                             <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div>
-                            Salvando...
+                            {t('editProfile.buttons.saving')}
                         </>
                     ) : (
                         <>
                             <FaSave />
-                            Salvar Alterações
+                            {t('editProfile.buttons.save')}
                         </>
                     )}
                 </button>
