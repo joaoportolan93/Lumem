@@ -17,6 +17,7 @@ class _ExploreState extends State<Explore> {
   bool _isSearching = false;
   bool _isLoadingSuggested = true;
   Timer? _debounce;
+  final Set<String> _followedIds = {};
 
   @override
   void initState() {
@@ -36,6 +37,10 @@ class _ExploreState extends State<Explore> {
     setState(() {
       _suggested = users;
       _isLoadingSuggested = false;
+      // Initialise local follow state from server data
+      for (final u in users) {
+        if (u.isFollowing) _followedIds.add(u.id);
+      }
     });
   }
 
@@ -54,6 +59,10 @@ class _ExploreState extends State<Explore> {
       setState(() {
         _results = results;
         _isSearching = false;
+        // Initialise local follow state from search results
+        for (final u in results) {
+          if (u.isFollowing) _followedIds.add(u.id);
+        }
       });
     });
   }
@@ -155,18 +164,24 @@ class _ExploreState extends State<Explore> {
           trailing: TextButton(
             onPressed: () async {
               await _userService.followUser(user.id);
-              setState(() {});
+              setState(() {
+                if (_followedIds.contains(user.id)) {
+                  _followedIds.remove(user.id);
+                } else {
+                  _followedIds.add(user.id);
+                }
+              });
             },
             style: TextButton.styleFrom(
-              backgroundColor: user.isFollowing
+              backgroundColor: _followedIds.contains(user.id)
                   ? Colors.grey[300]
                   : Theme.of(context).colorScheme.secondary,
-              foregroundColor: user.isFollowing ? Colors.black : Colors.white,
+              foregroundColor: _followedIds.contains(user.id) ? Colors.black : Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
               ),
             ),
-            child: Text(user.isFollowing ? 'Seguindo' : 'Seguir'),
+            child: Text(_followedIds.contains(user.id) ? 'Seguindo' : 'Seguir'),
           ),
           onTap: () {
             // TODO: Navigate to user profile

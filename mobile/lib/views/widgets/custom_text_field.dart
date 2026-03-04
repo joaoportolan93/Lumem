@@ -28,7 +28,10 @@ class CustomTextField extends StatelessWidget {
     this.onSaved,
     this.onChange,
     super.key,
-  });
+  }) : assert(
+          controller == null || initialValue == null,
+          'Cannot provide both controller and initialValue',
+        );
 
   @override
   Widget build(BuildContext context) {
@@ -51,10 +54,10 @@ class CustomTextField extends StatelessWidget {
         focusNode: focusNode,
         onFieldSubmitted: (String term) {
           if (nextFocusNode != null) {
-            focusNode!.unfocus();
+            focusNode?.unfocus();
             FocusScope.of(context).requestFocus(nextFocusNode);
           } else {
-            submitAction!();
+            submitAction?.call();
           }
         },
         decoration: InputDecoration(

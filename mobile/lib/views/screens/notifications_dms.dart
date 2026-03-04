@@ -125,8 +125,9 @@ class _NotificationsDmsState extends State<NotificationsDms>
               ),
             ),
             tileColor: notif.lida ? null : Theme.of(context).colorScheme.secondary.withOpacity(0.05),
-            onTap: () {
-              _notificationService.markAsRead(notif.id);
+            onTap: () async {
+              await _notificationService.markAsRead(notif.id);
+              _loadNotifications();
             },
           );
         },

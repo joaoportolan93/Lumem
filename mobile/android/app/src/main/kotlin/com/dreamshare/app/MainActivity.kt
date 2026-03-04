@@ -1,4 +1,4 @@
-package dev.jideguru.FlutterSocialAppUIKit
+package com.dreamshare.app
 
 import io.flutter.embedding.android.FlutterActivity
 

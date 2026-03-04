@@ -25,7 +25,6 @@ class _DreamCardState extends State<DreamCard> {
     super.initState();
     _isLiked = widget.dream.isLiked;
     _likesCount = widget.dream.curtidasCount;
-    timeago.setLocaleMessages('pt_BR', timeago.PtBrMessages());
   }
 
   @override
@@ -224,7 +223,7 @@ class _DreamCardState extends State<DreamCard> {
   Future<void> _toggleLike() async {
     setState(() {
       _isLiked = !_isLiked;
-      _likesCount += _isLiked ? 1 : -1;
+      _likesCount = (_likesCount + (_isLiked ? 1 : -1)).clamp(0, double.maxFinite.toInt());
     });
 
     final success = await _dreamService.likeDream(widget.dream.id);
@@ -232,7 +231,7 @@ class _DreamCardState extends State<DreamCard> {
       // Revert on failure
       setState(() {
         _isLiked = !_isLiked;
-        _likesCount += _isLiked ? 1 : -1;
+        _likesCount = (_likesCount + (_isLiked ? 1 : -1)).clamp(0, double.maxFinite.toInt());
       });
     }
   }

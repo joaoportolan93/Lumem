@@ -32,8 +32,10 @@ class ApiClient {
         return handler.next(options);
       },
       onError: (error, handler) async {
-        // If 401, try to refresh the token
-        if (error.response?.statusCode == 401) {
+        // If 401, try to refresh the token (only once per request)
+        if (error.response?.statusCode == 401 &&
+            error.requestOptions.extra['retry'] != true) {
+          error.requestOptions.extra['retry'] = true;
           final refreshed = await _tryRefreshToken();
           if (refreshed) {
             // Retry the original request
@@ -41,6 +43,8 @@ class ApiClient {
             error.requestOptions.headers['Authorization'] = 'Bearer $token';
             final response = await dio.fetch(error.requestOptions);
             return handler.resolve(response);
+          } else {
+            await clearTokens();
           }
         }
         return handler.next(error);

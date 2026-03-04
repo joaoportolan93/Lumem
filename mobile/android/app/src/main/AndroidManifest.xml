@@ -1,7 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="dev.jideguru.FlutterSocialAppUIKit">
+    package="com.dreamshare.app">
    <application
-        android:label="FlutterSocialAppUIKit"
+        android:label="DreamShare"
         android:icon="@mipmap/ic_launcher">
         <activity
             android:name=".MainActivity"

@@ -1,44 +1,60 @@
-# 🔥🔥 Flutter Social App Concept [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com)  [![Twitter Follow](https://img.shields.io/twitter/follow/iamjideguru.svg?style=social)](https://twitter.com/iamjideguru)
-Flutter representation of a Social App Concept i found on Uplabs.
+# DreamShare
 
-Star⭐ the repo if you like what you see😉.
+DreamShare é uma rede social para sonhadores: compartilhe seus sonhos, curta e comente os sonhos de outras pessoas, e conecte-se com uma comunidade de pessoas que acreditam no poder dos sonhos.
 
+## ✨ Funcionalidades
 
-Images are from [Unsplash](https://unsplash.com)
+- **Feed de sonhos** – veja os sonhos publicados pelas pessoas que você segue.
+- **Publicar sonho** – crie e compartilhe um sonho com título, descrição e visibilidade pública ou privada.
+- **Curtidas e comentários** – interaja com os sonhos de outros usuários.
+- **Explorar** – descubra novos usuários e siga quem inspira você.
+- **Notificações** – receba alertas de curtidas, comentários e novos seguidores.
+- **Comunidades** – participe de grupos temáticos de sonhadores.
+- **Perfil** – veja seus sonhos publicados e seus seguidores.
 
-<a href="ss/app.apk"><img src="https://playerzon.com/asset/download.png" width="200"></img></a>
+## 🚀 Como rodar
 
-[Link to Mockup](https://www.ls.graphics/free/simple-iphone-x-mockups)
+### Pré-requisitos
 
-[![Twitter Follow](https://img.shields.io/twitter/follow/iamjideguru.svg?style=social)](https://twitter.com/iamjideguru)
+- [Flutter SDK](https://flutter.dev/docs/get-started/install) (versão 3.x ou superior)
+- Dart SDK (incluso no Flutter)
+- Android Studio ou Xcode (para emulador/simulador)
+- Backend da API rodando (veja o repositório `backend/`)
 
-## ✨ Requirements
-* Any Operating System (ie. MacOS X, Linux, Windows)
-* Any IDE with Flutter SDK installed (ie. IntelliJ, Android Studio, VSCode etc)
-* A little knowledge of Dart and Flutter
-* A brain to think 🤓🤓
+### Configuração
 
+1. Copie o arquivo de variáveis de ambiente:
+   ```bash
+   cp mobile/.env.example mobile/.env
+   ```
+2. Preencha `API_BASE_URL` com a URL do seu backend (ex.: `http://10.0.2.2:8000/api/`).
 
-## 📸 ScreenShots
+### Instalação e execução
 
-<img src="ss/1.png"/>
-<img src="ss/2.png"/>
+```bash
+cd mobile
+flutter pub get
+flutter run
+```
 
-| Light| Dark|
-|------|-------|
-|<img src="ss/3.png" width="400">|<img src="ss/4.png" width="400">|
-|<img src="ss/5.png" width="400">|<img src="ss/6.png" width="400">|
-|<img src="ss/7.png" width="400">|<img src="ss/8.png" width="400">|
-|<img src="ss/9.png" width="400">|<img src="ss/10.png" width="400">|
-|<img src="ss/11.png" width="400">|<img src="ss/12.png" width="400">|
-|<img src="ss/13.png" width="400">|<img src="ss/14.png" width="400">|
+## 🗂️ Estrutura do projeto
 
+```
+mobile/
+├── lib/
+│   ├── main.dart          # Ponto de entrada
+│   ├── app.dart           # Configuração de rotas e tema
+│   ├── models/            # Modelos de dados (Dream, User, …)
+│   ├── services/          # Comunicação com a API
+│   ├── views/
+│   │   ├── screens/       # Telas do app
+│   │   └── widgets/       # Componentes reutilizáveis
+│   └── util/              # Utilitários, constantes e tema
+├── android/               # Configurações Android
+├── ios/                   # Configurações iOS
+└── web/                   # Configurações Web (PWA)
+```
 
-## 🌗 Dark theme
-Adapts to device theme
+## 📄 Licença
 
-## 🤓 Author(s)
-**Olusegun Festus Babajide** [![Twitter Follow](https://img.shields.io/twitter/follow/iamjideguru.svg?style=social)](https://twitter.com/iamjideguru)
-
-## 🔖 LICENCE
-[WTFPL](http://www.wtfpl.net/about/)
+Este projeto é de uso acadêmico/educacional.
