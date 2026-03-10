@@ -260,7 +260,7 @@ const ExplorePage = () => {
                 <div className="lg:col-span-4 space-y-8 hidden lg:block">
 
                     {/* Widget: Sugestões para seguir — shared component */}
-                    <SuggestionsCard variant="explore" maxUsers={3} />
+                    <SuggestionsCard variant="sidebar" maxUsers={5} />
 
 
                     {/* Widget: Dicas de Sono */}

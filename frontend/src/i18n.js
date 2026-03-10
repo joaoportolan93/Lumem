@@ -15,8 +15,21 @@ i18n
     .use(initReactI18next)
     .init({
         resources,
-        fallbackLng: 'pt-BR',
-        debug: true,
+        fallbackLng: 'en',
+        supportedLngs: ['pt-BR', 'en'],
+        debug: false,
+
+        detection: {
+            // Order: check localStorage first (user preference), then browser language
+            order: ['localStorage', 'navigator'],
+            caches: ['localStorage'],
+            lookupLocalStorage: 'i18nextLng',
+            // Map "pt", "pt-BR", "pt-PT" etc. to "pt-BR"
+            convertDetectedLanguage: (lng) => {
+                if (lng.startsWith('pt')) return 'pt-BR';
+                return lng;
+            },
+        },
 
         interpolation: {
             escapeValue: false,

@@ -3,8 +3,10 @@ import { Link } from 'react-router-dom';
 import { FaTimes, FaSearch, FaUserPlus, FaUserCheck, FaSpinner } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getUserFollowers, getUserFollowing, followUser, unfollowUser } from '../services/api';
+import { useTranslation } from 'react-i18next';
 
 const FollowersModal = ({ isOpen, onClose, userId, initialTab = 'followers', currentUserId }) => {
+    const { t } = useTranslation();
     const [activeTab, setActiveTab] = useState(initialTab);
     const [followers, setFollowers] = useState([]);
     const [following, setFollowing] = useState([]);
@@ -92,7 +94,7 @@ const FollowersModal = ({ isOpen, onClose, userId, initialTab = 'followers', cur
                     >
                         {/* Header */}
                         <div className="flex items-center justify-between px-6 pt-5 pb-3">
-                            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Conexões</h2>
+                            <h2 className="text-xl font-bold text-gray-900 dark:text-white">{t('connections.title')}</h2>
                             <button
                                 onClick={onClose}
                                 className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 text-gray-500 dark:text-gray-400 transition-colors"
@@ -110,7 +112,7 @@ const FollowersModal = ({ isOpen, onClose, userId, initialTab = 'followers', cur
                                     }`}
                                 onClick={() => setActiveTab('followers')}
                             >
-                                Seguidores
+                                {t('connections.tabFollowers')}
                                 {activeTab === 'followers' && (
                                     <motion.div
                                         layoutId="tab-indicator"
@@ -125,7 +127,7 @@ const FollowersModal = ({ isOpen, onClose, userId, initialTab = 'followers', cur
                                     }`}
                                 onClick={() => setActiveTab('following')}
                             >
-                                Seguindo
+                                {t('connections.tabFollowing')}
                                 {activeTab === 'following' && (
                                     <motion.div
                                         layoutId="tab-indicator"
@@ -141,7 +143,7 @@ const FollowersModal = ({ isOpen, onClose, userId, initialTab = 'followers', cur
                                 <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
                                 <input
                                     type="text"
-                                    placeholder="Buscar..."
+                                    placeholder={t('connections.searchPlaceholder')}
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                     className="w-full pl-9 pr-4 py-2.5 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 transition-all"
@@ -159,10 +161,10 @@ const FollowersModal = ({ isOpen, onClose, userId, initialTab = 'followers', cur
                                 <div className="text-center py-12">
                                     <p className="text-gray-500 dark:text-gray-400">
                                         {searchQuery
-                                            ? 'Nenhum resultado encontrado.'
+                                            ? t('connections.noResults')
                                             : activeTab === 'followers'
-                                                ? 'Nenhum seguidor ainda.'
-                                                : 'Não segue ninguém ainda.'
+                                                ? t('connections.noFollowers')
+                                                : t('connections.noFollowing')
                                         }
                                     </p>
                                 </div>
@@ -210,12 +212,12 @@ const FollowersModal = ({ isOpen, onClose, userId, initialTab = 'followers', cur
                                                     ) : user.is_following ? (
                                                         <>
                                                             <FaUserCheck size={12} />
-                                                            Seguindo
+                                                            {t('connections.btnFollowing')}
                                                         </>
                                                     ) : (
                                                         <>
                                                             <FaUserPlus size={12} />
-                                                            Seguir
+                                                            {t('connections.btnFollow')}
                                                         </>
                                                     )}
                                                 </button>

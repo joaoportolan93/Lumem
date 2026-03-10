@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { FaUserPlus, FaCheck } from 'react-icons/fa';
 import { useSuggestions } from '../contexts/SuggestionsContext';
+import { useTranslation } from 'react-i18next';
 
 /**
  * Shared "Sugestões para seguir" card.
@@ -11,6 +12,7 @@ import { useSuggestions } from '../contexts/SuggestionsContext';
  * @param {number}              maxUsers – how many suggestions to show (default 5)
  */
 const SuggestionsCard = ({ variant = 'sidebar', maxUsers = 5 }) => {
+    const { t } = useTranslation();
     const { suggestions, loading, followingIds, toggleFollow } = useSuggestions();
 
     const visibleUsers = suggestions.slice(0, maxUsers);
@@ -31,14 +33,14 @@ const SuggestionsCard = ({ variant = 'sidebar', maxUsers = 5 }) => {
     /* ── Render ── */
     return (
         <div className={cardClass}>
-            <h3 className={titleClass}>Sugestões para seguir</h3>
+            <h3 className={titleClass}>{t('suggestions.title')}</h3>
 
             {loading ? (
                 <div className="flex justify-center py-4">
                     <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-primary"></div>
                 </div>
             ) : visibleUsers.length === 0 ? (
-                <p className="text-gray-400 text-sm text-center py-4">Nenhuma sugestão no momento</p>
+                <p className="text-gray-400 text-sm text-center py-4">{t('suggestions.empty')}</p>
             ) : (
                 <div className={listClass}>
                     {visibleUsers.map((user) => (
@@ -55,7 +57,7 @@ const SuggestionsCard = ({ variant = 'sidebar', maxUsers = 5 }) => {
 
             {isExplore && visibleUsers.length > 0 && (
                 <button className="w-full mt-6 text-xs text-primary dark:text-cosmic-accent hover:text-primary-dark dark:hover:text-white transition-colors uppercase tracking-widest font-bold">
-                    Ver mais
+                    {t('suggestions.btnViewMore')}
                 </button>
             )}
         </div>
@@ -64,6 +66,7 @@ const SuggestionsCard = ({ variant = 'sidebar', maxUsers = 5 }) => {
 
 /* ── Single user row ── */
 const UserRow = ({ user, isFollowing, onToggleFollow, variant }) => {
+    const { t } = useTranslation();
     const isExplore = variant === 'explore';
 
     if (isExplore) {
@@ -94,9 +97,9 @@ const UserRow = ({ user, isFollowing, onToggleFollow, variant }) => {
                         }`}
                 >
                     {isFollowing ? (
-                        <><FaCheck size={10} /> Seguindo</>
+                        <><FaCheck size={10} /> {t('suggestions.btnFollowing')}</>
                     ) : (
-                        <><FaUserPlus size={10} /> Seguir</>
+                        <><FaUserPlus size={10} /> {t('suggestions.btnFollow')}</>
                     )}
                 </button>
             </div>
@@ -116,7 +119,7 @@ const UserRow = ({ user, isFollowing, onToggleFollow, variant }) => {
             <Link to={`/user/${user.id_usuario}`} className="flex-1 min-w-0 hover:opacity-80 transition-opacity">
                 <span className="text-sm font-bold text-text-main dark:text-white block truncate">{user.nome_usuario}</span>
                 <span className="text-xs text-text-secondary dark:text-gray-400 block truncate">
-                    {user.bio || 'Sonhador(a)'}
+                    {user.bio || t('suggestions.defaultBio')}
                 </span>
             </Link>
             <button
@@ -126,7 +129,7 @@ const UserRow = ({ user, isFollowing, onToggleFollow, variant }) => {
                         : 'bg-primary text-white hover:bg-primary-dark'
                     }`}
             >
-                {isFollowing ? 'Seguindo' : '+ Seguir'}
+                {isFollowing ? t('suggestions.btnFollowing') : t('suggestions.btnFollow')}
             </button>
         </div>
     );

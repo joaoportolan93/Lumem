@@ -654,5 +654,87 @@
             "modalReactivate": "Reactivate User",
             "modalClose": "Close"
         }
+    },
+    "forgotPassword": {
+        "subtitle": "Recover access to your account",
+        "placeholderEmail": "Email",
+        "placeholderUsername": "Username",
+        "placeholderSecretAnswer": "Secret answer",
+        "placeholderNewPassword": "New password",
+        "placeholderConfirmNewPassword": "Confirm new password",
+        "btnReset": "Reset Password",
+        "btnResetting": "Resetting...",
+        "rememberedPassword": "Remembered your password?",
+        "linkBackToLogin": "Back to login",
+        "errPasswordMismatch": "Passwords do not match.",
+        "errPasswordLength": "Password must be at least 6 characters.",
+        "errGeneric": "An error occurred while resetting the password. Please try again.",
+        "successTitle": "Password Reset!",
+        "successMessage": "Your password has been successfully changed. You can now log in with your new password.",
+        "btnGoToLogin": "Go to Login"
+    },
+    "onboarding": {
+        "step1Title": "Set Up Your Profile",
+        "step1Subtitle": "Add a photo and tell us a bit about yourself",
+        "step2Title": "Privacy",
+        "step2Subtitle": "Choose who can see your dreams",
+        "placeholderDisplayName": "Display name",
+        "placeholderBio": "Tell us a bit about yourself...",
+        "privacyPublic": "Public",
+        "privacyPublicDesc": "Anyone can see your dreams",
+        "privacyPrivate": "Private",
+        "privacyPrivateDesc": "Only approved followers can see",
+        "btnBack": "Back",
+        "btnNext": "Next",
+        "btnFinish": "Finish",
+        "btnSaving": "Saving...",
+        "errEmptyDisplayName": "Please enter a display name.",
+        "errSaveProfile": "Error saving profile. Please try again."
+    },
+    "post": {
+        "pageTitle": "Post",
+        "errNotFound": "Post not found.",
+        "btnBack": "Back",
+        "menuEdit": "Edit",
+        "menuDelete": "Delete",
+        "menuReport": "Report",
+        "confirmDelete": "Are you sure you want to delete this post?",
+        "videoNotSupported": "Your browser does not support the video tag.",
+        "likesCount": "likes",
+        "commentsCount": "comments",
+        "timeJustNow": "just now",
+        "timeMins": "m",
+        "timeHours": "h",
+        "timeDays": "d",
+        "commentsTitle": "Comments",
+        "noComments": "No comments yet.",
+        "beFirstComment": "Be the first to comment!",
+        "replyPlaceholder": "Add a comment...",
+        "probableSpam": "Probable Spam",
+        "hiddenComments": "hidden comments",
+        "sortOptions": {
+            "relevance": "Most Relevant",
+            "recent": "Most Recent",
+            "likes": "Most Liked"
+        }
+    },
+    "suggestions": {
+        "title": "Suggestions for you",
+        "empty": "No suggestions at the moment",
+        "btnViewMore": "View more",
+        "btnFollowing": "Following",
+        "btnFollow": "+ Follow",
+        "defaultBio": "Dreamer"
+    },
+    "connections": {
+        "title": "Connections",
+        "tabFollowers": "Followers",
+        "tabFollowing": "Following",
+        "searchPlaceholder": "Search...",
+        "noResults": "No results found.",
+        "noFollowers": "No followers yet.",
+        "noFollowing": "Not following anyone yet.",
+        "btnFollowing": "Following",
+        "btnFollow": "Follow"
     }
 }
