@@ -13,25 +13,10 @@ const Register = () => {
         email: '',
         password: '',
         confirmPassword: '',
-        pergunta_secreta: '',
-        resposta_secreta: '',
     });
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-
-    const perguntasSecretas = t('register.securityQuestionsList', { returnObjects: true }) || [
-        { id: 1, text: 'Qual o nome do seu primeiro animal de estimação?' },
-        { id: 2, text: 'Qual o nome da sua cidade natal?' },
-        { id: 3, text: 'Qual era o nome da sua escola primária?' },
-        { id: 4, text: 'Qual o nome do seu melhor amigo de infância?' },
-        { id: 5, text: 'Qual o modelo do seu primeiro carro?' },
-    ];
-
-    const getPerguntaText = (id) => {
-        const p = perguntasSecretas.find(p => p.id === Number(id));
-        return p ? p.text : t('register.selectSecurityQuestion');
-    };
 
     const handleChange = (e) => {
         setFormData({
@@ -40,22 +25,11 @@ const Register = () => {
         });
     };
 
-    const handleSelectPergunta = (id) => {
-        setFormData({
-            ...formData,
-            pergunta_secreta: id,
-        });
-        setIsDropdownOpen(false);
-    };
-
     const handleRegister = async (e) => {
         e.preventDefault();
         setError('');
 
-        if (!formData.pergunta_secreta) {
-            setError(t('register.errSelectQuestion'));
-            return;
-        }
+
 
         if (formData.password !== formData.confirmPassword) {
             setError(t('register.errPasswordMismatch'));
@@ -75,8 +49,6 @@ const Register = () => {
                 email: formData.email,
                 nome_completo: formData.username,
                 password: formData.password,
-                pergunta_secreta: formData.pergunta_secreta ? Number(formData.pergunta_secreta) : undefined,
-                resposta_secreta: formData.resposta_secreta || undefined,
             });
 
             const loginResponse = await login({
@@ -89,12 +61,22 @@ const Register = () => {
 
             navigate('/onboarding');
         } catch (err) {
-            if (err.response?.data?.email) {
-                setError(t('register.errEmailInUse'));
-            } else if (err.response?.data?.username) {
-                setError(t('register.errUsernameInUse'));
-            } else if (err.response?.data?.detail) {
-                setError(err.response.data.detail);
+            console.error('Registration error:', err.response?.data);
+            if (err.response?.data) {
+                const data = err.response.data;
+                if (data.email) {
+                    setError(t('register.errEmailInUse'));
+                } else if (data.nome_usuario || data.username) {
+                    setError(t('register.errUsernameInUse'));
+                } else if (data.detail) {
+                    setError(data.detail);
+                } else if (typeof data === 'object') {
+                    // Join multiple field errors if present
+                    const firstError = Object.values(data)[0];
+                    setError(Array.isArray(firstError) ? firstError[0] : t('register.errGeneric'));
+                } else {
+                    setError(t('register.errGeneric'));
+                }
             } else {
                 setError(t('register.errGeneric'));
             }
@@ -170,45 +152,7 @@ const Register = () => {
                         required
                     />
 
-                    {/* Custom Dropdown Atualizado para aderir ao look Glassmorphism */}
-                    <div className="custom-select-container mb-4">
-                        <div
-                            className={`custom-select-trigger immersive-input ${isDropdownOpen ? 'open' : ''}`}
-                            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                        >
-                            <span>{getPerguntaText(formData.pergunta_secreta)}</span>
-                            <span className={`dropdown-arrow ${isDropdownOpen ? 'open' : ''}`}>▼</span>
-                        </div>
 
-                        {isDropdownOpen && (
-                            <motion.div
-                                className="custom-select-options backdrop-blur-md bg-black/80 border border-white/10"
-                                initial={{ opacity: 0, y: -10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.2 }}
-                            >
-                                {perguntasSecretas.map((p) => (
-                                    <div
-                                        key={p.id}
-                                        className={`custom-option ${Number(formData.pergunta_secreta) === p.id ? 'selected bg-white/10' : 'hover:bg-white/5'}`}
-                                        onClick={() => handleSelectPergunta(p.id)}
-                                    >
-                                        {p.text}
-                                    </div>
-                                ))}
-                            </motion.div>
-                        )}
-                    </div>
-
-                    <input
-                        type="text"
-                        name="resposta_secreta"
-                        className="auth-input immersive-input mb-6"
-                        placeholder={t('register.placeholderSecretAnswer')}
-                        value={formData.resposta_secreta}
-                        onChange={handleChange}
-                        required
-                    />
                     <button
                         type="submit"
                         className="btn-dream glow-btn w-full"

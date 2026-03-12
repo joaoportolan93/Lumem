@@ -46,6 +46,7 @@ api.interceptors.response.use(
 // Auth endpoints
 export const login = (data) => api.post('/api/auth/login/', data);
 export const register = (data) => api.post('/api/auth/register/', data);
+export const googleLogin = (data) => api.post('/api/auth/google/', data);
 export const logout = async () => {
     const refresh = localStorage.getItem('refresh');
     try {
@@ -56,7 +57,8 @@ export const logout = async () => {
     }
 };
 
-export const passwordReset = (data) => api.post('/api/auth/password-reset/', data);
+export const requestPasswordResetCode = (data) => api.post('/api/auth/password-reset/request/', data);
+export const verifyAndResetPassword = (data) => api.post('/api/auth/password-reset/verify/', data);
 
 // Profile endpoints
 export const getProfile = () => api.get('/api/profile/');

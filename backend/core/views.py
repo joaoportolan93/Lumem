@@ -9,9 +9,15 @@ from django.db import models, transaction
 from django.utils.translation import gettext as _
 import os
 import uuid
-from .serializers import RegisterSerializer, UserSerializer, UserUpdateSerializer, LogoutSerializer, PasswordResetSerializer
+import random
+import string
+from django.core.mail import send_mail
+from .serializers import RegisterSerializer, UserSerializer, UserUpdateSerializer, LogoutSerializer, RequestPasswordResetCodeSerializer, VerifyAndResetPasswordSerializer
+from .models import PasswordResetCode
 from .throttles import LoginRateThrottle, RegisterRateThrottle
 from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.tokens import RefreshToken
+import requests
 
 User = get_user_model()
 
@@ -87,6 +93,60 @@ class CustomTokenObtainPairView(TokenObtainPairView):
                 pass  # Let the parent handle invalid credentials
         
         return super().post(request, *args, **kwargs)
+
+class GoogleLoginView(APIView):
+    """Handles Google OAuth login/registration"""
+    permission_classes = (permissions.AllowAny,)
+    throttle_classes = [LoginRateThrottle]
+
+    def post(self, request):
+        access_token = request.data.get('access_token')
+        if not access_token:
+            return Response({'error': _('Token não fornecido.')}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Request user info from Google
+        google_response = requests.get(f'https://www.googleapis.com/oauth2/v3/userinfo?access_token={access_token}')
+        if not google_response.ok:
+            return Response({'error': _('Token do Google inválido.')}, status=status.HTTP_400_BAD_REQUEST)
+
+        user_info = google_response.json()
+        email = user_info.get('email')
+        nome_completo = user_info.get('name', '')
+        
+        if not email:
+            return Response({'error': _('O e-mail não foi retornado pelo Google.')}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = User.objects.get(email=email)
+            if user.status == 2:  # Banned
+                return Response({
+                    'error': _('Conta banida'),
+                    'message': _('Sua conta foi banida por tempo indeterminado devido a violação das regras da comunidade.'),
+                    'banned': True
+                }, status=status.HTTP_403_FORBIDDEN)
+        except User.DoesNotExist:
+            # Create user based on Google info
+            base_username = email.split('@')[0]
+            username = base_username
+            counter = 1
+            while User.objects.filter(nome_usuario=username).exists():
+                username = f"{base_username}{counter}"
+                counter += 1
+                
+            user = User.objects.create_user(
+                nome_usuario=username,
+                email=email,
+                nome_completo=nome_completo,
+                password=User.objects.make_random_password()
+            )
+
+        # Generate JWT tokens
+        refresh = RefreshToken.for_user(user)
+        return Response({
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+            'user': UserSerializer(user, context={'request': request}).data
+        })
 
 class UserProfileView(APIView):
     """Get/update current authenticated user's profile"""
@@ -193,12 +253,54 @@ class LogoutView(APIView):
             return Response({'message': _('Logout realizado com sucesso')}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-class PasswordResetView(APIView):
-    """Reset password by verifying identity via email + username"""
+class RequestPasswordResetCodeView(APIView):
+    """Sends a 6-digit code to the user's email for password reset"""
     permission_classes = (permissions.AllowAny,)
 
     def post(self, request):
-        serializer = PasswordResetSerializer(data=request.data)
+        serializer = RequestPasswordResetCodeSerializer(data=request.data)
+        if serializer.is_valid():
+            email = serializer.validated_data['email']
+            user = User.objects.get(email__iexact=email)
+            
+            # Expire old codes
+            PasswordResetCode.objects.filter(usuario=user, is_used=False).update(is_used=True)
+            
+            # Generate 6-digit code
+            code = ''.join(random.choices(string.digits, k=6))
+            
+            # Save new code
+            from django.utils import timezone
+            PasswordResetCode.objects.create(
+                usuario=user,
+                code=code,
+                expires_at=timezone.now() + timezone.timedelta(minutes=15)
+            )
+            
+            # Send Email
+            try:
+                send_mail(
+                    subject=_('Lumen - Código de Verificação'),
+                    message=_('Seu código de verificação para redefinir a senha é: %(code)s. Ele é válido por 15 minutos.') % {'code': code},
+                    from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@lumen.com'),
+                    recipient_list=[email],
+                    fail_silently=True,
+                )
+            except Exception as e:
+                print(f"Failed to send email: {e}")
+                
+            return Response(
+                {'message': _('Código enviado com sucesso para o seu e-mail.')},
+                status=status.HTTP_200_OK
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class VerifyAndResetPasswordView(APIView):
+    """Verifies the code and resets the password"""
+    permission_classes = (permissions.AllowAny,)
+
+    def post(self, request):
+        serializer = VerifyAndResetPasswordSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response(
@@ -463,6 +565,27 @@ class PublicacaoViewSet(viewsets.ModelViewSet):
             visibility_q
         ).distinct()
     
+    @action(detail=False, methods=['get'])
+    def algorithm(self, request):
+        """
+        Endpoint reservado para o futuro algoritmo de recomendação de feed.
+        Atualmente retorna a mesma lógica da aba 'foryou' (baseado em engajamento).
+        URL acessível via: GET /api/dreams/algorithm/
+        """
+        queryset = self.get_queryset().filter(
+            visibilidade=1
+        ).annotate(
+            engagement=Count('reacaopublicacao', distinct=True) + Count('comentario', distinct=True)
+        ).order_by('-engagement', '-data_publicacao')
+        
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
     def perform_create(self, serializer):
         post = serializer.save(usuario=self.request.user)
         
@@ -496,11 +619,26 @@ class PublicacaoViewSet(viewsets.ModelViewSet):
     
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
-        if instance.usuario.id_usuario != request.user.id_usuario:
+        user = request.user
+        
+        # Determine if user is authorized to delete the post
+        is_author = instance.usuario.id_usuario == user.id_usuario
+        is_community_mod = False
+        
+        if instance.comunidade:
+            from .models import MembroComunidade
+            is_community_mod = MembroComunidade.objects.filter(
+                comunidade=instance.comunidade,
+                usuario=user,
+                role__in=['moderator', 'admin']
+            ).exists()
+            
+        if not (is_author or is_community_mod or user.is_admin):
             return Response(
-                {'error': _('Você só pode excluir seus próprios sonhos')},
+                {'error': _('Você não tem permissão para excluir esta publicação')},
                 status=status.HTTP_403_FORBIDDEN
             )
+            
         return super().destroy(request, *args, **kwargs)
 
     @action(detail=True, methods=['post'])
@@ -1046,6 +1184,45 @@ class ComentarioViewSet(viewsets.ModelViewSet):
             )
         
         return super().destroy(request, *args, **kwargs)
+
+    @action(detail=True, methods=['post'])
+    def react(self, request, dream_pk=None, pk=None):
+        """Toggle or change a reaction on a comment"""
+        comment = self.get_object()
+        user = request.user
+        tipo = request.data.get('tipo', 1) # Default to 1 (Gostei/Like)
+        
+        from .models import ReacaoComentario
+        existing_reacao = ReacaoComentario.objects.filter(comentario=comment, usuario=user).first()
+        
+        if existing_reacao:
+            if existing_reacao.tipo_reacao == tipo:
+                # Remove reaction if clicking the same one
+                existing_reacao.delete()
+                return Response({'status': 'removed', 'likes_count': ReacaoComentario.objects.filter(comentario=comment).count()}, status=status.HTTP_200_OK)
+            else:
+                # Change reaction type
+                existing_reacao.tipo_reacao = tipo
+                existing_reacao.data_reacao = timezone.now()
+                existing_reacao.save()
+                return Response({'status': 'updated', 'tipo': tipo, 'likes_count': ReacaoComentario.objects.filter(comentario=comment).count()}, status=status.HTTP_200_OK)
+        else:
+            # Create new reaction
+            ReacaoComentario.objects.create(comentario=comment, usuario=user, tipo_reacao=tipo)
+            
+            # Notify comment author (tipo 3 = Curtida/Reação)
+            if comment.usuario.id_usuario != user.id_usuario:
+                content = f"reagiu ao seu comentário"
+                create_notification(
+                    usuario_destino=comment.usuario,
+                    usuario_origem=user,
+                    tipo=3,
+                    id_referencia=comment.publicacao.id_publicacao,
+                    conteudo=content
+                )
+                
+            return Response({'status': 'created', 'tipo': tipo, 'likes_count': ReacaoComentario.objects.filter(comentario=comment).count()}, status=status.HTTP_201_CREATED)
+
 
 
 # Notifications ViewSet
@@ -2103,3 +2280,141 @@ class TopCommunityPostsView(APIView):
             'comunidades': communities_data,
         })
 
+
+# ==========================================
+# CHAT / DIRECT MESSAGES VIEWS
+# ==========================================
+from .models import MensagemDireta, Bloqueio
+from .serializers import MensagemDiretaSerializer
+
+
+class ConversationListView(APIView):
+    """List all conversations for the current user (aggregated by partner)"""
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def get(self, request):
+        user = request.user
+
+        # Get all messages involving this user (not deleted by them)
+        sent = MensagemDireta.objects.filter(
+            usuario_remetente=user, deletada_remetente=False
+        )
+        received = MensagemDireta.objects.filter(
+            usuario_destinatario=user, deletada_destinatario=False
+        )
+
+        # Build a dict of conversations keyed by the OTHER user's id
+        conversations = {}
+
+        for msg in sent.select_related('usuario_destinatario').order_by('-data_envio'):
+            partner = msg.usuario_destinatario
+            pid = str(partner.id_usuario)
+            if pid not in conversations:
+                conversations[pid] = {
+                    'user': partner,
+                    'last_message': msg.conteudo[:100],
+                    'last_message_date': msg.data_envio,
+                    'unread_count': 0,
+                }
+
+        for msg in received.select_related('usuario_remetente').order_by('-data_envio'):
+            partner = msg.usuario_remetente
+            pid = str(partner.id_usuario)
+            if pid not in conversations:
+                conversations[pid] = {
+                    'user': partner,
+                    'last_message': msg.conteudo[:100],
+                    'last_message_date': msg.data_envio,
+                    'unread_count': 0,
+                }
+            elif msg.data_envio > conversations[pid]['last_message_date']:
+                conversations[pid]['last_message'] = msg.conteudo[:100]
+                conversations[pid]['last_message_date'] = msg.data_envio
+
+            if not msg.lida:
+                conversations[pid]['unread_count'] += 1
+
+        # Sort by most recent message
+        sorted_convos = sorted(
+            conversations.values(),
+            key=lambda c: c['last_message_date'],
+            reverse=True
+        )
+
+        # Serialize the user objects
+        from .serializers import UserSerializer
+        result = []
+        for convo in sorted_convos:
+            result.append({
+                'user': UserSerializer(convo['user'], context={'request': request}).data,
+                'last_message': convo['last_message'],
+                'last_message_date': convo['last_message_date'],
+                'unread_count': convo['unread_count'],
+            })
+
+        return Response(result, status=status.HTTP_200_OK)
+
+
+class ChatView(APIView):
+    """Get message history with a user, or send a new message"""
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def get(self, request, pk):
+        """Get chat history with user <pk>"""
+        user = request.user
+        partner = get_object_or_404(User, pk=pk)
+
+        messages = MensagemDireta.objects.filter(
+            (Q(usuario_remetente=user, usuario_destinatario=partner, deletada_remetente=False) |
+             Q(usuario_remetente=partner, usuario_destinatario=user, deletada_destinatario=False))
+        ).select_related('usuario_remetente', 'usuario_destinatario').order_by('data_envio')
+
+        # Auto-mark received messages as read
+        messages.filter(
+            usuario_remetente=partner,
+            usuario_destinatario=user,
+            lida=False
+        ).update(lida=True, data_leitura=timezone.now())
+
+        serializer = MensagemDiretaSerializer(messages, many=True, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def post(self, request, pk):
+        """Send a message to user <pk>"""
+        user = request.user
+        partner = get_object_or_404(User, pk=pk)
+
+        if user.id_usuario == partner.id_usuario:
+            return Response({'error': _('Você não pode enviar mensagem para si mesmo')}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Check if blocked
+        if Bloqueio.objects.filter(
+            Q(usuario=user, usuario_bloqueado=partner) |
+            Q(usuario=partner, usuario_bloqueado=user)
+        ).exists():
+            return Response({'error': _('Não é possível enviar mensagem para este usuário')}, status=status.HTTP_403_FORBIDDEN)
+
+        conteudo = request.data.get('conteudo', '').strip()
+        if not conteudo:
+            return Response({'error': _('Mensagem não pode ser vazia')}, status=status.HTTP_400_BAD_REQUEST)
+
+        msg = MensagemDireta.objects.create(
+            usuario_remetente=user,
+            usuario_destinatario=partner,
+            conteudo=conteudo,
+        )
+
+        serializer = MensagemDiretaSerializer(msg, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+class MessageReadView(APIView):
+    """Mark a specific message as read"""
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def patch(self, request, pk):
+        msg = get_object_or_404(MensagemDireta, pk=pk, usuario_destinatario=request.user)
+        msg.lida = True
+        msg.data_leitura = timezone.now()
+        msg.save()
+        return Response({'lida': True}, status=status.HTTP_200_OK)
