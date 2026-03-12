@@ -2,14 +2,17 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenRefreshView
 from .views import (
-    RegisterView, UserProfileView, UserDetailView, LogoutView, PasswordResetView,
+    RegisterView, UserProfileView, UserDetailView, LogoutView, 
+    RequestPasswordResetCodeView, VerifyAndResetPasswordView,
     AvatarUploadView, PublicacaoViewSet, FollowView, SuggestedUsersView, 
     ComentarioViewSet, NotificacaoViewSet, SearchView, CustomTokenObtainPairView,
+    GoogleLoginView,
     AdminStatsView, AdminUsersView, AdminUserDetailView, AdminReportsView, AdminReportActionView,
     CreateReportView, UserSettingsView, CloseFriendsManagerView, ToggleCloseFriendView,
     FollowRequestsView, FollowRequestActionView, ComunidadeViewSet, RascunhoViewSet,
     BlockView, MuteView, TrendView, TopCommunityPostsView,
-    UserFollowersView, UserFollowingView
+    UserFollowersView, UserFollowingView,
+    ConversationListView, ChatView, MessageReadView
 )
 
 # Router for ViewSets
@@ -23,14 +26,17 @@ router.register(r'drafts', RascunhoViewSet, basename='drafts')
 # Nested router for comments
 comments_list = ComentarioViewSet.as_view({'get': 'list', 'post': 'create'})
 comments_detail = ComentarioViewSet.as_view({'get': 'retrieve', 'put': 'update', 'delete': 'destroy'})
+comments_react = ComentarioViewSet.as_view({'post': 'react'})
 
 urlpatterns = [
     # Auth endpoints
     path('auth/register/', RegisterView.as_view(), name='register'),
     path('auth/login/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('auth/google/', GoogleLoginView.as_view(), name='google_login'),
     path('auth/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('auth/logout/', LogoutView.as_view(), name='logout'),
-    path('auth/password-reset/', PasswordResetView.as_view(), name='password_reset'),
+    path('auth/password-reset/request/', RequestPasswordResetCodeView.as_view(), name='password_reset_request'),
+    path('auth/password-reset/verify/', VerifyAndResetPasswordView.as_view(), name='password_reset_verify'),
     
     # User endpoints
     path('profile/', UserProfileView.as_view(), name='profile'),
@@ -53,6 +59,7 @@ urlpatterns = [
     # Comments endpoints (nested under dreams)
     path('dreams/<uuid:dream_pk>/comments/', comments_list, name='dream-comments-list'),
     path('dreams/<uuid:dream_pk>/comments/<uuid:pk>/', comments_detail, name='dream-comments-detail'),
+    path('dreams/<uuid:dream_pk>/comments/<uuid:pk>/react/', comments_react, name='dream-comments-react'),
     
     # Admin endpoints - Issue #29
     path('admin/stats/', AdminStatsView.as_view(), name='admin-stats'),
@@ -72,6 +79,11 @@ urlpatterns = [
     # Explore page endpoints
     path('trends/', TrendView.as_view(), name='trends'),
     path('communities/top-posts/', TopCommunityPostsView.as_view(), name='community-top-posts'),
+    
+    # Chat / Direct Messages endpoints
+    path('chat/conversations/', ConversationListView.as_view(), name='chat-conversations'),
+    path('chat/messages/<uuid:pk>/', ChatView.as_view(), name='chat-messages'),
+    path('chat/messages/<uuid:pk>/read/', MessageReadView.as_view(), name='chat-message-read'),
     
     # Include router URLs (dreams CRUD + notifications)
     path('', include(router.urls)),

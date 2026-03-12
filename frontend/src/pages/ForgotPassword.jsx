@@ -1,21 +1,45 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { passwordReset } from '../services/api';
+import { requestPasswordResetCode, verifyAndResetPassword } from '../services/api';
 import { useTranslation } from 'react-i18next';
 import '../styles/Auth.css';
 
 const ForgotPassword = () => {
     const { t } = useTranslation();
     const navigate = useNavigate();
+    const [step, setStep] = useState(1);
     const [email, setEmail] = useState('');
-    const [nomeUsuario, setNomeUsuario] = useState('');
-    const [respostaSecreta, setRespostaSecreta] = useState('');
+    const [code, setCode] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [error, setError] = useState('');
     const [success, setSuccess] = useState(false);
     const [loading, setLoading] = useState(false);
+
+    const handleRequestCode = async (e) => {
+        e.preventDefault();
+        setError('');
+        setLoading(true);
+
+        try {
+            await requestPasswordResetCode({ email });
+            setStep(2);
+            setError('');
+        } catch (err) {
+            if (err.response?.data?.email) {
+                setError(err.response.data.email[0]);
+            } else if (err.response?.data?.non_field_errors) {
+                setError(err.response.data.non_field_errors[0]);
+            } else if (err.response?.data?.detail) {
+                setError(err.response.data.detail);
+            } else {
+                setError(t('forgotPassword.errGeneric'));
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const handleReset = async (e) => {
         e.preventDefault();
@@ -34,10 +58,9 @@ const ForgotPassword = () => {
         setLoading(true);
 
         try {
-            await passwordReset({
+            await verifyAndResetPassword({
                 email,
-                nome_usuario: nomeUsuario,
-                resposta_secreta: respostaSecreta,
+                code,
                 new_password: newPassword,
             });
             setSuccess(true);
@@ -122,55 +145,75 @@ const ForgotPassword = () => {
                                 </motion.div>
                             )}
 
-                            <form onSubmit={handleReset}>
-                                <input
-                                    type="email"
-                                    className="auth-input immersive-input mb-4"
-                                    placeholder={t('forgotPassword.placeholderEmail')}
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    required
-                                />
-                                <input
-                                    type="text"
-                                    className="auth-input immersive-input mb-4"
-                                    placeholder={t('forgotPassword.placeholderUsername')}
-                                    value={nomeUsuario}
-                                    onChange={(e) => setNomeUsuario(e.target.value)}
-                                    required
-                                />
-                                <input
-                                    type="text"
-                                    className="auth-input immersive-input mb-4"
-                                    placeholder={t('forgotPassword.placeholderSecretAnswer')}
-                                    value={respostaSecreta}
-                                    onChange={(e) => setRespostaSecreta(e.target.value)}
-                                    required
-                                />
-                                <input
-                                    type="password"
-                                    className="auth-input immersive-input mb-4"
-                                    placeholder={t('forgotPassword.placeholderNewPassword')}
-                                    value={newPassword}
-                                    onChange={(e) => setNewPassword(e.target.value)}
-                                    required
-                                />
-                                <input
-                                    type="password"
-                                    className="auth-input immersive-input mb-6"
-                                    placeholder={t('forgotPassword.placeholderConfirmNewPassword')}
-                                    value={confirmPassword}
-                                    onChange={(e) => setConfirmPassword(e.target.value)}
-                                    required
-                                />
-                                <button
-                                    type="submit"
-                                    className="btn-dream glow-btn w-full"
-                                    disabled={loading}
-                                >
-                                    {loading ? t('forgotPassword.btnResetting') : t('forgotPassword.btnReset')}
-                                </button>
-                            </form>
+                            {step === 1 ? (
+                                <form onSubmit={handleRequestCode}>
+                                    <input
+                                        type="email"
+                                        className="auth-input immersive-input mb-6"
+                                        placeholder={t('forgotPassword.placeholderEmail')}
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        required
+                                    />
+                                    <button
+                                        type="submit"
+                                        className="btn-dream glow-btn w-full"
+                                        disabled={loading}
+                                    >
+                                        {loading ? t('forgotPassword.btnSendingCode', 'Enviando...') : t('forgotPassword.btnSendCode', 'Enviar Código')}
+                                    </button>
+                                </form>
+                            ) : (
+                                <form onSubmit={handleReset}>
+                                    <input
+                                        type="email"
+                                        className="auth-input immersive-input mb-4"
+                                        placeholder={t('forgotPassword.placeholderEmail')}
+                                        value={email}
+                                        disabled
+                                    />
+                                    <input
+                                        type="text"
+                                        className="auth-input immersive-input mb-4"
+                                        placeholder={t('forgotPassword.placeholderCode', 'Código de 6 dígitos')}
+                                        value={code}
+                                        onChange={(e) => setCode(e.target.value)}
+                                        maxLength={6}
+                                        required
+                                    />
+                                    <input
+                                        type="password"
+                                        className="auth-input immersive-input mb-4"
+                                        placeholder={t('forgotPassword.placeholderNewPassword')}
+                                        value={newPassword}
+                                        onChange={(e) => setNewPassword(e.target.value)}
+                                        required
+                                    />
+                                    <input
+                                        type="password"
+                                        className="auth-input immersive-input mb-6"
+                                        placeholder={t('forgotPassword.placeholderConfirmNewPassword')}
+                                        value={confirmPassword}
+                                        onChange={(e) => setConfirmPassword(e.target.value)}
+                                        required
+                                    />
+                                    <button
+                                        type="submit"
+                                        className="btn-dream glow-btn w-full mb-4"
+                                        disabled={loading}
+                                    >
+                                        {loading ? t('forgotPassword.btnResetting') : t('forgotPassword.btnReset')}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="btn-dream outline-btn w-full text-white bg-transparent border border-white/20 p-3 rounded-lg hover:bg-white/10"
+                                        onClick={() => setStep(1)}
+                                        disabled={loading}
+                                    >
+                                        {t('forgotPassword.btnBackToEmail', 'Voltar e mudar email')}
+                                    </button>
+                                </form>
+                            )}
 
                             <p className="auth-link text-center mt-6">
                                 {t('forgotPassword.rememberedPassword')} <Link to="/login" className="text-[#a78bfa] hover:text-[#c4b5fd] transition-colors">{t('forgotPassword.linkBackToLogin')}</Link>

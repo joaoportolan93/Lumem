@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import axios from 'axios';
 import { motion } from 'framer-motion';
-import { FaPlay, FaPause } from 'react-icons/fa';
+import { FaPlay, FaPause, FaGoogle } from 'react-icons/fa';
+import { useGoogleLogin } from '@react-oauth/google';
+import { login, googleLogin } from '../services/api';
 import '../styles/Auth.css';
 
 const Login = () => {
@@ -100,6 +101,36 @@ const Login = () => {
             setLoading(false);
         }
     };
+
+    const loginWithGoogle = useGoogleLogin({
+        onSuccess: async (tokenResponse) => {
+            try {
+                setLoading(true);
+                const res = await googleLogin({
+                    access_token: tokenResponse.access_token,
+                });
+                
+                localStorage.setItem('access', res.data.access);
+                localStorage.setItem('refresh', res.data.refresh);
+                
+                navigate('/feed');
+            } catch (err) {
+                if (err.response?.status === 403 && err.response?.data?.banned) {
+                    setError(err.response.data.message || t('login.errorBanned'));
+                } else if (err.response?.status === 401) {
+                    setError(t('login.errorUnauthorized'));
+                } else {
+                    setError(t('login.errorGeneric'));
+                }
+            } finally {
+                setLoading(false);
+            }
+        },
+        onError: errorResponse => {
+            setError(t('login.errorGeneric'));
+            console.error('Google Login Error:', errorResponse);
+        },
+    });
 
     return (
         <div className="login-immersive-layout" ref={containerRef}>
@@ -208,7 +239,26 @@ const Login = () => {
                         </button>
                     </form>
 
-                    <p className="auth-link">
+                    <div className="relative mt-6 mb-6">
+                        <div className="absolute inset-0 flex items-center">
+                            <div className="w-full border-t border-white/10"></div>
+                        </div>
+                        <div className="relative flex justify-center text-sm">
+                            <span className="px-2 bg-transparent text-gray-400">Ou</span>
+                        </div>
+                    </div>
+
+                    <button
+                        type="button"
+                        onClick={() => loginWithGoogle()}
+                        className="btn-dream outline-btn w-full text-white bg-transparent border border-white/20 p-3 rounded-lg hover:bg-white/10 flex items-center justify-center space-x-2"
+                        disabled={loading}
+                    >
+                        <FaGoogle />
+                        <span>{t('login.continueWithGoogle', 'Continuar com o Google')}</span>
+                    </button>
+
+                    <p className="auth-link mt-6">
                         {t('login.noAccount')} <Link to="/register">{t('login.createAccount')}</Link>
                     </p>
                 </div>

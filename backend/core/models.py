@@ -48,16 +48,7 @@ class Usuario(AbstractBaseUser):
     is_admin = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)  # Required for authentication
     
-    # Security question for password reset
-    PERGUNTA_SECRETA_CHOICES = (
-        (1, _('Qual o nome do seu primeiro animal de estimação?')),
-        (2, _('Qual o nome da sua cidade natal?')),
-        (3, _('Qual era o nome da sua escola primária?')),
-        (4, _('Qual o nome do seu melhor amigo de infância?')),
-        (5, _('Qual o modelo do seu primeiro carro?')),
-    )
-    pergunta_secreta = models.SmallIntegerField(choices=PERGUNTA_SECRETA_CHOICES, null=True, blank=True)
-    resposta_secreta = models.CharField(max_length=128, null=True, blank=True)  # Stored as hash
+    # Remove secret questions completely
     
     STATUS_CHOICES = (
         (1, _('Ativo')),
@@ -510,3 +501,18 @@ class Silenciamento(models.Model):
     class Meta:
         db_table = 'silenciamentos'
         unique_together = ('usuario', 'usuario_silenciado')
+
+
+class PasswordResetCode(models.Model):
+    id_code = models.UUIDField(primary_key=True, default=uuid6.uuid7, editable=False)
+    usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE, related_name='reset_codes', db_column='id_usuario')
+    code = models.CharField(max_length=6)
+    created_at = models.DateTimeField(default=timezone.now)
+    expires_at = models.DateTimeField()
+    is_used = models.BooleanField(default=False)
+
+    class Meta:
+        db_table = 'password_reset_codes'
+
+    def is_valid(self):
+        return not self.is_used and timezone.now() < self.expires_at
