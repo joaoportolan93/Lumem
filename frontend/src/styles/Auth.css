@@ -442,7 +442,7 @@
     display: flex;
     width: 100%;
     max-width: 1000px;
-    height: 600px;
+    min-height: 600px;
     background: rgba(20, 18, 25, 0.45);
     border-radius: 20px;
     overflow: hidden;

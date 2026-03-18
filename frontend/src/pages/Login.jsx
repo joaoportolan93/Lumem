@@ -75,7 +75,7 @@ const Login = () => {
         setLoading(true);
 
         try {
-            const response = await axios.post('http://127.0.0.1:8000/api/auth/login/', {
+            const response = await login({
                 email,
                 password,
             });
@@ -97,6 +97,7 @@ const Login = () => {
             } else {
                 setError(t('login.errorGeneric'));
             }
+            setTimeout(() => setError(''), 5000);
         } finally {
             setLoading(false);
         }
@@ -122,6 +123,7 @@ const Login = () => {
                 } else {
                     setError(t('login.errorGeneric'));
                 }
+                setTimeout(() => setError(''), 5000);
             } finally {
                 setLoading(false);
             }
