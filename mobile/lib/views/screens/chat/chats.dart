@@ -3,6 +3,8 @@ import 'package:dreamshare/views/widgets/chat_item.dart';
 import 'package:dreamshare/util/data.dart';
 
 class Chats extends StatefulWidget {
+  const Chats({super.key});
+
   @override
   _ChatsState createState() => _ChatsState();
 }
@@ -22,14 +24,14 @@ class _ChatsState extends State<Chats>
     super.build(context);
     return Scaffold(
       appBar: AppBar(
-        title: TextField(
+        title: const TextField(
           decoration: InputDecoration.collapsed(
             hintText: 'Search',
           ),
         ),
         actions: <Widget>[
           IconButton(
-            icon: Icon(
+            icon: const Icon(
               Icons.filter_list,
             ),
             onPressed: () {},
@@ -41,7 +43,7 @@ class _ChatsState extends State<Chats>
           labelColor: Theme.of(context).colorScheme.secondary,
           unselectedLabelColor: Theme.of(context).textTheme.bodySmall?.color,
           isScrollable: false,
-          tabs: <Widget>[
+          tabs: const <Widget>[
             Tab(
               text: "Message",
             ),
@@ -55,14 +57,14 @@ class _ChatsState extends State<Chats>
         controller: _tabController,
         children: <Widget>[
           ListView.separated(
-            padding: EdgeInsets.all(10),
+            padding: const EdgeInsets.all(10),
             separatorBuilder: (BuildContext context, int index) {
               return Align(
                 alignment: Alignment.centerRight,
-                child: Container(
+                child: SizedBox(
                   height: 0.5,
                   width: MediaQuery.of(context).size.width / 1.3,
-                  child: Divider(),
+                  child: const Divider(),
                 ),
               );
             },
@@ -80,14 +82,14 @@ class _ChatsState extends State<Chats>
             },
           ),
           ListView.separated(
-            padding: EdgeInsets.all(10),
+            padding: const EdgeInsets.all(10),
             separatorBuilder: (BuildContext context, int index) {
               return Align(
                 alignment: Alignment.centerRight,
-                child: Container(
+                child: SizedBox(
                   height: 0.5,
                   width: MediaQuery.of(context).size.width / 1.3,
-                  child: Divider(),
+                  child: const Divider(),
                 ),
               );
             },
@@ -107,7 +109,7 @@ class _ChatsState extends State<Chats>
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        child: Icon(
+        child: const Icon(
           Icons.add,
           color: Colors.white,
         ),

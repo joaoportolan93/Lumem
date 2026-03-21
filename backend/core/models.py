@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import CheckConstraint, Q, F
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
@@ -298,19 +299,89 @@ class PublicacaoElemento(models.Model):
         db_table = 'publicacao_elementos'
         unique_together = ('publicacao', 'elemento')
 
+class UploadChat(models.Model):
+    """Mídia de chat enviada em duas etapas (step 1: upload, step 2: vincular à mensagem)"""
+    id_upload = models.UUIDField(primary_key=True, default=uuid6.uuid7, editable=False)
+    usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE, related_name='chat_uploads', db_column='id_usuario')
+    arquivo = models.FileField(upload_to='chat_media/')
+    mime_type = models.CharField(max_length=100, blank=True, default='')
+    tamanho_bytes = models.PositiveIntegerField(null=True, blank=True)
+    data_upload = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'uploads_chat'
+
+    def __str__(self):
+        return f"Upload {self.id_upload} por {self.usuario}"
+
+
+class Conversa(models.Model):
+    """Conversa 1:1 determinística entre dois usuários"""
+    id_conversa = models.UUIDField(primary_key=True, default=uuid6.uuid7, editable=False)
+    usuario_a = models.ForeignKey(Usuario, on_delete=models.CASCADE, related_name='conversas_a', db_column='id_usuario_a')
+    usuario_b = models.ForeignKey(Usuario, on_delete=models.CASCADE, related_name='conversas_b', db_column='id_usuario_b')
+    data_criacao = models.DateTimeField(auto_now_add=True)
+    data_atualizacao = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'conversas'
+        constraints = [
+            CheckConstraint(
+                check=Q(usuario_a__lt=F('usuario_b')),
+                name='conversa_usuario_a_lt_b'
+            ),
+            models.UniqueConstraint(
+                fields=['usuario_a', 'usuario_b'],
+                name='conversa_unica_1_para_1'
+            ),
+        ]
+        indexes = [
+            models.Index(fields=['-data_atualizacao'], name='idx_conversa_updated'),
+        ]
+        ordering = ['-data_atualizacao']
+
+    def __str__(self):
+        return f"Conversa {self.id_conversa}: {self.usuario_a} <-> {self.usuario_b}"
+
+    @staticmethod
+    def get_or_create_for_users(user1, user2):
+        """Cria ou retorna a conversa determinística entre dois usuários (menor ID = usuario_a)."""
+        if str(user1.id_usuario) < str(user2.id_usuario):
+            a, b = user1, user2
+        else:
+            a, b = user2, user1
+        conversa, created = Conversa.objects.get_or_create(
+            usuario_a=a, usuario_b=b
+        )
+        return conversa, created
+
+
 class MensagemDireta(models.Model):
     id_mensagem = models.UUIDField(primary_key=True, default=uuid6.uuid7, editable=False)
     usuario_remetente = models.ForeignKey(Usuario, on_delete=models.CASCADE, related_name='mensagens_enviadas', db_column='id_usuario_remetente')
     usuario_destinatario = models.ForeignKey(Usuario, on_delete=models.CASCADE, related_name='mensagens_recebidas', db_column='id_usuario_destinatario')
-    conteudo = models.TextField()
+    conteudo = models.TextField(blank=True, null=True)
     data_envio = models.DateTimeField(default=timezone.now)
     lida = models.BooleanField(default=False)
     data_leitura = models.DateTimeField(null=True, blank=True)
     deletada_remetente = models.BooleanField(default=False)
     deletada_destinatario = models.BooleanField(default=False)
 
+    # Novos campos V2
+    conversa = models.ForeignKey(Conversa, on_delete=models.CASCADE, related_name='mensagens', null=True, blank=True, db_column='id_conversa')
+
+    TIPO_MENSAGEM_CHOICES = (
+        ('text', _('Texto')),
+        ('media', _('Mídia')),
+        ('post', _('Publicação')),
+    )
+    tipo_mensagem = models.CharField(max_length=20, choices=TIPO_MENSAGEM_CHOICES, default='text')
+    upload = models.ForeignKey(UploadChat, on_delete=models.SET_NULL, null=True, blank=True, db_column='id_upload')
+    publicacao_compartilhada = models.ForeignKey('Publicacao', on_delete=models.SET_NULL, null=True, blank=True, related_name='compartilhamentos_chat', db_column='id_publicacao_compartilhada')
+
     class Meta:
         db_table = 'mensagens_diretas'
+        ordering = ['-data_envio']
 
 class Denuncia(models.Model):
     id_denuncia = models.UUIDField(primary_key=True, default=uuid6.uuid7, editable=False)

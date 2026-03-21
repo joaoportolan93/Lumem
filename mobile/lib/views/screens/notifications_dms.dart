@@ -7,6 +7,8 @@ import 'package:dreamshare/views/widgets/chat_item.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
 class NotificationsDms extends StatefulWidget {
+  const NotificationsDms({super.key});
+
   @override
   _NotificationsDmsState createState() => _NotificationsDmsState();
 }

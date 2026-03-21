@@ -10,6 +10,8 @@ import 'package:dreamshare/views/widgets/dream_card.dart';
 import 'package:dreamshare/util/router.dart';
 
 class Profile extends StatefulWidget {
+  const Profile({super.key});
+
   @override
   _ProfileState createState() => _ProfileState();
 }
@@ -45,7 +47,7 @@ class _ProfileState extends State<Profile> {
   Future<void> _logout() async {
     await _authService.logout();
     if (mounted) {
-      Navigate.pushPageReplacement(context, Login());
+      Navigate.pushPageReplacement(context, const Login());
     }
   }
 

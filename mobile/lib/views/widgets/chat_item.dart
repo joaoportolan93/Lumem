@@ -11,7 +11,7 @@ class ChatItem extends StatefulWidget {
   final bool isOnline;
   final int counter;
 
-  ChatItem({
+  const ChatItem({
     super.key,
     required this.dp,
     required this.name,
@@ -31,12 +31,12 @@ class _ChatItemState extends State<ChatItem> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8.0),
       child: ListTile(
-        contentPadding: EdgeInsets.all(0),
+        contentPadding: const EdgeInsets.all(0),
         leading: Stack(
           children: <Widget>[
             CircleAvatar(
               backgroundImage: AssetImage(
-                "${widget.dp}",
+                widget.dp,
               ),
               radius: 25,
             ),
@@ -70,47 +70,47 @@ class _ChatItemState extends State<ChatItem> {
         ),
 
         title: Text(
-          "${widget.name}",
+          widget.name,
           maxLines: 1,
-          style: TextStyle(
+          style: const TextStyle(
             fontWeight: FontWeight.bold,
           ),
         ),
         subtitle: Text(
-          "${widget.msg}",
+          widget.msg,
           overflow: TextOverflow.ellipsis,
           maxLines: 2,
         ),
         trailing: Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: <Widget>[
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
             Text(
-              "${widget.time}",
-              style: TextStyle(
+              widget.time,
+              style: const TextStyle(
                 fontWeight: FontWeight.w300,
                 fontSize: 11,
               ),
             ),
 
-            SizedBox(height: 5),
+            const SizedBox(height: 5),
             widget.counter == 0
-                ?SizedBox()
+                ?const SizedBox()
                 :Container(
-              padding: EdgeInsets.all(1),
+              padding: const EdgeInsets.all(1),
               decoration: BoxDecoration(
                 color: Colors.red,
                 borderRadius: BorderRadius.circular(6),
               ),
-              constraints: BoxConstraints(
+              constraints: const BoxConstraints(
                 minWidth: 11,
                 minHeight: 11,
               ),
               child: Padding(
-                padding: EdgeInsets.only(top: 1, left: 5, right: 5),
+                padding: const EdgeInsets.only(top: 1, left: 5, right: 5),
                 child:Text(
                   "${widget.counter}",
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 10,
                   ),
@@ -124,7 +124,7 @@ class _ChatItemState extends State<ChatItem> {
           Navigator.of(context, rootNavigator: true).push(
             MaterialPageRoute(
               builder: (BuildContext context){
-                return Conversation();
+                return const Conversation();
               },
             ),
           );

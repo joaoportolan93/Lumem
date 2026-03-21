@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 
 class ThemeConfig {
   //Colors for theme
-  static Color lightPrimary = Color(0xfffcfcff);
-  static Color darkPrimary = Color(0xff1f1f1f);
+  static Color lightPrimary = const Color(0xfffcfcff);
+  static Color darkPrimary = const Color(0xff1f1f1f);
   static Color lightAccent = Colors.blue;
   static Color darkAccent = Colors.lightBlue;
-  static Color lightBG = Color(0xfffcfcff);
-  static Color darkBG = Color(0xff121212);
+  static Color lightBG = const Color(0xfffcfcff);
+  static Color darkBG = const Color(0xff121212);
   static Color badgeColor = Colors.red;
 
   static ThemeData lightTheme = ThemeData(
@@ -46,15 +46,15 @@ class ThemeConfig {
     appBarTheme: AppBarTheme(
       backgroundColor: darkBG,
       elevation: 0,
-      iconTheme: IconThemeData(color: Colors.white),
-      toolbarTextStyle: TextTheme(
+      iconTheme: const IconThemeData(color: Colors.white),
+      toolbarTextStyle: const TextTheme(
         titleLarge: TextStyle(
           color: Colors.white,
           fontSize: 18.0,
           fontWeight: FontWeight.w800,
         ),
       ).bodyMedium,
-      titleTextStyle: TextTheme(
+      titleTextStyle: const TextTheme(
         titleLarge: TextStyle(
           color: Colors.white,
           fontSize: 18.0,

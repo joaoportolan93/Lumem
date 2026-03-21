@@ -4,6 +4,8 @@ import 'package:dreamshare/services/community_service.dart';
 import 'package:dreamshare/views/screens/community_detail.dart';
 
 class Communities extends StatefulWidget {
+  const Communities({super.key});
+
   @override
   _CommunitiesState createState() => _CommunitiesState();
 }

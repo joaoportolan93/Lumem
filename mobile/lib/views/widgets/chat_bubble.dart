@@ -6,8 +6,8 @@ class ChatBubble extends StatefulWidget {
   final String message, time, username, type, replyText, replyName;
   final bool isMe, isGroup, isReply;
 
-  ChatBubble(
-      {required this.message,
+  const ChatBubble(
+      {super.key, required this.message,
       required this.time,
       required this.isMe,
       required this.isGroup,
@@ -51,12 +51,12 @@ class _ChatBubbleState extends State<ChatBubble> {
     final align =
         widget.isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start;
     final radius = widget.isMe
-        ? BorderRadius.only(
+        ? const BorderRadius.only(
             topLeft: Radius.circular(5.0),
             bottomLeft: Radius.circular(5.0),
             bottomRight: Radius.circular(10.0),
           )
-        : BorderRadius.only(
+        : const BorderRadius.only(
             topRight: Radius.circular(5.0),
             bottomLeft: Radius.circular(10.0),
             bottomRight: Radius.circular(5.0),
@@ -80,11 +80,12 @@ class _ChatBubbleState extends State<ChatBubble> {
             mainAxisAlignment: MainAxisAlignment.start,
             children: <Widget>[
               widget.isMe
-                  ? SizedBox()
+                  ? const SizedBox()
                   : widget.isGroup
                       ? Padding(
-                          padding: EdgeInsets.only(right: 48.0),
+                          padding: const EdgeInsets.only(right: 48.0),
                           child: Container(
+                            alignment: Alignment.centerLeft,
                             child: Text(
                               widget.username,
                               style: TextStyle(
@@ -94,32 +95,32 @@ class _ChatBubbleState extends State<ChatBubble> {
                               ),
                               textAlign: TextAlign.left,
                             ),
-                            alignment: Alignment.centerLeft,
                           ),
                         )
-                      : SizedBox(),
+                      : const SizedBox(),
               widget.isGroup
                   ? widget.isMe
-                      ? SizedBox()
-                      : SizedBox(height: 5)
-                  : SizedBox(),
+                      ? const SizedBox()
+                      : const SizedBox(height: 5)
+                  : const SizedBox(),
               widget.isReply
                   ? Container(
                       decoration: BoxDecoration(
                         color: chatBubbleReplyColor(),
-                        borderRadius: BorderRadius.all(Radius.circular(5.0)),
+                        borderRadius: const BorderRadius.all(Radius.circular(5.0)),
                       ),
-                      constraints: BoxConstraints(
+                      constraints: const BoxConstraints(
                         minHeight: 25,
                         maxHeight: 100,
                         minWidth: 80,
                       ),
                       child: Padding(
-                        padding: EdgeInsets.all(5),
+                        padding: const EdgeInsets.all(5),
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: <Widget>[
                             Container(
+                              alignment: Alignment.centerLeft,
                               child: Text(
                                 widget.isMe ? "You" : widget.replyName,
                                 style: TextStyle(
@@ -131,10 +132,10 @@ class _ChatBubbleState extends State<ChatBubble> {
                                 maxLines: 1,
                                 textAlign: TextAlign.left,
                               ),
-                              alignment: Alignment.centerLeft,
                             ),
-                            SizedBox(height: 2.0),
+                            const SizedBox(height: 2.0),
                             Container(
+                              alignment: Alignment.centerLeft,
                               child: Text(
                                 widget.replyText,
                                 style: TextStyle(
@@ -146,14 +147,13 @@ class _ChatBubbleState extends State<ChatBubble> {
                                 ),
                                 maxLines: 2,
                               ),
-                              alignment: Alignment.centerLeft,
                             ),
                           ],
                         ),
                       ),
                     )
-                  : SizedBox(width: 2.0),
-              widget.isReply ? SizedBox(height: 5) : SizedBox(),
+                  : const SizedBox(width: 2.0),
+              widget.isReply ? const SizedBox(height: 5) : const SizedBox(),
               Padding(
                 padding: EdgeInsets.all(widget.type == "text" ? 5 : 0),
                 child: widget.type == "text"
@@ -184,7 +184,7 @@ class _ChatBubbleState extends State<ChatBubble> {
                             ),
                           )
                     : Image.network(
-                        "${widget.message}",
+                        widget.message,
                         height: 130,
                         width: MediaQuery.of(context).size.width / 1.3,
                         fit: BoxFit.cover,
@@ -195,8 +195,8 @@ class _ChatBubbleState extends State<ChatBubble> {
         ),
         Padding(
           padding: widget.isMe
-              ? EdgeInsets.only(right: 10, bottom: 10.0)
-              : EdgeInsets.only(left: 10, bottom: 10.0),
+              ? const EdgeInsets.only(right: 10, bottom: 10.0)
+              : const EdgeInsets.only(left: 10, bottom: 10.0),
           child: Text(
             widget.time,
             style: TextStyle(

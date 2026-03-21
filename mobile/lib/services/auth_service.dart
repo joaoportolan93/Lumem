@@ -101,7 +101,7 @@ class AuthService {
 class FlutterSecureStorageHelper {
   const FlutterSecureStorageHelper();
   Future<String?> readRefresh() async {
-    final storage = const FlutterSecureStorage();
+    const storage = FlutterSecureStorage();
     return await storage.read(key: 'refresh_token');
   }
 }

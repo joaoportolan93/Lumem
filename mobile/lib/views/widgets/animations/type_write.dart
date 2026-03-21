@@ -6,7 +6,7 @@ class TypeWrite extends StatefulWidget {
   final double? textScaleFactor;
   final int seconds;
 
-  TypeWrite({
+  const TypeWrite({
     super.key,
     required this.word,
     this.style,

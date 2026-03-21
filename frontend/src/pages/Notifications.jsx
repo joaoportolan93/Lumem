@@ -22,7 +22,7 @@ const Notifications = () => {
         setLoading(true);
         try {
             const response = await getNotifications();
-            setNotifications(response.data);
+            setNotifications(response.data.results ? response.data.results : response.data);
             setError(null);
         } catch (err) {
             console.error('Error fetching notifications:', err);

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:dreamshare/util/data.dart';
 
 class Friends extends StatefulWidget {
+  const Friends({super.key});
+
   @override
   _FriendsState createState() => _FriendsState();
 }
@@ -11,14 +13,14 @@ class _FriendsState extends State<Friends> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: TextField(
+        title: const TextField(
           decoration: InputDecoration.collapsed(
             hintText: 'Search',
           ),
         ),
         actions: <Widget>[
           IconButton(
-            icon: Icon(
+            icon: const Icon(
               Icons.filter_list,
             ),
             onPressed: () {},
@@ -26,14 +28,14 @@ class _FriendsState extends State<Friends> {
         ],
       ),
       body: ListView.separated(
-        padding: EdgeInsets.all(10),
+        padding: const EdgeInsets.all(10),
         separatorBuilder: (BuildContext context, int index) {
           return Align(
             alignment: Alignment.centerRight,
-            child: Container(
+            child: SizedBox(
               height: 0.5,
               width: MediaQuery.of(context).size.width / 1.3,
-              child: Divider(),
+              child: const Divider(),
             ),
           );
         },
@@ -49,35 +51,35 @@ class _FriendsState extends State<Friends> {
                 ),
                 radius: 25,
               ),
-              contentPadding: EdgeInsets.all(0),
+              contentPadding: const EdgeInsets.all(0),
               title: Text(friend['name']),
               subtitle: Text(friend['status']),
               trailing: friend['isAccept']
                   ? TextButton(
-                      child: Text(
+                      style: ButtonStyle(
+                        backgroundColor: WidgetStateProperty.all(Colors.grey),
+                      ),
+                      onPressed: () {},
+                      child: const Text(
                         "Unfollow",
                         style: TextStyle(
                           color: Colors.white,
                         ),
                       ),
-                      style: ButtonStyle(
-                        backgroundColor: WidgetStateProperty.all(Colors.grey),
-                      ),
-                      onPressed: () {},
                     )
                   : TextButton(
-                      child: Text(
-                        "Follow",
-                        style: TextStyle(
-                          color: Colors.white,
-                        ),
-                      ),
                       style: ButtonStyle(
                         backgroundColor: WidgetStateProperty.all(
                           Theme.of(context).colorScheme.secondary,
                         ),
                       ),
                       onPressed: () {},
+                      child: const Text(
+                        "Follow",
+                        style: TextStyle(
+                          color: Colors.white,
+                        ),
+                      ),
                     ),
               onTap: () {},
             ),

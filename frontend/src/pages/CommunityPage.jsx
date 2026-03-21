@@ -46,12 +46,17 @@ const CommunityPage = () => {
         const loadData = async () => {
             try {
                 setLoading(true);
-                const [commResponse, postsResponse] = await Promise.all([
-                    getCommunity(id),
-                    getDreams('community', id)
-                ]);
+                const commResponse = await getCommunity(id);
                 setCommunity(commResponse.data);
-                setPosts(postsResponse.data);
+
+                try {
+                    const postsResponse = await getDreams('community', id);
+                    setPosts(postsResponse.data.results ? postsResponse.data.results : postsResponse.data);
+                } catch (err) {
+                    console.error('Error fetching community posts:', err);
+                    setError(t('community.errorPosts'));
+                }
+
             } catch (err) {
                 console.error('Error loading community:', err);
                 setError(t('communityPage.errNotFound'));

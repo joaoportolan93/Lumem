@@ -6,7 +6,7 @@ class PostItem extends StatefulWidget {
   final String time;
   final String img;
 
-  PostItem({
+  const PostItem({
     super.key,
     required this.dp,
     required this.name,
@@ -22,33 +22,33 @@ class _PostItemState extends State<PostItem> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 5),
+      padding: const EdgeInsets.symmetric(vertical: 5),
       child: InkWell(
         child: Column(
           children: <Widget>[
             ListTile(
               leading: CircleAvatar(
                 backgroundImage: AssetImage(
-                  "${widget.dp}",
+                  widget.dp,
                 ),
               ),
-              contentPadding: EdgeInsets.all(0),
+              contentPadding: const EdgeInsets.all(0),
               title: Text(
-                "${widget.name}",
-                style: TextStyle(
+                widget.name,
+                style: const TextStyle(
                   fontWeight: FontWeight.bold,
                 ),
               ),
               trailing: Text(
-                "${widget.time}",
-                style: TextStyle(
+                widget.time,
+                style: const TextStyle(
                   fontWeight: FontWeight.w300,
                   fontSize: 11,
                 ),
               ),
             ),
             Image.asset(
-              "${widget.img}",
+              widget.img,
               height: 170,
               width: MediaQuery.of(context).size.width,
               fit: BoxFit.cover,

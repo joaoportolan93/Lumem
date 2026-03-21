@@ -12,7 +12,9 @@ from .views import (
     FollowRequestsView, FollowRequestActionView, ComunidadeViewSet, RascunhoViewSet,
     BlockView, MuteView, TrendView, TopCommunityPostsView,
     UserFollowersView, UserFollowingView,
-    ConversationListView, ChatView, MessageReadView
+    ConversationListView, ChatView, MessageReadView,
+    ChangePasswordView,
+    ConversaViewSet, UploadChatView,
 )
 
 # Router for ViewSets
@@ -21,6 +23,10 @@ router.register(r'dreams', PublicacaoViewSet, basename='dreams')
 router.register(r'notifications', NotificacaoViewSet, basename='notifications')
 router.register(r'communities', ComunidadeViewSet, basename='communities')
 router.register(r'drafts', RascunhoViewSet, basename='drafts')
+
+# Router V2 para Mensagens Diretas
+v2_router = DefaultRouter()
+v2_router.register(r'conversations', ConversaViewSet, basename='v2-conversations')
 
 
 # Nested router for comments
@@ -37,6 +43,7 @@ urlpatterns = [
     path('auth/logout/', LogoutView.as_view(), name='logout'),
     path('auth/password-reset/request/', RequestPasswordResetCodeView.as_view(), name='password_reset_request'),
     path('auth/password-reset/verify/', VerifyAndResetPasswordView.as_view(), name='password_reset_verify'),
+    path('auth/change-password/', ChangePasswordView.as_view(), name='change_password'),
     
     # User endpoints
     path('profile/', UserProfileView.as_view(), name='profile'),
@@ -80,11 +87,18 @@ urlpatterns = [
     path('trends/', TrendView.as_view(), name='trends'),
     path('communities/top-posts/', TopCommunityPostsView.as_view(), name='community-top-posts'),
     
-    # Chat / Direct Messages endpoints
+    # Chat / Direct Messages endpoints (V1 - legado, mantido para compatibilidade)
     path('chat/conversations/', ConversationListView.as_view(), name='chat-conversations'),
     path('chat/messages/<uuid:pk>/', ChatView.as_view(), name='chat-messages'),
     path('chat/messages/<uuid:pk>/read/', MessageReadView.as_view(), name='chat-message-read'),
     
+    # V2 DM endpoints (upload de mídia)
+    path('v2/uploads/chat/', UploadChatView.as_view(), name='chat-upload'),
+    path('v2/uploads/chat/<uuid:pk>/', UploadChatView.as_view(), name='chat-upload-delete'),
+    
     # Include router URLs (dreams CRUD + notifications)
     path('', include(router.urls)),
+    
+    # V2 DM router (conversations)
+    path('v2/', include(v2_router.urls)),
 ]

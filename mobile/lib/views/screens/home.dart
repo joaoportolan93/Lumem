@@ -4,6 +4,8 @@ import 'package:dreamshare/services/dream_service.dart';
 import 'package:dreamshare/views/widgets/dream_card.dart';
 
 class Home extends StatefulWidget {
+  const Home({super.key});
+
   @override
   _HomeState createState() => _HomeState();
 }

@@ -7,6 +7,8 @@ import 'package:dreamshare/views/screens/profile.dart';
 import 'package:dreamshare/views/screens/create_dream.dart';
 
 class MainScreen extends StatefulWidget {
+  const MainScreen({super.key});
+
   @override
   _MainScreenState createState() => _MainScreenState();
 }
@@ -16,11 +18,11 @@ class _MainScreenState extends State<MainScreen> {
   int _page = 0;
 
   final List<Widget> _pages = [
-    Home(),
-    Communities(),
-    Explore(),
-    NotificationsDms(),
-    Profile(),
+    const Home(),
+    const Communities(),
+    const Explore(),
+    const NotificationsDms(),
+    const Profile(),
   ];
 
   @override
@@ -50,7 +52,7 @@ class _MainScreenState extends State<MainScreen> {
         onPressed: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => CreateDream()),
+            MaterialPageRoute(builder: (_) => const CreateDream()),
           );
         },
       ),

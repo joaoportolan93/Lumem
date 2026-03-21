@@ -6,6 +6,8 @@ import 'package:dreamshare/services/user_service.dart';
 import 'package:dreamshare/views/screens/user_profile.dart';
 
 class Explore extends StatefulWidget {
+  const Explore({super.key});
+
   @override
   _ExploreState createState() => _ExploreState();
 }
@@ -194,6 +196,7 @@ class _ExploreState extends State<Explore> {
                   }
                 });
 
+                if (!context.mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                       content: Text('Falha ao atualizar seguir/remover')),

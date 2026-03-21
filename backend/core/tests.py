@@ -310,3 +310,134 @@ class TestFollowersList:
         response = auth_client.get(url)
         assert response.status_code == status.HTTP_200_OK
         assert len(response.data) == 1
+
+
+@pytest.mark.django_db
+class TestDirectMessagesV2:
+    """Testes para a API V2 de Mensagens Diretas (conversas explícitas)"""
+
+    def test_create_conversation(self, auth_client, user):
+        """POST /api/v2/conversations/ deve criar conversa 1:1"""
+        partner = UsuarioFactory()
+        url = reverse('v2-conversations-list')
+        response = auth_client.post(url, {'user_id': str(partner.id_usuario)})
+        assert response.status_code == status.HTTP_201_CREATED
+        assert 'id_conversa' in response.data
+        assert response.data['parceiro']['id_usuario'] == str(partner.id_usuario)
+
+    def test_conversation_deterministic(self, user):
+        """Criar conversa A→B e B→A resulta na mesma conversa"""
+        partner = UsuarioFactory()
+        client_a = APIClient()
+        client_a.force_authenticate(user=user)
+        client_b = APIClient()
+        client_b.force_authenticate(user=partner)
+
+        url = reverse('v2-conversations-list')
+        r1 = client_a.post(url, {'user_id': str(partner.id_usuario)})
+        r2 = client_b.post(url, {'user_id': str(user.id_usuario)})
+
+        assert r1.data['id_conversa'] == r2.data['id_conversa']
+        assert r2.status_code == status.HTTP_200_OK  # Já existia
+
+    def test_list_inbox(self, auth_client, user):
+        """GET /api/v2/conversations/ deve listar conversas com última mensagem"""
+        partner = UsuarioFactory()
+        url = reverse('v2-conversations-list')
+        auth_client.post(url, {'user_id': str(partner.id_usuario)})
+
+        response = auth_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        data = response.data.get('results', response.data)
+        assert len(data) >= 1
+
+    def test_send_text_message(self, auth_client, user):
+        """POST /api/v2/conversations/<id>/send/ com texto deve criar mensagem"""
+        partner = UsuarioFactory()
+        url = reverse('v2-conversations-list')
+        conv_resp = auth_client.post(url, {'user_id': str(partner.id_usuario)})
+        conv_id = conv_resp.data['id_conversa']
+
+        send_url = reverse('v2-conversations-send', args=[conv_id])
+        response = auth_client.post(send_url, {'conteudo': 'Olá, teste!'})
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data['conteudo'] == 'Olá, teste!'
+        assert response.data['tipo_mensagem'] == 'text'
+        assert response.data['is_mine'] is True
+
+    def test_mark_read(self, user):
+        """POST /api/v2/conversations/<id>/read/ marca mensagens como lidas"""
+        partner = UsuarioFactory()
+        from .models import Conversa, MensagemDireta
+        conversa, _ = Conversa.get_or_create_for_users(user, partner)
+        MensagemDireta.objects.create(
+            usuario_remetente=partner, usuario_destinatario=user,
+            conversa=conversa, conteudo='Msg não lida'
+        )
+
+        client = APIClient()
+        client.force_authenticate(user=user)
+        read_url = reverse('v2-conversations-mark-read', args=[conversa.id_conversa])
+        response = client.post(read_url)
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['marked_read'] == 1
+
+    def test_unread_count(self, user):
+        """GET /api/v2/conversations/unread-count/ retorna contagem correta"""
+        partner = UsuarioFactory()
+        from .models import Conversa, MensagemDireta
+        conversa, _ = Conversa.get_or_create_for_users(user, partner)
+        MensagemDireta.objects.create(
+            usuario_remetente=partner, usuario_destinatario=user,
+            conversa=conversa, conteudo='Msg 1'
+        )
+        MensagemDireta.objects.create(
+            usuario_remetente=partner, usuario_destinatario=user,
+            conversa=conversa, conteudo='Msg 2'
+        )
+
+        client = APIClient()
+        client.force_authenticate(user=user)
+        url = reverse('v2-conversations-unread-count')
+        response = client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['unread_count'] == 2
+
+    def test_block_prevents_send(self, auth_client, user):
+        """Bloqueio deve impedir envio de mensagem (403)"""
+        from .models import Bloqueio, Conversa
+        partner = UsuarioFactory()
+        conversa, _ = Conversa.get_or_create_for_users(user, partner)
+        Bloqueio.objects.create(usuario=partner, usuario_bloqueado=user)
+
+        send_url = reverse('v2-conversations-send', args=[conversa.id_conversa])
+        response = auth_client.post(send_url, {'conteudo': 'Teste bloqueio'})
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_message_history(self, auth_client, user):
+        """GET /api/v2/conversations/<id>/messages/ retorna histórico"""
+        partner = UsuarioFactory()
+        from .models import Conversa, MensagemDireta
+        conversa, _ = Conversa.get_or_create_for_users(user, partner)
+        MensagemDireta.objects.create(
+            usuario_remetente=user, usuario_destinatario=partner,
+            conversa=conversa, conteudo='Mensagem 1'
+        )
+
+        url = reverse('v2-conversations-messages', args=[conversa.id_conversa])
+        response = auth_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        data = response.data.get('results', response.data)
+        assert len(data) >= 1
+
+    def test_cannot_create_self_conversation(self, auth_client, user):
+        """Não deve ser possível criar conversa consigo mesmo"""
+        url = reverse('v2-conversations-list')
+        response = auth_client.post(url, {'user_id': str(user.id_usuario)})
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_v1_compatibility(self, auth_client, user):
+        """Rotas V1 /api/chat/conversations/ devem continuar funcionando"""
+        url = reverse('chat-conversations')
+        response = auth_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
