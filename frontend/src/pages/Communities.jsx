@@ -20,7 +20,7 @@ const Communities = () => {
         try {
             setLoading(true);
             const response = await getCommunities();
-            setCommunities(response.data);
+            setCommunities(response.data.results ? response.data.results : response.data);
         } catch (error) {
             console.error('Error fetching communities:', error);
         } finally {

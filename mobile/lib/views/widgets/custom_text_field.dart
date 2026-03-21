@@ -13,7 +13,7 @@ class CustomTextField extends StatelessWidget {
   final FormFieldValidator<String>? validateFunction;
   final void Function(String?)? onSaved, onChange;
 
-  CustomTextField({
+  const CustomTextField({
     this.initialValue,
     this.enabled,
     this.hintText,
@@ -35,7 +35,7 @@ class CustomTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return SizedBox(
       width: MediaQuery.of(context).size.width,
       child: TextFormField(
         initialValue: initialValue,
@@ -66,7 +66,7 @@ class CustomTextField extends StatelessWidget {
             hintStyle: TextStyle(
               color: Colors.grey[400],
             ),
-            contentPadding: EdgeInsets.symmetric(horizontal: 20.0),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 20.0),
             border: border(),
             focusedBorder: border(),
             disabledBorder: border()),
@@ -75,7 +75,7 @@ class CustomTextField extends StatelessWidget {
   }
 
   border() {
-    return OutlineInputBorder(
+    return const OutlineInputBorder(
       borderRadius: BorderRadius.all(
         Radius.circular(10.0),
       ),

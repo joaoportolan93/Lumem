@@ -33,7 +33,7 @@ const Profile = () => {
                 setSavedLoading(true);
                 try {
                     const res = await getDreams('saved');
-                    setSavedDreams(res.data);
+                    setSavedDreams(res.data.results ? res.data.results : res.data);
                 } catch (error) {
                     console.error('Error fetching saved dreams:', error);
                 } finally {
@@ -114,7 +114,7 @@ const Profile = () => {
                     getMyDreams()
                 ]);
                 setUser(profileRes.data);
-                setDreams(dreamsRes.data);
+                setDreams(dreamsRes.data.results ? dreamsRes.data.results : dreamsRes.data);
             } catch (error) {
                 console.error('Error fetching profile:', error);
             } finally {

@@ -12,7 +12,7 @@ const Saved = () => {
         const fetchSaved = async () => {
             try {
                 const response = await getDreams('saved');
-                setSavedDreams(response.data);
+                setSavedDreams(response.data.results ? response.data.results : response.data);
             } catch (error) {
                 console.error('Error fetching saved dreams:', error);
             } finally {

@@ -5,7 +5,7 @@ class CustomButton extends StatelessWidget {
   final Function? onPressed;
   final Color? color;
 
-  CustomButton({
+  const CustomButton({super.key, 
     this.label = 'Continue',
     this.onPressed,
     this.color,
@@ -17,7 +17,7 @@ class CustomButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return SizedBox(
       height: 50.0,
       width: MediaQuery.of(context).size.width,
       child: TextButton(
@@ -26,7 +26,7 @@ class CustomButton extends StatelessWidget {
           backgroundColor: WidgetStateProperty.all(
               color ?? Theme.of(context).colorScheme.secondary),
           shape: WidgetStateProperty.all(
-            RoundedRectangleBorder(
+            const RoundedRectangleBorder(
               borderRadius: BorderRadius.all(
                 Radius.circular(10.0),
               ),
@@ -34,8 +34,8 @@ class CustomButton extends StatelessWidget {
           ),
         ),
         child: Text(
-          "$label",
-          style: TextStyle(
+          label,
+          style: const TextStyle(
             fontWeight: FontWeight.w500,
             fontSize: 18.0,
             color: Colors.white,

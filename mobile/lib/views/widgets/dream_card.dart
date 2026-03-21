@@ -201,7 +201,7 @@ class _DreamCardState extends State<DreamCard> {
                   // Comment button
                   Row(
                     children: [
-                      Icon(Icons.chat_bubble_outline,
+                      const Icon(Icons.chat_bubble_outline,
                           color: Colors.grey, size: 20),
                       const SizedBox(width: 4),
                       Text(

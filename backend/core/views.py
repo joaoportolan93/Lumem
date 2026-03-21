@@ -12,7 +12,7 @@ import uuid
 import random
 import string
 from django.core.mail import send_mail
-from .serializers import RegisterSerializer, UserSerializer, UserUpdateSerializer, LogoutSerializer, RequestPasswordResetCodeSerializer, VerifyAndResetPasswordSerializer
+from .serializers import RegisterSerializer, UserSerializer, UserUpdateSerializer, LogoutSerializer, RequestPasswordResetCodeSerializer, VerifyAndResetPasswordSerializer, ChangePasswordSerializer
 from .models import PasswordResetCode
 from .throttles import LoginRateThrottle, RegisterRateThrottle
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -71,6 +71,33 @@ class RegisterView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
     permission_classes = (permissions.AllowAny,)
     throttle_classes = [RegisterRateThrottle]
+
+class ChangePasswordView(generics.UpdateAPIView):
+    """
+    Endpoint para troca segura de senha para usuários logados.
+    Requer a confirmação da senha atual.
+    """
+    serializer_class = ChangePasswordSerializer
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def get_object(self):
+        return self.request.user
+
+    def update(self, request, *args, **kwargs):
+        user = self.get_object()
+        serializer = self.get_serializer(data=request.data)
+
+        if serializer.is_valid():
+            # set_password is fully functional in AbstractBaseUser
+            user.set_password(serializer.validated_data['new_password'])
+            user.save()
+            
+            # Quando a senha é alterada, é boa prática invalidar tokens
+            # Não é estritamente obrigatório no DRF JWT se não tiver blacklist restrita para todos os devices,
+            # mas vamos retornar sucesso para o front redirecionar caso ele queira deslogar o usuário ou algo do tipo
+            return Response({'message': _('Senha alterada com sucesso.')}, status=status.HTTP_200_OK)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class CustomTokenObtainPairView(TokenObtainPairView):
@@ -421,149 +448,165 @@ class PublicacaoViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """Return dreams based on tab parameter: following or foryou"""
         user = self.request.user
-        
-        # Helper to get following IDs
-        following_ids = Seguidor.objects.filter(
-            usuario_seguidor=user, status=1
-        ).values_list('usuario_seguido_id', flat=True)
+        qs = Publicacao.objects.none()
 
-        # Get blocked user IDs to exclude their posts
-        from .models import Bloqueio
-        blocked_user_ids = Bloqueio.objects.filter(
-            usuario=user
-        ).values_list('usuario_bloqueado_id', flat=True)
+        if user.is_authenticated:
+            following_ids = Seguidor.objects.filter(
+                usuario_seguidor=user, status=1
+            ).values_list('usuario_seguido_id', flat=True)
 
-        # Base filter: exclude posts from banned users, blocked users,
-        # AND private accounts (unless followed or own posts)
-        privacy_filter = (
-            Q(usuario__privacidade_padrao=1) |  # Public accounts
-            Q(usuario__in=following_ids) |       # Followed private accounts
-            Q(usuario=user)                      # Own posts
-        )
-        base_filter = Q(usuario__status=1) & ~Q(usuario__in=blocked_user_ids) & privacy_filter
+            from .models import Bloqueio
+            blocked_user_ids = Bloqueio.objects.filter(
+                usuario=user).values_list('usuario_bloqueado_id', flat=True)
 
-        # Post visibility rules:
-        # 1: Public -> Visible to all who pass base_filter
-        # 2: Close Friends/Followers -> Visible if current user follows author
-        # 3: Private -> Only visible to the author
-        visibility_q = (
-            Q(visibilidade=1) |
-            (Q(visibilidade=2) & Q(usuario__in=following_ids)) |
-            Q(usuario=user)
-        )
+            privacy_filter = (
+                Q(usuario__privacidade_padrao=1) |
+                Q(usuario__in=following_ids) |
+                Q(usuario=user)
+            )
+            base_filter = Q(usuario__status=1) & ~Q(usuario__in=blocked_user_ids) & privacy_filter
+            visibility_q = (
+                Q(visibilidade=1) |
+                (Q(visibilidade=2) & Q(usuario__in=following_ids)) |
+                Q(usuario=user)
+            )
+        else:
+            following_ids = []
+            base_filter = Q(usuario__status=1, usuario__privacidade_padrao=1)
+            visibility_q = Q(visibilidade=1)
 
         if self.action == 'list':
             tab = self.request.query_params.get('tab', 'following')
             
-            if tab == 'mine':
-                # My Dreams: All dreams by the current user
-                return Publicacao.objects.filter(
-                    usuario=user
-                ).order_by('-data_publicacao')
+            if tab == 'mine' and user.is_authenticated:
+                qs = Publicacao.objects.filter(usuario=user).order_by('-data_publicacao')
 
-            if tab == 'saved':
-                # Saved Dreams: Posts saved by the user
-                return Publicacao.objects.filter(
-                    base_filter,
-                    visibility_q,
-                    publicacaosalva__usuario=user
+            elif tab == 'saved' and user.is_authenticated:
+                qs = Publicacao.objects.filter(
+                    base_filter, visibility_q, publicacaosalva__usuario=user
                 ).order_by('-publicacaosalva__data_salvo')
             
-            if tab == 'community':
+            elif tab == 'community':
                 community_id = self.request.query_params.get('community_id')
                 if community_id:
-                    return Publicacao.objects.filter(
-                        base_filter,
-                        visibility_q,
-                        comunidade_id=community_id
+                    qs = Publicacao.objects.filter(
+                        base_filter, visibility_q, comunidade_id=community_id
                     ).order_by('-data_publicacao')
 
-            if tab == 'my_community_posts':
-                # My Community Posts: Only current user's posts in communities
-                return Publicacao.objects.filter(
-                    usuario=user,
-                    comunidade__isnull=False
+            elif tab == 'my_community_posts' and user.is_authenticated:
+                qs = Publicacao.objects.filter(
+                    usuario=user, comunidade__isnull=False
                 ).order_by('-data_publicacao')
 
-            if tab == 'user_posts':
-                # Specific user's feed posts (no community posts)
+            elif tab == 'user_posts':
                 user_id = self.request.query_params.get('user_id')
                 if user_id:
-                    target_user = get_object_or_404(User, pk=user_id)
-                    # Respect privacy
-                    is_private = target_user.privacidade_padrao == 2
-                    is_following = target_user.pk in following_ids
-                    is_self = target_user.pk == user.pk
-                    if is_private and not is_following and not is_self:
-                        return Publicacao.objects.none()
-                    return Publicacao.objects.filter(
-                        base_filter,
-                        visibility_q,
-                        usuario_id=user_id,
-                        comunidade__isnull=True
-                    ).order_by('-data_publicacao')
-
-            if tab == 'user_community_posts':
-                # Specific user's community posts
-                user_id = self.request.query_params.get('user_id')
-                if user_id:
+                    from django.shortcuts import get_object_or_404
+                    from django.contrib.auth import get_user_model
+                    User = get_user_model()
                     target_user = get_object_or_404(User, pk=user_id)
                     is_private = target_user.privacidade_padrao == 2
                     is_following = target_user.pk in following_ids
-                    is_self = target_user.pk == user.pk
-                    if is_private and not is_following and not is_self:
-                        return Publicacao.objects.none()
-                    return Publicacao.objects.filter(
-                        base_filter,
-                        visibility_q,
-                        usuario_id=user_id,
-                        comunidade__isnull=False
-                    ).order_by('-data_publicacao')
+                    is_self = target_user.pk == user.pk if user.is_authenticated else False
+                    if not (is_private and not is_following and not is_self):
+                        qs = Publicacao.objects.filter(
+                            base_filter, visibility_q, usuario_id=user_id, comunidade__isnull=True
+                        ).order_by('-data_publicacao')
 
-            if tab == 'user_media':
-                # Posts with media (images). Optional user_id filter.
+            elif tab == 'user_community_posts':
+                user_id = self.request.query_params.get('user_id')
+                if user_id:
+                    from django.shortcuts import get_object_or_404
+                    from django.contrib.auth import get_user_model
+                    User = get_user_model()
+                    target_user = get_object_or_404(User, pk=user_id)
+                    is_private = target_user.privacidade_padrao == 2
+                    is_following = target_user.pk in following_ids
+                    is_self = target_user.pk == user.pk if user.is_authenticated else False
+                    if not (is_private and not is_following and not is_self):
+                        qs = Publicacao.objects.filter(
+                            base_filter, visibility_q, usuario_id=user_id, comunidade__isnull=False
+                        ).order_by('-data_publicacao')
+
+            elif tab == 'user_media':
                 user_id = self.request.query_params.get('user_id')
                 media_filter = Q(imagem__isnull=False) & ~Q(imagem='')
                 if user_id:
+                    from django.shortcuts import get_object_or_404
+                    from django.contrib.auth import get_user_model
+                    User = get_user_model()
                     target_user = get_object_or_404(User, pk=user_id)
                     is_private = target_user.privacidade_padrao == 2
                     is_following = target_user.pk in following_ids
-                    is_self = target_user.pk == user.pk
-                    if is_private and not is_following and not is_self:
-                        return Publicacao.objects.none()
-                    return Publicacao.objects.filter(
-                        base_filter,
-                        visibility_q,
-                        usuario_id=user_id
-                    ).filter(media_filter).order_by('-data_publicacao')
-                else:
-                    # Own media posts
-                    return Publicacao.objects.filter(
-                        usuario=user
-                    ).filter(media_filter).order_by('-data_publicacao')
+                    is_self = target_user.pk == user.pk if user.is_authenticated else False
+                    if not (is_private and not is_following and not is_self):
+                        qs = Publicacao.objects.filter(
+                            base_filter, visibility_q, usuario_id=user_id
+                        ).filter(media_filter).order_by('-data_publicacao')
+                elif user.is_authenticated:
+                    qs = Publicacao.objects.filter(usuario=user).filter(media_filter).order_by('-data_publicacao')
 
-            if tab == 'foryou':
-                # For You: Public dreams ordered by engagement (likes + comments)
-                return Publicacao.objects.filter(
-                    base_filter,
-                    visibilidade=1
+            elif tab == 'foryou':
+                qs = Publicacao.objects.filter(
+                    base_filter, visibilidade=1
                 ).annotate(
                     engagement=Count('reacaopublicacao', distinct=True) + Count('comentario', distinct=True)
-                ).order_by('-engagement', '-data_publicacao')[:50]
+                ).order_by('-engagement', '-data_publicacao')
             
-            # Following: Dreams from people user follows + own dreams
-            return Publicacao.objects.filter(
-                base_filter,
-                visibility_q,
-                Q(usuario__in=following_ids) | Q(usuario=user)
-            ).order_by('-data_publicacao')
+            else:
+                if user.is_authenticated:
+                    qs = Publicacao.objects.filter(
+                        base_filter, visibility_q, Q(usuario__in=following_ids) | Q(usuario=user)
+                    ).order_by('-data_publicacao')
+                else:
+                    qs = Publicacao.objects.filter(
+                        base_filter, visibility_q
+                    ).order_by('-data_publicacao')
+        else:
+            qs = Publicacao.objects.filter(base_filter, visibility_q).distinct()
 
-        # For detailed actions (retrieve, like, etc), return all accessible posts
-        # Accessible = Satisfies visibility rules AND base filters
-        return Publicacao.objects.filter(
-            base_filter,
-            visibility_q
-        ).distinct()
+        # N+1 Optimization logic: select_related, prefetch_related, and annotations
+        from django.db.models import Prefetch, Exists, OuterRef
+        from django.contrib.auth import get_user_model
+        from .models import Bloqueio, Silenciamento, ReacaoPublicacao, PublicacaoSalva
+
+        User = get_user_model()
+        qs = qs.select_related('comunidade')
+
+        user_qs = User.objects.annotate(
+            annotated_seguidores_count=Count('seguidores', filter=Q(seguidores__status=1), distinct=True),
+            annotated_seguindo_count=Count('seguindo', filter=Q(seguindo__status=1), distinct=True)
+        )
+
+        if user.is_authenticated:
+            user_qs = user_qs.annotate(
+                annotated_is_following=Exists(
+                    Seguidor.objects.filter(usuario_seguidor=user, usuario_seguido=OuterRef('pk'), status=1)
+                ),
+                annotated_is_blocked=Exists(
+                    Bloqueio.objects.filter(usuario=user, usuario_bloqueado=OuterRef('pk'))
+                ),
+                annotated_is_muted=Exists(
+                    Silenciamento.objects.filter(usuario=user, usuario_silenciado=OuterRef('pk'))
+                )
+            )
+            qs = qs.annotate(
+                annotated_is_liked=Exists(
+                    ReacaoPublicacao.objects.filter(publicacao=OuterRef('pk'), usuario=user)
+                ),
+                annotated_is_saved=Exists(
+                    PublicacaoSalva.objects.filter(publicacao=OuterRef('pk'), usuario=user)
+                )
+            )
+
+        qs = qs.annotate(
+            annotated_likes_count=Count('reacaopublicacao', distinct=True),
+            annotated_comentarios_count=Count('comentario', filter=Q(comentario__status=1), distinct=True)
+        ).prefetch_related(
+            Prefetch('usuario', queryset=user_qs)
+        )
+
+        return qs
     
     @action(detail=False, methods=['get'])
     def algorithm(self, request):
@@ -577,6 +620,27 @@ class PublicacaoViewSet(viewsets.ModelViewSet):
         ).annotate(
             engagement=Count('reacaopublicacao', distinct=True) + Count('comentario', distinct=True)
         ).order_by('-engagement', '-data_publicacao')
+        
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'], url_path=r'hashtag/(?P<hashtag>[^/.]+)')
+    def by_hashtag(self, request, hashtag=None):
+        """
+        Retorna o feed de publicações associadas a uma hashtag específica.
+        URL acessível via: GET /api/dreams/hashtag/<hashtag>/
+        """
+        if not hashtag:
+            return Response([])
+            
+        queryset = self.get_queryset().filter(
+            publicacaohashtag__hashtag__texto_hashtag__iexact=hashtag
+        ).order_by('-data_publicacao')
         
         page = self.paginate_queryset(queryset)
         if page is not None:
@@ -1258,6 +1322,15 @@ class NotificacaoViewSet(viewsets.ModelViewSet):
             lida=False
         ).update(lida=True, data_leitura=timezone.now())
         return Response({'marked_read': updated}, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['get'], url_path='unread-count')
+    def unread_count(self, request):
+        """Get the count of unread notifications for the current user"""
+        count = Notificacao.objects.filter(
+            usuario_destino=request.user,
+            lida=False
+        ).count()
+        return Response({'unread_count': count}, status=status.HTTP_200_OK)
 
 
 # Helper function to create notifications
@@ -2418,3 +2491,199 @@ class MessageReadView(APIView):
         msg.data_leitura = timezone.now()
         msg.save()
         return Response({'lida': True}, status=status.HTTP_200_OK)
+
+
+# ========== V2 DM Views ==========
+from .models import Conversa, UploadChat
+from .serializers import (
+    ConversaListSerializer, MensagemDiretaV2Serializer, UploadChatSerializer
+)
+from rest_framework.parsers import MultiPartParser, FormParser
+from django.db import transaction
+
+
+class ConversaViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet V2 para Mensagens Diretas baseado em Conversas explícitas.
+    Endpoints:
+    - GET  /api/v2/conversations/           → Inbox (listar conversas)
+    - POST /api/v2/conversations/           → Criar/buscar conversa com um usuário
+    - GET  /api/v2/conversations/<id>/messages/ → Histórico da conversa
+    - POST /api/v2/conversations/<id>/send/  → Enviar mensagem
+    - POST /api/v2/conversations/<id>/read/  → Marcar como lida
+    - GET  /api/v2/conversations/unread-count/ → Total de não lidas
+    """
+    serializer_class = ConversaListSerializer
+    permission_classes = (permissions.IsAuthenticated,)
+    lookup_field = 'id_conversa'
+    http_method_names = ['get', 'post']
+
+    def get_queryset(self):
+        user = self.request.user
+        return Conversa.objects.filter(
+            Q(usuario_a=user) | Q(usuario_b=user)
+        ).select_related('usuario_a', 'usuario_b')
+
+    def list(self, request):
+        """Inbox: listar conversas do usuário com última mensagem e contagem de não lidas."""
+        queryset = self.get_queryset()
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = ConversaListSerializer(page, many=True, context={'request': request})
+            return self.get_paginated_response(serializer.data)
+        serializer = ConversaListSerializer(queryset, many=True, context={'request': request})
+        return Response(serializer.data)
+
+    def create(self, request):
+        """Criar ou buscar conversa 1:1 com um usuário alvo."""
+        user_id = request.data.get('user_id')
+        if not user_id:
+            return Response({'error': _('user_id é obrigatório')}, status=status.HTTP_400_BAD_REQUEST)
+
+        partner = get_object_or_404(User, pk=user_id)
+
+        if partner.id_usuario == request.user.id_usuario:
+            return Response({'error': _('Não é possível criar conversa consigo mesmo')}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Verificar bloqueio
+        if Bloqueio.objects.filter(
+            Q(usuario=request.user, usuario_bloqueado=partner) |
+            Q(usuario=partner, usuario_bloqueado=request.user)
+        ).exists():
+            return Response({'error': _('Não é possível iniciar conversa com este usuário')}, status=status.HTTP_403_FORBIDDEN)
+
+        conversa, created = Conversa.get_or_create_for_users(request.user, partner)
+        serializer = ConversaListSerializer(conversa, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+
+    @action(detail=True, methods=['get'], url_path='messages')
+    def messages(self, request, id_conversa=None):
+        """Histórico de mensagens da conversa, paginado, mais recentes primeiro."""
+        conversa = self.get_object()
+        mensagens = conversa.mensagens.select_related(
+            'usuario_remetente', 'upload', 'publicacao_compartilhada'
+        ).all()
+
+        page = self.paginate_queryset(mensagens)
+        if page is not None:
+            serializer = MensagemDiretaV2Serializer(page, many=True, context={'request': request})
+            return self.get_paginated_response(serializer.data)
+        serializer = MensagemDiretaV2Serializer(mensagens, many=True, context={'request': request})
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'], url_path='send')
+    def send(self, request, id_conversa=None):
+        """Enviar mensagem na conversa (texto, mídia via upload_id, ou post via post_id)."""
+        conversa = self.get_object()
+        user = request.user
+
+        # Determinar o parceiro
+        if conversa.usuario_a_id == user.id_usuario:
+            partner = conversa.usuario_b
+        else:
+            partner = conversa.usuario_a
+
+        # Verificar bloqueio
+        if Bloqueio.objects.filter(
+            Q(usuario=user, usuario_bloqueado=partner) |
+            Q(usuario=partner, usuario_bloqueado=user)
+        ).exists():
+            return Response({'error': _('Não é possível enviar mensagem para este usuário')}, status=status.HTTP_403_FORBIDDEN)
+
+        conteudo = request.data.get('conteudo', '').strip()
+        upload_id = request.data.get('upload_id')
+        post_id = request.data.get('post_id')
+
+        # Determinar tipo de mensagem
+        tipo = 'text'
+        upload_obj = None
+        post_obj = None
+
+        if upload_id:
+            try:
+                upload_obj = UploadChat.objects.get(id_upload=upload_id, usuario=user)
+                tipo = 'media'
+            except UploadChat.DoesNotExist:
+                return Response({'error': _('Upload não encontrado ou não pertence a você')}, status=status.HTTP_400_BAD_REQUEST)
+        elif post_id:
+            try:
+                from .models import Publicacao
+                post_obj = Publicacao.objects.get(id_publicacao=post_id)
+                tipo = 'post'
+            except Publicacao.DoesNotExist:
+                return Response({'error': _('Publicação não encontrada')}, status=status.HTTP_400_BAD_REQUEST)
+        elif not conteudo:
+            return Response({'error': _('Mensagem não pode ser vazia')}, status=status.HTTP_400_BAD_REQUEST)
+
+        with transaction.atomic():
+            msg = MensagemDireta.objects.create(
+                usuario_remetente=user,
+                usuario_destinatario=partner,
+                conversa=conversa,
+                conteudo=conteudo if conteudo else None,
+                tipo_mensagem=tipo,
+                upload=upload_obj,
+                publicacao_compartilhada=post_obj,
+            )
+            # Atualizar timestamp da conversa para ordenar no inbox
+            conversa.save(update_fields=['data_atualizacao'])
+
+        serializer = MensagemDiretaV2Serializer(msg, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['post'], url_path='read')
+    def mark_read(self, request, id_conversa=None):
+        """Marcar todas as mensagens recebidas na conversa como lidas."""
+        conversa = self.get_object()
+        updated = conversa.mensagens.filter(
+            usuario_destinatario=request.user,
+            lida=False
+        ).update(lida=True, data_leitura=timezone.now())
+        return Response({'marked_read': updated}, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['get'], url_path='unread-count')
+    def unread_count(self, request):
+        """Total de mensagens não lidas em todas as conversas do usuário."""
+        count = MensagemDireta.objects.filter(
+            usuario_destinatario=request.user,
+            lida=False,
+            deletada_destinatario=False,
+        ).count()
+        return Response({'unread_count': count}, status=status.HTTP_200_OK)
+
+
+class UploadChatView(APIView):
+    """Upload e exclusão de mídia para chat (two-step upload)."""
+    permission_classes = (permissions.IsAuthenticated,)
+    parser_classes = (MultiPartParser, FormParser)
+
+    def post(self, request):
+        """Step 1: Upload de arquivo de mídia para posterior vinculação a mensagem."""
+        arquivo = request.FILES.get('arquivo')
+        if not arquivo:
+            return Response({'error': _('Arquivo é obrigatório')}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Validar tamanho (10MB máximo)
+        max_size = 10 * 1024 * 1024
+        if arquivo.size > max_size:
+            return Response({'error': _('Arquivo excede o tamanho máximo de 10MB')}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Detectar mime_type
+        mime_type = arquivo.content_type or 'application/octet-stream'
+
+        upload = UploadChat.objects.create(
+            usuario=request.user,
+            arquivo=arquivo,
+            mime_type=mime_type,
+            tamanho_bytes=arquivo.size,
+        )
+
+        serializer = UploadChatSerializer(upload)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def delete(self, request, pk=None):
+        """Excluir upload não utilizado."""
+        upload = get_object_or_404(UploadChat, pk=pk, usuario=request.user)
+        upload.arquivo.delete(save=False)
+        upload.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)

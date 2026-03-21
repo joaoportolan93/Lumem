@@ -46,9 +46,9 @@ class _SplashScreenState extends State<SplashScreen>
     if (!mounted) return;
 
     if (hasToken) {
-      Navigate.pushPageReplacement(context, MainScreen());
+      Navigate.pushPageReplacement(context, const MainScreen());
     } else {
-      Navigate.pushPageReplacement(context, Login());
+      Navigate.pushPageReplacement(context, const Login());
     }
   }
 

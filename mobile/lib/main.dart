@@ -7,5 +7,5 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: '.env');
   timeago.setLocaleMessages('pt_BR', timeago.PtBrMessages());
-  runApp(MyApp());
+  runApp(const MyApp());
 }

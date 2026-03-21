@@ -5,6 +5,8 @@ import 'package:dreamshare/views/widgets/chat_bubble.dart';
 import 'package:dreamshare/util/data.dart';
 
 class Conversation extends StatefulWidget {
+  const Conversation({super.key});
+
   @override
   _ConversationState createState() => _ConversationState();
 }
@@ -19,7 +21,7 @@ class _ConversationState extends State<Conversation> {
       appBar: AppBar(
         elevation: 3,
         leading: IconButton(
-          icon: Icon(
+          icon: const Icon(
             Icons.keyboard_backspace,
           ),
           onPressed: () => Navigator.pop(context),
@@ -29,7 +31,7 @@ class _ConversationState extends State<Conversation> {
           child: Row(
             children: <Widget>[
               Padding(
-                padding: EdgeInsets.only(left: 0.0, right: 10.0),
+                padding: const EdgeInsets.only(left: 0.0, right: 10.0),
                 child: CircleAvatar(
                   backgroundImage: NetworkImage(
                     "https://picsum.photos/seed/user${random.nextInt(100)}/200",
@@ -42,13 +44,13 @@ class _ConversationState extends State<Conversation> {
                   children: <Widget>[
                     Text(
                       name,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
                       ),
                     ),
-                    SizedBox(height: 5),
-                    Text(
+                    const SizedBox(height: 5),
+                    const Text(
                       "Online",
                       style: TextStyle(
                         fontWeight: FontWeight.w400,
@@ -64,20 +66,20 @@ class _ConversationState extends State<Conversation> {
         ),
         actions: <Widget>[
           IconButton(
-            icon: Icon(
+            icon: const Icon(
               Icons.more_horiz,
             ),
             onPressed: () {},
           ),
         ],
       ),
-      body: Container(
+      body: SizedBox(
         height: MediaQuery.of(context).size.height,
         child: Column(
           children: <Widget>[
             Flexible(
               child: ListView.builder(
-                padding: EdgeInsets.symmetric(horizontal: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 10),
                 itemCount: conversation.length,
                 reverse: true,
                 itemBuilder: (BuildContext context, int index) {
@@ -104,7 +106,7 @@ class _ConversationState extends State<Conversation> {
                 elevation: 10,
                 color: Theme.of(context).primaryColor,
                 child: Container(
-                  constraints: BoxConstraints(
+                  constraints: const BoxConstraints(
                     maxHeight: 100,
                   ),
                   child: Row(
@@ -125,7 +127,7 @@ class _ConversationState extends State<Conversation> {
                                 Theme.of(context).textTheme.titleLarge?.color,
                           ),
                           decoration: InputDecoration(
-                            contentPadding: EdgeInsets.all(10.0),
+                            contentPadding: const EdgeInsets.all(10.0),
                             border: InputBorder.none,
                             enabledBorder: InputBorder.none,
                             hintText: "Write your message...",

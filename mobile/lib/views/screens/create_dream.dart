@@ -4,6 +4,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:dreamshare/services/dream_service.dart';
 
 class CreateDream extends StatefulWidget {
+  const CreateDream({super.key});
+
   @override
   _CreateDreamState createState() => _CreateDreamState();
 }
@@ -14,7 +16,7 @@ class _CreateDreamState extends State<CreateDream> {
   final DreamService _dreamService = DreamService();
   File? _image;
   bool _isPosting = false;
-  List<String> _hashtags = [];
+  final List<String> _hashtags = [];
 
   @override
   void dispose() {
@@ -129,12 +131,12 @@ class _CreateDreamState extends State<CreateDream> {
               controller: _contentController,
               maxLines: 8,
               maxLength: 500,
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 hintText: 'Conte sobre o seu sonho...',
-                border: const OutlineInputBorder(
+                border: OutlineInputBorder(
                   borderRadius: BorderRadius.all(Radius.circular(16)),
                 ),
-                contentPadding: const EdgeInsets.all(16),
+                contentPadding: EdgeInsets.all(16),
                 counterText: '', // Hide default counter
               ),
             ),

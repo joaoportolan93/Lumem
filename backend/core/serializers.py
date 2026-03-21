@@ -30,14 +30,20 @@ class UserSerializer(serializers.ModelSerializer):
         return None
 
     def get_seguidores_count(self, obj):
+        if hasattr(obj, 'annotated_seguidores_count'):
+            return obj.annotated_seguidores_count
         from .models import Seguidor
         return Seguidor.objects.filter(usuario_seguido=obj, status=1).count()
 
     def get_seguindo_count(self, obj):
+        if hasattr(obj, 'annotated_seguindo_count'):
+            return obj.annotated_seguindo_count
         from .models import Seguidor
         return Seguidor.objects.filter(usuario_seguidor=obj, status=1).count()
 
     def get_is_following(self, obj):
+        if hasattr(obj, 'annotated_is_following'):
+            return obj.annotated_is_following
         request = self.context.get('request')
         if request and request.user.is_authenticated:
             if request.user.id_usuario == obj.id_usuario:
@@ -51,6 +57,8 @@ class UserSerializer(serializers.ModelSerializer):
         return False
 
     def get_is_blocked(self, obj):
+        if hasattr(obj, 'annotated_is_blocked'):
+            return obj.annotated_is_blocked
         request = self.context.get('request')
         if request and request.user.is_authenticated:
             from .models import Bloqueio
@@ -61,6 +69,8 @@ class UserSerializer(serializers.ModelSerializer):
         return False
 
     def get_is_muted(self, obj):
+        if hasattr(obj, 'annotated_is_muted'):
+            return obj.annotated_is_muted
         request = self.context.get('request')
         if request and request.user.is_authenticated:
             from .models import Silenciamento
@@ -69,6 +79,26 @@ class UserSerializer(serializers.ModelSerializer):
                 usuario_silenciado=obj
             ).exists()
         return False
+
+class ChangePasswordSerializer(serializers.Serializer):
+    """
+    Serializer para o endpoint seguro de troca de senha quando o usuário já está autenticado.
+    Requer a senha antiga para confirmar a identidade.
+    """
+    old_password = serializers.CharField(required=True)
+    new_password = serializers.CharField(required=True)
+
+    def validate_old_password(self, value):
+        user = self.context['request'].user
+        if not user.check_password(value):
+            raise serializers.ValidationError(_("Senha atual está incorreta."))
+        return value
+
+    def validate_new_password(self, value):
+        if len(value) < 6:
+            raise serializers.ValidationError(_("A nova senha deve ter no mínimo 6 caracteres."))
+        return value
+
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
@@ -201,14 +231,20 @@ class PublicacaoSerializer(serializers.ModelSerializer):
         read_only_fields = ('id_publicacao', 'usuario', 'data_publicacao', 'editado', 'data_edicao', 'views_count')
 
     def get_likes_count(self, obj):
+        if hasattr(obj, 'annotated_likes_count'):
+            return obj.annotated_likes_count
         from .models import ReacaoPublicacao
         return ReacaoPublicacao.objects.filter(publicacao=obj).count()
 
     def get_comentarios_count(self, obj):
+        if hasattr(obj, 'annotated_comentarios_count'):
+            return obj.annotated_comentarios_count
         from .models import Comentario
         return Comentario.objects.filter(publicacao=obj, status=1).count()
 
     def get_is_liked(self, obj):
+        if hasattr(obj, 'annotated_is_liked'):
+            return obj.annotated_is_liked
         request = self.context.get('request')
         if request and request.user.is_authenticated:
             from .models import ReacaoPublicacao
@@ -219,6 +255,8 @@ class PublicacaoSerializer(serializers.ModelSerializer):
         return False
 
     def get_is_saved(self, obj):
+        if hasattr(obj, 'annotated_is_saved'):
+            return obj.annotated_is_saved
         request = self.context.get('request')
         if request and request.user.is_authenticated:
             from .models import PublicacaoSalva
@@ -648,9 +686,90 @@ class MensagemDiretaSerializer(serializers.ModelSerializer):
 
 
 class ConversationSerializer(serializers.Serializer):
-    """Serializer for conversation list (aggregated view of DMs)"""
+    """Serializer for conversation list (aggregated view of DMs) - LEGACY V1"""
     user = UserSerializer(read_only=True)
     last_message = serializers.CharField()
     last_message_date = serializers.DateTimeField()
     unread_count = serializers.IntegerField()
 
+
+# ========== V2 DM Serializers ==========
+from .models import UploadChat, Conversa
+
+class UploadChatSerializer(serializers.ModelSerializer):
+    """Serializer para upload de mídia de chat (two-step upload)"""
+    class Meta:
+        model = UploadChat
+        fields = ['id_upload', 'arquivo', 'mime_type', 'tamanho_bytes', 'data_upload']
+        read_only_fields = ['id_upload', 'mime_type', 'tamanho_bytes', 'data_upload']
+
+
+class UserMiniSerializer(serializers.ModelSerializer):
+    """Serializer mínimo de usuário para uso dentro de mensagens/conversas"""
+    class Meta:
+        model = User
+        fields = ['id_usuario', 'nome_usuario', 'nome_completo', 'avatar_url']
+        read_only_fields = fields
+
+
+class MensagemDiretaV2Serializer(serializers.ModelSerializer):
+    """Serializer V2 para mensagens diretas com suporte a mídia e posts"""
+    remetente = UserMiniSerializer(source='usuario_remetente', read_only=True)
+    upload_info = UploadChatSerializer(source='upload', read_only=True)
+    is_mine = serializers.SerializerMethodField()
+
+    class Meta:
+        model = MensagemDireta
+        fields = [
+            'id_mensagem', 'remetente', 'conteudo', 'tipo_mensagem',
+            'upload_info', 'publicacao_compartilhada',
+            'data_envio', 'lida', 'data_leitura', 'is_mine',
+        ]
+        read_only_fields = [
+            'id_mensagem', 'remetente', 'data_envio', 'lida', 'data_leitura',
+        ]
+
+    def get_is_mine(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return obj.usuario_remetente_id == request.user.id_usuario
+        return False
+
+
+class ConversaListSerializer(serializers.ModelSerializer):
+    """Serializer para listar conversas no inbox V2"""
+    parceiro = serializers.SerializerMethodField()
+    ultima_mensagem = serializers.SerializerMethodField()
+    nao_lidas = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Conversa
+        fields = ['id_conversa', 'parceiro', 'ultima_mensagem', 'nao_lidas', 'data_atualizacao']
+
+    def get_parceiro(self, obj):
+        request = self.context.get('request')
+        if not request:
+            return None
+        user = request.user
+        partner = obj.usuario_b if obj.usuario_a_id == user.id_usuario else obj.usuario_a
+        return UserMiniSerializer(partner).data
+
+    def get_ultima_mensagem(self, obj):
+        # Usa annotation se disponível, senão busca no banco
+        if hasattr(obj, 'annotated_last_message'):
+            return obj.annotated_last_message
+        msg = obj.mensagens.order_by('-data_envio').first()
+        if msg:
+            return msg.conteudo[:100] if msg.conteudo else f'[{msg.tipo_mensagem}]'
+        return None
+
+    def get_nao_lidas(self, obj):
+        if hasattr(obj, 'annotated_unread_count'):
+            return obj.annotated_unread_count
+        request = self.context.get('request')
+        if not request:
+            return 0
+        return obj.mensagens.filter(
+            usuario_destinatario=request.user,
+            lida=False
+        ).count()

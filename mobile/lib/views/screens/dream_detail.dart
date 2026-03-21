@@ -201,11 +201,11 @@ class _DreamDetailState extends State<DreamDetail> {
                           const SizedBox(height: 16),
                           Row(
                             children: [
-                              Icon(Icons.favorite, color: Colors.red, size: 18),
+                              const Icon(Icons.favorite, color: Colors.red, size: 18),
                               const SizedBox(width: 4),
                               Text('${_dream!.curtidasCount}'),
                               const SizedBox(width: 16),
-                              Icon(Icons.chat_bubble_outline,
+                              const Icon(Icons.chat_bubble_outline,
                                   color: Colors.grey, size: 18),
                               const SizedBox(width: 4),
                               Text('${_comments.length}'),

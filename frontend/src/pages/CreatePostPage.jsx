@@ -126,8 +126,8 @@ const CreatePostPage = () => {
                     getUserCommunities(),
                     getDrafts()
                 ]);
-                setCommunities(communitiesRes.data);
-                setDrafts(draftsRes.data);
+                setCommunities(communitiesRes.data.results ? communitiesRes.data.results : communitiesRes.data);
+                setDrafts(draftsRes.data.results ? draftsRes.data.results : draftsRes.data);
 
                 // If communityId is in URL, pre-select that community
                 if (communityId) {

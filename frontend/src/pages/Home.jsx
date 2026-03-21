@@ -34,7 +34,8 @@ const Home = () => {
         setError('');
         try {
             const response = await getDreams(tab);
-            setDreams(response.data);
+            // Agora a API usando paginação global retorna um objeto { count, next, previous, results }
+            setDreams(response.data.results ? response.data.results : response.data);
         } catch (err) {
             console.error('Error fetching dreams:', err);
             setError(t('home.errorLoading'));

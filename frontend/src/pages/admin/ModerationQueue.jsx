@@ -18,12 +18,17 @@ const ModerationQueue = () => {
         fetchReports();
     }, []);
 
+    const getReports = async () => {
+        return await api.get('/api/admin/reports/?status=1');
+    };
+
     const fetchReports = async () => {
         try {
-            const response = await api.get('/api/admin/reports/?status=1');
-            setReports(response.data);
-            if (response.data.length > 0) {
-                setSelectedReport(response.data[0]);
+            const response = await getReports();
+            const fetchedReports = response.data.results ? response.data.results : response.data;
+            setReports(fetchedReports);
+            if (fetchedReports.length > 0) {
+                setSelectedReport(fetchedReports[0]);
             }
         } catch (error) {
             console.error('Error fetching reports:', error);

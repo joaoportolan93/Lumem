@@ -12,6 +12,8 @@ import 'package:dreamshare/util/extensions.dart';
 import 'package:dreamshare/services/auth_service.dart';
 
 class Login extends StatefulWidget {
+  const Login({super.key});
+
   @override
   _LoginState createState() => _LoginState();
 }
@@ -20,7 +22,7 @@ class _LoginState extends State<Login> {
   bool loading = false;
   bool validate = false;
   GlobalKey<FormState> formKey = GlobalKey<FormState>();
-  GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   String email = '', password = '', name = '', username = '';
   FocusNode nameFN = FocusNode();
   FocusNode usernameFN = FocusNode();
@@ -66,7 +68,7 @@ class _LoginState extends State<Login> {
         return;
       }
       if (mounted) {
-        Navigate.pushPageReplacement(context, MainScreen());
+        Navigate.pushPageReplacement(context, const MainScreen());
       }
     } catch (e) {
       if (mounted) {
@@ -86,13 +88,12 @@ class _LoginState extends State<Login> {
     final screenWidth = MediaQuery.of(context).size.width;
     return Scaffold(
       key: _scaffoldKey,
-      body: Container(
-        child: Row(
+      body: Row(
           children: [
             buildLottieContainer(),
             Expanded(
               child: AnimatedContainer(
-                duration: Duration(milliseconds: 500),
+                duration: const Duration(milliseconds: 500),
                 child: Center(
                   child: SingleChildScrollView(
                     padding:
@@ -104,7 +105,6 @@ class _LoginState extends State<Login> {
             ),
           ],
         ),
-      ),
     );
   }
 
@@ -112,7 +112,7 @@ class _LoginState extends State<Login> {
     final screenWidth = MediaQuery.of(context).size.width;
     return AnimatedContainer(
       width: screenWidth < 700 ? 0 : screenWidth * 0.5,
-      duration: Duration(milliseconds: 500),
+      duration: const Duration(milliseconds: 500),
       color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.3),
       child: Center(
         child: Lottie.asset(
@@ -131,14 +131,14 @@ class _LoginState extends State<Login> {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: <Widget>[
         Text(
-          '${Constants.appName}',
+          Constants.appName,
           style: TextStyle(
             fontSize: 40.0,
             fontWeight: FontWeight.bold,
             color: Theme.of(context).textTheme.headlineLarge?.color,
           ),
         ).fadeInList(0, false),
-        SizedBox(height: 10),
+        const SizedBox(height: 10),
         Text(
           'Compartilhe seus sonhos ✨',
           style: TextStyle(
@@ -147,7 +147,7 @@ class _LoginState extends State<Login> {
                 Colors.grey[500],
           ),
         ),
-        SizedBox(height: 50.0),
+        const SizedBox(height: 50.0),
         Form(
           autovalidateMode: AutovalidateMode.onUserInteraction,
           key: formKey,
@@ -157,7 +157,7 @@ class _LoginState extends State<Login> {
           visible: formMode == FormMode.LOGIN,
           child: Column(
             children: [
-              SizedBox(height: 10.0),
+              const SizedBox(height: 10.0),
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
@@ -165,26 +165,26 @@ class _LoginState extends State<Login> {
                     formMode = FormMode.FORGOT_PASSWORD;
                     setState(() {});
                   },
-                  child: Text('Esqueceu a senha?'),
+                  child: const Text('Esqueceu a senha?'),
                 ),
               ),
             ],
           ),
         ).fadeInList(3, false),
-        SizedBox(height: 20.0),
+        const SizedBox(height: 20.0),
         buildButton(),
         Visibility(
           visible: formMode == FormMode.LOGIN,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text('Não tem uma conta?'),
+              const Text('Não tem uma conta?'),
               TextButton(
                 onPressed: () {
                   formMode = FormMode.REGISTER;
                   setState(() {});
                 },
-                child: Text('Cadastre-se'),
+                child: const Text('Cadastre-se'),
               ),
             ],
           ),
@@ -194,13 +194,13 @@ class _LoginState extends State<Login> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text('Já tem uma conta?'),
+              const Text('Já tem uma conta?'),
               TextButton(
                 onPressed: () {
                   formMode = FormMode.LOGIN;
                   setState(() {});
                 },
-                child: Text('Entrar'),
+                child: const Text('Entrar'),
               ),
             ],
           ),
@@ -228,7 +228,7 @@ class _LoginState extends State<Login> {
                 focusNode: nameFN,
                 nextFocusNode: usernameFN,
               ),
-              SizedBox(height: 20.0),
+              const SizedBox(height: 20.0),
               CustomTextField(
                 enabled: !loading,
                 hintText: "Nome de usuário",
@@ -240,7 +240,7 @@ class _LoginState extends State<Login> {
                 focusNode: usernameFN,
                 nextFocusNode: emailFN,
               ),
-              SizedBox(height: 20.0),
+              const SizedBox(height: 20.0),
             ],
           ),
         ),
@@ -259,7 +259,7 @@ class _LoginState extends State<Login> {
           visible: formMode != FormMode.FORGOT_PASSWORD,
           child: Column(
             children: [
-              SizedBox(height: 20.0),
+              const SizedBox(height: 20.0),
               CustomTextField(
                 enabled: !loading,
                 hintText: "Senha",
@@ -281,7 +281,7 @@ class _LoginState extends State<Login> {
 
   buildButton() {
     return loading
-        ? Center(child: CircularProgressIndicator())
+        ? const Center(child: CircularProgressIndicator())
         : CustomButton(
             label: formMode == FormMode.LOGIN
                 ? "Entrar"
