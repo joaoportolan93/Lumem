@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:dreamshare/providers/settings_provider.dart';
 import 'package:dreamshare/models/dream.dart';
 import 'package:dreamshare/services/dream_service.dart';
 import 'package:dreamshare/views/widgets/dream_card.dart';
@@ -10,9 +12,8 @@ class Home extends StatefulWidget {
   _HomeState createState() => _HomeState();
 }
 
-class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
+class _HomeState extends State<Home> {
   final DreamService _dreamService = DreamService();
-  late TabController _tabController;
 
   List<Dream> _forYouDreams = [];
   List<Dream> _followingDreams = [];
@@ -24,15 +25,8 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
     _loadForYou();
     _loadFollowing();
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
   }
 
   Future<void> _loadForYou() async {
@@ -75,54 +69,70 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Dream Share',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () {
-              _loadForYou();
-              _loadFollowing();
-            },
+    return Consumer<SettingsProvider>(
+      builder: (context, settings, child) {
+        final showAlgorithmic = settings.showAlgorithmicFeed;
+        return DefaultTabController(
+          length: showAlgorithmic ? 2 : 1,
+          child: Scaffold(
+            appBar: AppBar(
+              title: const Text(
+                'Dream Share',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              centerTitle: true,
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.refresh),
+                  onPressed: () {
+                    if (showAlgorithmic) _loadForYou();
+                    _loadFollowing();
+                  },
+                ),
+              ],
+              bottom: TabBar(
+                indicatorColor: Theme.of(context).colorScheme.secondary,
+                labelColor: Theme.of(context).colorScheme.secondary,
+                unselectedLabelColor: Colors.grey,
+                tabs: showAlgorithmic
+                    ? const [Tab(text: 'Para Você'), Tab(text: 'Seguindo')]
+                    : const [Tab(text: 'Seguindo')],
+              ),
+            ),
+            body: TabBarView(
+              children: showAlgorithmic
+                  ? [
+                      _buildFeedList(
+                        dreams: _forYouDreams,
+                        isLoading: _isLoadingForYou,
+                        hasError: _hasErrorForYou,
+                        onRefresh: _loadForYou,
+                        emptyMessage: 'Nenhum sonho ainda...',
+                        emptySubMessage: 'Seja o primeiro a compartilhar!',
+                      ),
+                      _buildFeedList(
+                        dreams: _followingDreams,
+                        isLoading: _isLoadingFollowing,
+                        hasError: _hasErrorFollowing,
+                        onRefresh: _loadFollowing,
+                        emptyMessage: 'Nenhum sonho de quem você segue',
+                        emptySubMessage: 'Siga outros usuários para ver sonhos aqui!',
+                      ),
+                    ]
+                  : [
+                      _buildFeedList(
+                        dreams: _followingDreams,
+                        isLoading: _isLoadingFollowing,
+                        hasError: _hasErrorFollowing,
+                        onRefresh: _loadFollowing,
+                        emptyMessage: 'Nenhum sonho de quem você segue',
+                        emptySubMessage: 'Siga outros usuários para ver sonhos aqui!',
+                      ),
+                    ],
+            ),
           ),
-        ],
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: Theme.of(context).colorScheme.secondary,
-          labelColor: Theme.of(context).colorScheme.secondary,
-          unselectedLabelColor: Colors.grey,
-          tabs: const [
-            Tab(text: 'Para Você'),
-            Tab(text: 'Seguindo'),
-          ],
-        ),
-      ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildFeedList(
-            dreams: _forYouDreams,
-            isLoading: _isLoadingForYou,
-            hasError: _hasErrorForYou,
-            onRefresh: _loadForYou,
-            emptyMessage: 'Nenhum sonho ainda...',
-            emptySubMessage: 'Seja o primeiro a compartilhar!',
-          ),
-          _buildFeedList(
-            dreams: _followingDreams,
-            isLoading: _isLoadingFollowing,
-            hasError: _hasErrorFollowing,
-            onRefresh: _loadFollowing,
-            emptyMessage: 'Nenhum sonho de quem você segue',
-            emptySubMessage: 'Siga outros usuários para ver sonhos aqui!',
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 

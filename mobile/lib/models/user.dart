@@ -10,6 +10,8 @@ class User {
   final int sonhosCount;
   final bool isFollowing;
   final bool isPrivate;
+  final bool isCloseFriend;
+  final DateTime? dataNascimento;
 
   User({
     required this.id,
@@ -23,6 +25,8 @@ class User {
     this.sonhosCount = 0,
     this.isFollowing = false,
     this.isPrivate = false,
+    this.isCloseFriend = false,
+    this.dataNascimento,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -39,6 +43,10 @@ class User {
       isFollowing: json['is_following'] == true,
       isPrivate:
           (json['privacidade_padrao'] ?? 1) == 2 || json['is_private'] == true,
+      isCloseFriend: json['is_close_friend'] == true,
+      dataNascimento: json['data_nascimento'] != null
+          ? DateTime.tryParse(json['data_nascimento'])
+          : null,
     );
   }
 

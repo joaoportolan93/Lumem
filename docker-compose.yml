@@ -1,0 +1,20 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - SECRET_KEY=troque-por-uma-chave-secreta-forte
+      - DEBUG=True
+      - ALLOWED_HOSTS=*
+      - CORS_ALLOW_ALL=True
+    volumes:
+      - backend-data:/app/db.sqlite3
+      - backend-media:/app/media
+    restart: unless-stopped
+
+volumes:
+  backend-data:
+  backend-media:

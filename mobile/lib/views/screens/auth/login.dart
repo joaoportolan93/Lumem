@@ -6,6 +6,7 @@ import 'package:dreamshare/util/enum.dart';
 import 'package:dreamshare/util/router.dart';
 import 'package:dreamshare/util/validations.dart';
 import 'package:dreamshare/views/screens/main_screen.dart';
+import 'package:dreamshare/views/screens/onboarding.dart';
 import 'package:dreamshare/views/widgets/custom_button.dart';
 import 'package:dreamshare/views/widgets/custom_text_field.dart';
 import 'package:dreamshare/util/extensions.dart';
@@ -68,7 +69,11 @@ class _LoginState extends State<Login> {
         return;
       }
       if (mounted) {
-        Navigate.pushPageReplacement(context, const MainScreen());
+        if (formMode == FormMode.REGISTER) {
+          Navigate.pushPageReplacement(context, const Onboarding());
+        } else {
+          Navigate.pushPageReplacement(context, const MainScreen());
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -165,6 +170,9 @@ class _LoginState extends State<Login> {
                     formMode = FormMode.FORGOT_PASSWORD;
                     setState(() {});
                   },
+                  style: TextButton.styleFrom(
+                    foregroundColor: Theme.of(context).colorScheme.secondary,
+                  ),
                   child: const Text('Esqueceu a senha?'),
                 ),
               ),
@@ -184,6 +192,9 @@ class _LoginState extends State<Login> {
                   formMode = FormMode.REGISTER;
                   setState(() {});
                 },
+                style: TextButton.styleFrom(
+                  foregroundColor: Theme.of(context).colorScheme.secondary,
+                ),
                 child: const Text('Cadastre-se'),
               ),
             ],
@@ -200,6 +211,9 @@ class _LoginState extends State<Login> {
                   formMode = FormMode.LOGIN;
                   setState(() {});
                 },
+                style: TextButton.styleFrom(
+                  foregroundColor: Theme.of(context).colorScheme.secondary,
+                ),
                 child: const Text('Entrar'),
               ),
             ],

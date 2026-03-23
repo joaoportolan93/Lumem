@@ -76,14 +76,14 @@ class _DreamCardState extends State<DreamCard> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          dream.usuario?.nomeUsuario ?? 'Anônimo',
+                          dream.usuario?.nomeCompleto ?? dream.usuario?.nomeUsuario ?? 'Anônimo',
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 15,
                           ),
                         ),
                         Text(
-                          timeago.format(dream.dataPublicacao, locale: 'pt_BR'),
+                          '@${dream.usuario?.nomeUsuario ?? ''} · ${timeago.format(dream.dataPublicacao, locale: 'pt_BR')}',
                           style: TextStyle(
                             color: Colors.grey[500],
                             fontSize: 12,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:dreamshare/models/community.dart';
 import 'package:dreamshare/services/community_service.dart';
 import 'package:dreamshare/views/screens/community_detail.dart';
+import 'package:dreamshare/views/screens/create_community.dart';
 
 class Communities extends StatefulWidget {
   const Communities({super.key});
@@ -68,6 +69,18 @@ class _CommunitiesState extends State<Communities> {
                     },
                   ),
                 ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const CreateCommunityScreen()),
+          ).then((_) => _loadCommunities());
+        },
+        icon: const Icon(Icons.add),
+        label: const Text('Nova Comunidade'),
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        foregroundColor: Colors.white,
+      ),
     );
   }
 

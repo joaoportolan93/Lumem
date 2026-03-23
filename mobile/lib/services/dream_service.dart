@@ -89,11 +89,17 @@ class DreamService {
     }
   }
 
-  Future<Comment?> createComment(String dreamId, String texto) async {
+  Future<Comment?> createComment(String dreamId, String texto,
+      {String? parentId}) async {
     try {
+      final formData = FormData.fromMap({
+        'conteudo_texto': texto,
+        if (parentId != null) 'comentario_pai': parentId,
+      });
+
       final response = await _api.dio.post(
         'dreams/$dreamId/comments/',
-        data: {'conteudo_texto': texto},
+        data: formData,
       );
       return Comment.fromJson(response.data);
     } on DioException {
@@ -113,7 +119,52 @@ class DreamService {
   Future<List<Dream>> getUserDreams(String userId) async {
     try {
       final response = await _api.dio.get('dreams/', queryParameters: {
-        'usuario': userId,
+        'tab': 'user_posts',
+        'user_id': userId,
+      });
+      final results = response.data is Map
+          ? (response.data['results'] as List? ?? [])
+          : (response.data as List? ?? []);
+      return results.map((json) => Dream.fromJson(json)).toList();
+    } on DioException {
+      return [];
+    }
+  }
+
+  Future<List<Dream>> getUserCommunityPosts(String userId) async {
+    try {
+      final response = await _api.dio.get('dreams/', queryParameters: {
+        'tab': 'user_community_posts',
+        'user_id': userId,
+      });
+      final results = response.data is Map
+          ? (response.data['results'] as List? ?? [])
+          : (response.data as List? ?? []);
+      return results.map((json) => Dream.fromJson(json)).toList();
+    } on DioException {
+      return [];
+    }
+  }
+
+  Future<List<Dream>> getUserMediaPosts(String userId) async {
+    try {
+      final response = await _api.dio.get('dreams/', queryParameters: {
+        'tab': 'user_media',
+        'user_id': userId,
+      });
+      final results = response.data is Map
+          ? (response.data['results'] as List? ?? [])
+          : (response.data as List? ?? []);
+      return results.map((json) => Dream.fromJson(json)).toList();
+    } on DioException {
+      return [];
+    }
+  }
+
+  Future<List<Dream>> getSavedDreams() async {
+    try {
+      final response = await _api.dio.get('dreams/', queryParameters: {
+        'tab': 'saved',
       });
       final results = response.data is Map
           ? (response.data['results'] as List? ?? [])

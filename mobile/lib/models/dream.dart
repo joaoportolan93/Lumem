@@ -58,7 +58,7 @@ class Dream {
       imagem: json['imagem'],
       video: json['video'],
       hashtags: parseHashtags(json['hashtags']),
-      curtidasCount: json['curtidas_count'] ?? json['reacoes_count'] ?? 0,
+      curtidasCount: json['likes_count'] ?? json['curtidas_count'] ?? json['reacoes_count'] ?? 0,
       comentariosCount: json['comentarios_count'] ?? 0,
       viewsCount: json['views_count'] ?? 0,
       isLiked: json['is_liked'] ?? json['user_has_reacted'] ?? false,
