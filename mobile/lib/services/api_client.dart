@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-
+import 'package:flutter/foundation.dart';
 class ApiClient {
   static final ApiClient _instance = ApiClient._internal();
   factory ApiClient() => _instance;
@@ -10,7 +10,10 @@ class ApiClient {
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
   ApiClient._internal() {
-    final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:8000/api/';
+    String baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:8000/api/';
+    if (kIsWeb) {
+      baseUrl = 'http://127.0.0.1:8000/api/';
+    }
 
     dio = Dio(BaseOptions(
       baseUrl: baseUrl,

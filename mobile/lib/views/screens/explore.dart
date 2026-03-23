@@ -20,7 +20,7 @@ class _ExploreState extends State<Explore> {
   bool _isSearching = false;
   bool _isLoadingSuggested = true;
   Timer? _debounce;
-  final Set<String> _followedIds = {};
+  final Map<String, String> _followStatusMap = {};
 
   @override
   void initState() {
@@ -42,7 +42,7 @@ class _ExploreState extends State<Explore> {
       _isLoadingSuggested = false;
       // Initialise local follow state from server data
       for (final u in users) {
-        if (u.isFollowing) _followedIds.add(u.id);
+        _followStatusMap[u.id] = u.followStatus;
       }
     });
   }
@@ -62,9 +62,8 @@ class _ExploreState extends State<Explore> {
       setState(() {
         _results = results;
         _isSearching = false;
-        // Initialise local follow state from search results
         for (final u in results) {
-          if (u.isFollowing) _followedIds.add(u.id);
+          _followStatusMap[u.id] = u.followStatus;
         }
       });
     });
@@ -168,34 +167,38 @@ class _ExploreState extends State<Explore> {
           subtitle: Text(user.nomeCompleto),
           trailing: TextButton(
             onPressed: () async {
-              bool isCurrentlyFollowing = _followedIds.contains(user.id);
+              String currentStatus = _followStatusMap[user.id] ?? 'none';
+              bool isCurrentlyFollowing = currentStatus == 'following' || currentStatus == 'pending';
               bool success = false;
+              String? newStatus;
 
               // Optimistic UI update
               setState(() {
                 if (isCurrentlyFollowing) {
-                  _followedIds.remove(user.id);
+                  _followStatusMap[user.id] = 'none';
                 } else {
-                  _followedIds.add(user.id);
+                  _followStatusMap[user.id] = 'pending';
                 }
               });
 
               if (isCurrentlyFollowing) {
                 success = await _userService.unfollowUser(user.id);
+                newStatus = 'none';
               } else {
-                success = await _userService.followUser(user.id);
+                newStatus = await _userService.followUser(user.id);
+                success = newStatus != null;
               }
 
-              if (!success) {
-                // Revert on failure
-                setState(() {
-                  if (isCurrentlyFollowing) {
-                    _followedIds.add(user.id);
-                  } else {
-                    _followedIds.remove(user.id);
-                  }
-                });
+              setState(() {
+                if (success) {
+                  _followStatusMap[user.id] = newStatus!;
+                } else {
+                  // Revert on failure
+                  _followStatusMap[user.id] = currentStatus;
+                }
+              });
 
+              if (!success) {
                 if (!context.mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
@@ -204,24 +207,37 @@ class _ExploreState extends State<Explore> {
               }
             },
             style: TextButton.styleFrom(
-              backgroundColor: _followedIds.contains(user.id)
+              backgroundColor: _followStatusMap[user.id] == 'following'
                   ? Colors.grey[300]
-                  : Theme.of(context).colorScheme.secondary,
-              foregroundColor:
-                  _followedIds.contains(user.id) ? Colors.black : Colors.white,
+                  : _followStatusMap[user.id] == 'pending'
+                      ? Colors.black26
+                      : Theme.of(context).colorScheme.secondary,
+              foregroundColor: _followStatusMap[user.id] == 'following'
+                  ? Colors.black
+                  : Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
               ),
             ),
-            child: Text(_followedIds.contains(user.id) ? 'Seguindo' : 'Seguir'),
+            child: Text(_followStatusMap[user.id] == 'following'
+                ? 'Seguindo'
+                : _followStatusMap[user.id] == 'pending'
+                    ? 'Solicitado'
+                    : 'Seguir'),
           ),
-          onTap: () {
-            Navigator.push(
+          onTap: () async {
+            final newStatus = await Navigator.push<String>(
               context,
               MaterialPageRoute(
                 builder: (_) => UserProfile(userId: user.id),
               ),
             );
+            
+            if (newStatus != null && mounted) {
+              setState(() {
+                _followStatusMap[user.id] = newStatus;
+              });
+            }
           },
         );
       },

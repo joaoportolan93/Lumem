@@ -24,7 +24,7 @@ class _UserProfileState extends State<UserProfile> {
 
   User? _user;
   bool _isLoading = true;
-  bool _isFollowing = false;
+  String _followStatus = 'none';
   bool _isFollowLoading = false;
 
   List<Dream> _dreams = [];
@@ -47,9 +47,9 @@ class _UserProfileState extends State<UserProfile> {
     try {
       final user = await _userService.getUserDetail(widget.userId);
       _user = user;
-      _isFollowing = user?.isFollowing ?? false;
+      _followStatus = user?.followStatus ?? 'none';
 
-      bool canSeeDetails = user != null && (!user.isPrivate || _isFollowing);
+      bool canSeeDetails = user != null && (!user.isPrivate || _followStatus == 'following');
       _canSeeDetails = canSeeDetails;
 
       if (canSeeDetails) {
@@ -76,28 +76,38 @@ class _UserProfileState extends State<UserProfile> {
 
   Future<void> _toggleFollow() async {
     setState(() => _isFollowLoading = true);
-    bool success;
-    final originalFollowing = _isFollowing;
     
-    if (_isFollowing) {
-      success = await _userService.unfollowUser(widget.userId);
+    if (_followStatus == 'following' || _followStatus == 'pending') {
+      final success = await _userService.unfollowUser(widget.userId);
+      if (success) {
+        setState(() {
+          _followStatus = 'none';
+          _isFollowLoading = false;
+        });
+        _loadProfile();
+      } else {
+        setState(() => _isFollowLoading = false);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Falha na operação. Tente novamente.')),
+          );
+        }
+      }
     } else {
-      success = await _userService.followUser(widget.userId);
-    }
-
-    if (success) {
-      setState(() {
-        _isFollowing = !originalFollowing;
-        _isFollowLoading = false;
-        // opcional: _loadProfile() para atualizar os contadores no ProfileHeader
-      });
-      _loadProfile(); // recarrega estatísticas
-    } else {
-      setState(() => _isFollowLoading = false);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Falha na operação. Tente novamente.')),
-        );
+      final newStatus = await _userService.followUser(widget.userId);
+      if (newStatus != null) {
+        setState(() {
+          _followStatus = newStatus;
+          _isFollowLoading = false;
+        });
+        _loadProfile();
+      } else {
+        setState(() => _isFollowLoading = false);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Falha na operação. Tente novamente.')),
+          );
+        }
       }
     }
   }
@@ -117,13 +127,23 @@ class _UserProfileState extends State<UserProfile> {
       );
     }
 
-    return DefaultTabController(
-      length: 3, // Outros perfis nao possuem aba 'Salvos'
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text('@${_user!.nomeUsuario}'),
-          centerTitle: true,
-        ),
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) {
+        if (didPop) return;
+        Navigator.pop(context, _followStatus);
+      },
+      child: DefaultTabController(
+        length: 3, // Outros perfis nao possuem aba 'Salvos'
+        child: Scaffold(
+          appBar: AppBar(
+            elevation: 0,
+            backgroundColor: Colors.transparent,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () => Navigator.pop(context, _followStatus),
+            ),
+          ),
         body: NestedScrollView(
           headerSliverBuilder: (context, innerBoxIsScrolled) {
             return [
@@ -133,7 +153,7 @@ class _UserProfileState extends State<UserProfile> {
                   child: ProfileHeader(
                     user: _user!,
                     isOwnProfile: false,
-                    isFollowing: _isFollowing,
+                    followStatus: _followStatus,
                     isFollowLoading: _isFollowLoading,
                     onFollowToggle: _toggleFollow,
                   ),
@@ -164,9 +184,10 @@ class _UserProfileState extends State<UserProfile> {
               _canSeeDetails ? _buildDreamsList(_mediaPosts, 'Nenhum post com mídia ainda', Icons.image) : _buildLockedMessage(),
             ],
           ),
-        ),
-      ),
-    );
+        ), // NestedScrollView
+      ), // Scaffold
+    ), // DefaultTabController
+    ); // PopScope
   }
 
   Widget _buildLockedMessage() {

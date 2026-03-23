@@ -12,6 +12,7 @@ class User {
   final bool isPrivate;
   final bool isCloseFriend;
   final DateTime? dataNascimento;
+  final String followStatus; // 'following', 'pending', 'none'
 
   User({
     required this.id,
@@ -27,6 +28,7 @@ class User {
     this.isPrivate = false,
     this.isCloseFriend = false,
     this.dataNascimento,
+    this.followStatus = 'none',
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -47,6 +49,8 @@ class User {
       dataNascimento: json['data_nascimento'] != null
           ? DateTime.tryParse(json['data_nascimento'])
           : null,
+      followStatus: json['follow_status'] ?? 
+          (json['is_following'] == true ? 'following' : 'none'),
     );
   }
 

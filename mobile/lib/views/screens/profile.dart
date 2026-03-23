@@ -106,52 +106,49 @@ class _ProfileState extends State<Profile> {
     return DefaultTabController(
       length: 4,
       child: Scaffold(
-        appBar: AppBar(
-          title: Text('@${_user!.nomeUsuario}'),
-          centerTitle: true,
-          actions: [
-            PopupMenuButton(
-              itemBuilder: (_) => [
-                const PopupMenuItem(
-                  value: 'settings',
-                  child: Row(
-                    children: [
-                      Icon(Icons.settings, color: Colors.black54),
-                      SizedBox(width: 8),
-                      Text('Configurações'),
-                    ],
-                  ),
-                ),
-                const PopupMenuItem(
-                  value: 'logout',
-                  child: Row(
-                    children: [
-                      Icon(Icons.logout, color: Colors.red),
-                      SizedBox(width: 8),
-                      Text('Sair', style: TextStyle(color: Colors.red)),
-                    ],
-                  ),
-                ),
-              ],
-              onSelected: (value) {
-                if (value == 'settings') {
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
-                } else if (value == 'logout') {
-                  _logout();
-                }
-              },
-            ),
-          ],
-        ),
         body: NestedScrollView(
           headerSliverBuilder: (context, innerBoxIsScrolled) {
             return [
               SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: ProfileHeader(
-                    user: _user!,
-                    isOwnProfile: true,
+                child: SafeArea(
+                  bottom: false,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: ProfileHeader(
+                      user: _user!,
+                      isOwnProfile: true,
+                      actionMenu: PopupMenuButton(
+                        icon: const Icon(Icons.more_vert, color: Colors.white),
+                        itemBuilder: (_) => [
+                          const PopupMenuItem(
+                            value: 'settings',
+                            child: Row(
+                              children: [
+                                Icon(Icons.settings, color: Colors.black54),
+                                SizedBox(width: 8),
+                                Text('Configurações'),
+                              ],
+                            ),
+                          ),
+                          const PopupMenuItem(
+                            value: 'logout',
+                            child: Row(
+                              children: [
+                                Icon(Icons.logout, color: Colors.red),
+                                SizedBox(width: 8),
+                                Text('Sair', style: TextStyle(color: Colors.red)),
+                              ],
+                            ),
+                          ),
+                        ],
+                        onSelected: (value) {
+                          if (value == 'settings') {
+                            Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
+                          } else if (value == 'logout') {
+                            _logout();
+                          }
+                        },
+                      ),
                     onEditProfile: () async {
                       final result = await Navigator.push(
                         context,
@@ -164,7 +161,8 @@ class _ProfileState extends State<Profile> {
                   ),
                 ),
               ),
-              SliverPersistentHeader(
+            ),
+            SliverPersistentHeader(
                 pinned: true,
                 delegate: _SliverAppBarDelegate(
                   const TabBar(
