@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
 import 'package:dreamshare/models/user.dart';
 import 'package:dreamshare/services/api_client.dart';
 import 'package:dio/dio.dart';
@@ -17,7 +18,9 @@ class EditProfile extends StatefulWidget {
 
 class _EditProfileState extends State<EditProfile> {
   late TextEditingController _nameController;
+  late TextEditingController _usernameController;
   late TextEditingController _bioController;
+  DateTime? _dataNascimento;
   File? _newAvatar;
   bool _isSaving = false;
 
@@ -25,12 +28,15 @@ class _EditProfileState extends State<EditProfile> {
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.user.nomeCompleto);
+    _usernameController = TextEditingController(text: widget.user.nomeUsuario);
     _bioController = TextEditingController(text: widget.user.bio ?? '');
+    _dataNascimento = widget.user.dataNascimento;
   }
 
   @override
   void dispose() {
     _nameController.dispose();
+    _usernameController.dispose();
     _bioController.dispose();
     super.dispose();
   }
@@ -56,6 +62,30 @@ class _EditProfileState extends State<EditProfile> {
     }
   }
 
+  Future<void> _pickDate() async {
+    final now = DateTime.now();
+    final date = await showDatePicker(
+      context: context,
+      initialDate: _dataNascimento ?? DateTime(2000, 1, 1),
+      firstDate: DateTime(1900),
+      lastDate: now,
+      locale: const Locale('pt', 'BR'),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: Theme.of(context).colorScheme.copyWith(
+                  primary: const Color(0xFF764BA2),
+                ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (date != null) {
+      setState(() => _dataNascimento = date);
+    }
+  }
+
   Future<void> _saveProfile() async {
     setState(() => _isSaving = true);
 
@@ -63,7 +93,11 @@ class _EditProfileState extends State<EditProfile> {
       final api = ApiClient();
       final formData = FormData.fromMap({
         'nome_completo': _nameController.text.trim(),
+        'nome_usuario': _usernameController.text.trim(),
         'bio': _bioController.text.trim(),
+        if (_dataNascimento != null)
+          'data_nascimento':
+              DateFormat('yyyy-MM-dd').format(_dataNascimento!),
         if (_newAvatar != null)
           'avatar': await MultipartFile.fromFile(
             _newAvatar!.path,
@@ -81,10 +115,22 @@ class _EditProfileState extends State<EditProfile> {
       }
     } on DioException catch (e) {
       if (mounted) {
+        String msg = 'Erro ao salvar';
+        if (e.response?.data is Map) {
+          final data = e.response!.data as Map;
+          for (var value in data.values) {
+            if (value is List && value.isNotEmpty) {
+              msg = value.first.toString();
+              break;
+            }
+            if (value is String) {
+              msg = value;
+              break;
+            }
+          }
+        }
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text(
-                  'Erro ao salvar: ${e.response?.statusCode ?? 'desconhecido'}')),
+          SnackBar(content: Text(msg)),
         );
       }
     } finally {
@@ -169,7 +215,7 @@ class _EditProfileState extends State<EditProfile> {
             ),
             const SizedBox(height: 32),
 
-            // Name
+            // Nome completo
             TextField(
               controller: _nameController,
               decoration: InputDecoration(
@@ -182,7 +228,56 @@ class _EditProfileState extends State<EditProfile> {
             ),
             const SizedBox(height: 20),
 
-            // Bio
+            // Username
+            TextField(
+              controller: _usernameController,
+              decoration: InputDecoration(
+                labelText: 'Nome de usuário',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                prefixIcon: const Padding(
+                  padding: EdgeInsets.only(left: 12, right: 0),
+                  child: Text('@',
+                      style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey)),
+                ),
+                prefixIconConstraints:
+                    const BoxConstraints(minWidth: 36, minHeight: 0),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Data de Nascimento
+            InkWell(
+              onTap: _pickDate,
+              borderRadius: BorderRadius.circular(12),
+              child: InputDecorator(
+                decoration: InputDecoration(
+                  labelText: 'Data de nascimento',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  prefixIcon: const Icon(Icons.cake_outlined),
+                ),
+                child: Text(
+                  _dataNascimento != null
+                      ? DateFormat('dd/MM/yyyy').format(_dataNascimento!)
+                      : 'Selecione...',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: _dataNascimento != null
+                        ? Colors.black87
+                        : Colors.grey[500],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Bio (sem ícone)
             TextField(
               controller: _bioController,
               maxLines: 4,
@@ -193,7 +288,6 @@ class _EditProfileState extends State<EditProfile> {
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
-                prefixIcon: const Icon(Icons.edit_note, size: 24),
                 alignLabelWithHint: true,
               ),
             ),

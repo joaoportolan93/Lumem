@@ -26,6 +26,15 @@ class _DreamDetailState extends State<DreamDetail> {
   bool _isPostingComment = false;
   String? _currentUserId;
 
+  // Like/Save state
+  bool _isLiked = false;
+  int _likesCount = 0;
+  bool _isSaved = false;
+
+  // Reply state
+  String? _replyToId;
+  String? _replyToUsername;
+
   @override
   void initState() {
     super.initState();
@@ -55,10 +64,39 @@ class _DreamDetailState extends State<DreamDetail> {
         _dream = dream;
         _comments = comments;
         _currentUserId = currentUser?.id;
+        _isLiked = dream?.isLiked ?? false;
+        _likesCount = dream?.curtidasCount ?? 0;
+        _isSaved = dream?.isSaved ?? false;
         _isLoading = false;
       });
     } catch (e) {
       setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _toggleLike() async {
+    setState(() {
+      _isLiked = !_isLiked;
+      _likesCount += _isLiked ? 1 : -1;
+      if (_likesCount < 0) _likesCount = 0;
+    });
+
+    final success = await _dreamService.likeDream(widget.dreamId);
+    if (!success) {
+      setState(() {
+        _isLiked = !_isLiked;
+        _likesCount += _isLiked ? 1 : -1;
+        if (_likesCount < 0) _likesCount = 0;
+      });
+    }
+  }
+
+  Future<void> _toggleSave() async {
+    setState(() => _isSaved = !_isSaved);
+
+    final success = await _dreamService.saveDream(widget.dreamId);
+    if (!success) {
+      setState(() => _isSaved = !_isSaved);
     }
   }
 
@@ -67,13 +105,37 @@ class _DreamDetailState extends State<DreamDetail> {
     if (text.isEmpty) return;
 
     setState(() => _isPostingComment = true);
-    final comment = await _dreamService.createComment(widget.dreamId, text);
+    final comment = await _dreamService.createComment(
+      widget.dreamId,
+      text,
+      parentId: _replyToId,
+    );
     setState(() => _isPostingComment = false);
 
     if (comment != null) {
       _commentController.clear();
+      setState(() {
+        _replyToId = null;
+        _replyToUsername = null;
+      });
       _loadData();
     }
+  }
+
+  void _setReplyTo(Comment comment) {
+    setState(() {
+      _replyToId = comment.id;
+      _replyToUsername = comment.usuario?.nomeUsuario ?? 'Anônimo';
+    });
+    _commentController.text = '';
+    FocusScope.of(context).requestFocus(FocusNode());
+  }
+
+  void _cancelReply() {
+    setState(() {
+      _replyToId = null;
+      _replyToUsername = null;
+    });
   }
 
   Future<void> _deleteComment(Comment comment) async {
@@ -102,7 +164,10 @@ class _DreamDetailState extends State<DreamDetail> {
         _loadData();
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Falha ao excluir comentário')),
+          const SnackBar(
+            content: Text(
+                'Não é possível excluir um comentário com respostas. Exclua as respostas primeiro.'),
+          ),
         );
       }
     }
@@ -127,10 +192,11 @@ class _DreamDetailState extends State<DreamDetail> {
                             children: [
                               CircleAvatar(
                                 radius: 22,
-                                backgroundImage: _dream!.usuario?.avatar != null
-                                    ? CachedNetworkImageProvider(
-                                        _dream!.usuario!.avatar!)
-                                    : null,
+                                backgroundImage:
+                                    _dream!.usuario?.avatar != null
+                                        ? CachedNetworkImageProvider(
+                                            _dream!.usuario!.avatar!)
+                                        : null,
                                 child: _dream!.usuario?.avatar == null
                                     ? Text(_dream!.usuario?.nomeUsuario
                                             .substring(0, 1)
@@ -143,14 +209,15 @@ class _DreamDetailState extends State<DreamDetail> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    _dream!.usuario?.nomeUsuario ?? 'Anônimo',
+                                    _dream!.usuario?.nomeCompleto ??
+                                        _dream!.usuario?.nomeUsuario ??
+                                        'Anônimo',
                                     style: const TextStyle(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 16),
                                   ),
                                   Text(
-                                    timeago.format(_dream!.dataPublicacao,
-                                        locale: 'pt_BR'),
+                                    '@${_dream!.usuario?.nomeUsuario ?? ''} · ${timeago.format(_dream!.dataPublicacao, locale: 'pt_BR')}',
                                     style: TextStyle(
                                         color: Colors.grey[500], fontSize: 13),
                                   ),
@@ -163,7 +230,8 @@ class _DreamDetailState extends State<DreamDetail> {
                           // Dream content
                           Text(
                             _dream!.conteudoTexto,
-                            style: const TextStyle(fontSize: 16, height: 1.5),
+                            style:
+                                const TextStyle(fontSize: 16, height: 1.5),
                           ),
 
                           // Hashtags
@@ -175,8 +243,9 @@ class _DreamDetailState extends State<DreamDetail> {
                                 return Text(
                                   tag.startsWith('#') ? tag : '#$tag',
                                   style: TextStyle(
-                                    color:
-                                        Theme.of(context).colorScheme.secondary,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .secondary,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 );
@@ -197,18 +266,67 @@ class _DreamDetailState extends State<DreamDetail> {
                             ),
                           ],
 
-                          // Stats
+                          // Action buttons: like, comment count, save
                           const SizedBox(height: 16),
                           Row(
                             children: [
-                              const Icon(Icons.favorite, color: Colors.red, size: 18),
-                              const SizedBox(width: 4),
-                              Text('${_dream!.curtidasCount}'),
+                              // Like
+                              InkWell(
+                                onTap: _toggleLike,
+                                borderRadius: BorderRadius.circular(20),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(4),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        _isLiked
+                                            ? Icons.favorite
+                                            : Icons.favorite_border,
+                                        color: _isLiked
+                                            ? Colors.red
+                                            : Colors.grey,
+                                        size: 22,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text('$_likesCount',
+                                          style: TextStyle(
+                                              color: Colors.grey[600])),
+                                    ],
+                                  ),
+                                ),
+                              ),
                               const SizedBox(width: 16),
-                              const Icon(Icons.chat_bubble_outline,
-                                  color: Colors.grey, size: 18),
-                              const SizedBox(width: 4),
-                              Text('${_comments.length}'),
+                              // Comment count
+                              Row(
+                                children: [
+                                  const Icon(Icons.chat_bubble_outline,
+                                      color: Colors.grey, size: 20),
+                                  const SizedBox(width: 4),
+                                  Text('${_comments.length}',
+                                      style: TextStyle(
+                                          color: Colors.grey[600])),
+                                ],
+                              ),
+                              const Spacer(),
+                              // Save
+                              InkWell(
+                                onTap: _toggleSave,
+                                borderRadius: BorderRadius.circular(20),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(4),
+                                  child: Icon(
+                                    _isSaved
+                                        ? Icons.bookmark
+                                        : Icons.bookmark_border,
+                                    color: _isSaved
+                                        ? Theme.of(context)
+                                            .colorScheme
+                                            .secondary
+                                        : Colors.grey,
+                                    size: 22,
+                                  ),
+                                ),
+                              ),
                             ],
                           ),
 
@@ -233,11 +351,42 @@ class _DreamDetailState extends State<DreamDetail> {
                               ),
                             )
                           else
-                            ..._comments
-                                .map((comment) => _buildCommentTile(comment)),
+                            ..._comments.asMap().entries.map((entry) =>
+                                _buildCommentTile(
+                                  entry.value,
+                                  depth: 0,
+                                  isLast:
+                                      entry.key == _comments.length - 1,
+                                )),
                         ],
                       ),
                     ),
+
+                    // Reply indicator
+                    if (_replyToUsername != null)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 6),
+                        color: Colors.grey[100],
+                        child: Row(
+                          children: [
+                            const Icon(Icons.reply,
+                                size: 16, color: Colors.grey),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Respondendo a @$_replyToUsername',
+                              style: TextStyle(
+                                  color: Colors.grey[600], fontSize: 13),
+                            ),
+                            const Spacer(),
+                            GestureDetector(
+                              onTap: _cancelReply,
+                              child: const Icon(Icons.close,
+                                  size: 18, color: Colors.grey),
+                            ),
+                          ],
+                        ),
+                      ),
 
                     // Comment input
                     Container(
@@ -260,7 +409,9 @@ class _DreamDetailState extends State<DreamDetail> {
                               child: TextField(
                                 controller: _commentController,
                                 decoration: InputDecoration(
-                                  hintText: 'Escreva um comentário...',
+                                  hintText: _replyToUsername != null
+                                      ? 'Responder a @$_replyToUsername...'
+                                      : 'Escreva um comentário...',
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(24),
                                     borderSide: BorderSide.none,
@@ -298,64 +449,226 @@ class _DreamDetailState extends State<DreamDetail> {
     );
   }
 
-  Widget _buildCommentTile(Comment comment) {
+  /// Builds the full comment tree recursively
+  Widget _buildCommentTile(Comment comment,
+      {int depth = 0, bool isLast = false}) {
     final isOwn =
         _currentUserId != null && comment.usuario?.id == _currentUserId;
+    final hasReplies = comment.respostas.isNotEmpty;
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          CircleAvatar(
-            radius: 16,
-            backgroundImage: comment.usuario?.avatar != null
-                ? CachedNetworkImageProvider(comment.usuario!.avatar!)
-                : null,
-            child: comment.usuario?.avatar == null
-                ? Text(
-                    comment.usuario?.nomeUsuario
-                            .substring(0, 1)
-                            .toUpperCase() ??
-                        '?',
-                    style: const TextStyle(fontSize: 12))
-                : null,
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // The comment row with optional thread connector
+        Padding(
+          padding: EdgeInsets.only(left: depth * 32.0),
+          child: IntrinsicHeight(
+            child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                RichText(
-                  text: TextSpan(
-                    style: DefaultTextStyle.of(context).style,
-                    children: [
-                      TextSpan(
-                        text: '${comment.usuario?.nomeUsuario ?? 'Anônimo'} ',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
+                // Thread connector for nested comments
+                if (depth > 0)
+                  SizedBox(
+                    width: 24,
+                    child: CustomPaint(
+                      painter: _ThreadConnectorPainter(
+                        isLast: isLast,
+                        hasReplies: hasReplies,
                       ),
-                      TextSpan(text: comment.conteudoTexto),
-                    ],
+                      child: const SizedBox.expand(),
+                    ),
+                  ),
+
+                // Avatar
+                Padding(
+                  padding: EdgeInsets.only(
+                    top: 4,
+                    left: depth > 0 ? 4 : 0,
+                    right: 10,
+                  ),
+                  child: CircleAvatar(
+                    radius: depth > 0 ? 14 : 18,
+                    backgroundImage: comment.usuario?.avatar != null
+                        ? CachedNetworkImageProvider(
+                            comment.usuario!.avatar!)
+                        : null,
+                    child: comment.usuario?.avatar == null
+                        ? Text(
+                            comment.usuario?.nomeUsuario
+                                    .substring(0, 1)
+                                    .toUpperCase() ??
+                                '?',
+                            style: TextStyle(
+                                fontSize: depth > 0 ? 11 : 14,
+                                fontWeight: FontWeight.bold),
+                          )
+                        : null,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  timeago.format(comment.dataCriacao, locale: 'pt_BR'),
-                  style: TextStyle(color: Colors.grey[500], fontSize: 11),
+
+                // Content
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 12, top: 2),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Name row: Nome Completo + @username + time
+                        Row(
+                          children: [
+                            Flexible(
+                              child: RichText(
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                text: TextSpan(
+                                  children: [
+                                    TextSpan(
+                                      text: comment.usuario?.nomeCompleto ??
+                                          comment.usuario?.nomeUsuario ??
+                                          'Anônimo',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black87,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    TextSpan(
+                                      text:
+                                          '  @${comment.usuario?.nomeUsuario ?? ''}',
+                                      style: TextStyle(
+                                        color: Colors.grey[500],
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              '· ${timeago.format(comment.dataCriacao, locale: 'pt_BR')}',
+                              style: TextStyle(
+                                  color: Colors.grey[400], fontSize: 12),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 3),
+
+                        // Comment text
+                        Text(
+                          comment.conteudoTexto,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Colors.black87,
+                            height: 1.4,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+
+                        // Actions: Reply + Delete
+                        Row(
+                          children: [
+                            GestureDetector(
+                              onTap: () => _setReplyTo(comment),
+                              child: Text(
+                                'Responder',
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                            if (isOwn) ...[
+                              const SizedBox(width: 16),
+                              GestureDetector(
+                                onTap: () => _deleteComment(comment),
+                                child: Text(
+                                  'Excluir',
+                                  style: TextStyle(
+                                    color: Colors.red[400],
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ],
             ),
           ),
-          if (isOwn)
-            IconButton(
-              icon: const Icon(Icons.delete_outline,
-                  size: 18, color: Colors.grey),
-              onPressed: () => _deleteComment(comment),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-            ),
-        ],
-      ),
+        ),
+
+        // Nested replies
+        if (hasReplies)
+          ...comment.respostas.asMap().entries.map((entry) =>
+              _buildCommentTile(
+                entry.value,
+                depth: depth + 1,
+                isLast: entry.key == comment.respostas.length - 1,
+              )),
+      ],
     );
+  }
+}
+
+class _ThreadConnectorPainter extends CustomPainter {
+  final bool isLast;
+  final bool hasReplies;
+
+  _ThreadConnectorPainter({
+    required this.isLast,
+    required this.hasReplies,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.grey[400]!
+      ..strokeWidth = 1.5
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    final startX = size.width * 0.4; // Starting point (vertical line)
+    final endX = size.width; // Going towards the avatar
+    final startY = 0.0;
+    final midY = 22.0; // Level with avatar center
+    final cornerRadius = 16.0;
+
+    final path = Path();
+    path.moveTo(startX, startY);
+
+    // Draw line down to slightly above the turn
+    path.lineTo(startX, midY - cornerRadius);
+
+    // Draw curved corner
+    path.quadraticBezierTo(
+      startX, midY,
+      startX + cornerRadius, midY,
+    );
+
+    // Draw line to the right (toward avatar)
+    path.lineTo(endX, midY);
+
+    canvas.drawPath(path, paint);
+
+    // If NOT the last sibling, continue the vertical line further down
+    if (!isLast) {
+      canvas.drawLine(
+        Offset(startX, midY),
+        Offset(startX, size.height),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _ThreadConnectorPainter oldDelegate) {
+    return oldDelegate.isLast != isLast || oldDelegate.hasReplies != hasReplies;
   }
 }

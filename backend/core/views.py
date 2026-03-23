@@ -190,8 +190,19 @@ class UserProfileView(APIView):
 
         if 'nome_completo' in data:
             user.nome_completo = data['nome_completo']
+        if 'nome_usuario' in data:
+            new_username = data['nome_usuario']
+            # Verificar se o username já está em uso por outro usuário
+            if User.objects.filter(nome_usuario=new_username).exclude(id_usuario=user.id_usuario).exists():
+                return Response(
+                    {'nome_usuario': ['Este nome de usuário já está em uso.']},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            user.nome_usuario = new_username
         if 'bio' in data:
             user.bio = data['bio']
+        if 'data_nascimento' in data:
+            user.data_nascimento = data['data_nascimento'] or None
         if 'avatar' in request.FILES:
             user.avatar_url = request.FILES['avatar']
 
@@ -1240,14 +1251,19 @@ class ComentarioViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
         
-        # Prevent deletion if comment has replies to preserve thread structure
-        if instance.respostas.filter(status=1).exists():
-            return Response(
-                {'error': _('Não é possível excluir um comentário que possui respostas. Exclua as respostas primeiro.')},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        # Soft-delete all nested replies recursively
+        def soft_delete_replies(comment):
+            for reply in comment.respostas.filter(status=1):
+                soft_delete_replies(reply)
+                reply.status = 0
+                reply.save(update_fields=['status'])
         
-        return super().destroy(request, *args, **kwargs)
+        soft_delete_replies(instance)
+        
+        # Soft-delete the comment itself
+        instance.status = 0
+        instance.save(update_fields=['status'])
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=True, methods=['post'])
     def react(self, request, dream_pk=None, pk=None):

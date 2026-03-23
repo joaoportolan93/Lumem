@@ -79,4 +79,30 @@ class UserService {
       return [];
     }
   }
+
+  Future<User?> updateUser(String userId, Map<String, dynamic> data) async {
+    try {
+      final response = await _api.dio.patch('users/$userId/', data: data);
+      return User.fromJson(response.data);
+    } on DioException catch (e) {
+      print('Update user error: ${e.response?.data}');
+      return null;
+    }
+  }
+
+  Future<String?> uploadAvatar(dynamic imageFile) async {
+    try {
+      final formData = FormData.fromMap({
+        'avatar': await MultipartFile.fromFile(
+          imageFile.path,
+          filename: imageFile.path.split('/').last,
+        ),
+      });
+      final response = await _api.dio.post('profile/avatar/', data: formData); // Adjust URL if different, usually avatar/upload/ or profile/avatar
+      return response.data['avatar_url'];
+    } on DioException catch (e) {
+      print('Upload avatar error: ${e.response?.data}');
+      return null;
+    }
+  }
 }

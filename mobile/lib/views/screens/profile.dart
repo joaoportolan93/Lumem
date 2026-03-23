@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dreamshare/models/user.dart';
 import 'package:dreamshare/models/dream.dart';
+import 'package:dreamshare/models/community.dart';
 import 'package:dreamshare/services/auth_service.dart';
 import 'package:dreamshare/services/dream_service.dart';
+import 'package:dreamshare/services/community_service.dart';
 import 'package:dreamshare/views/screens/auth/login.dart';
 import 'package:dreamshare/views/screens/edit_profile.dart';
+import 'package:dreamshare/views/screens/settings.dart';
 import 'package:dreamshare/views/widgets/dream_card.dart';
+import 'package:dreamshare/views/widgets/profile_header.dart';
 import 'package:dreamshare/util/router.dart';
 
 class Profile extends StatefulWidget {
@@ -19,9 +22,21 @@ class Profile extends StatefulWidget {
 class _ProfileState extends State<Profile> {
   final AuthService _authService = AuthService();
   final DreamService _dreamService = DreamService();
+  final CommunityService _communityService = CommunityService();
+
   User? _user;
-  List<Dream> _dreams = [];
   bool _isLoading = true;
+
+  // Tabs de Sonhos, Midia, Salvos
+  List<Dream> _dreams = [];
+  List<Dream> _mediaPosts = [];
+  List<Dream> _savedDreams = [];
+
+  // Tabs de Comunidades
+  String _communitySubTab = 'posts'; // 'posts', 'membro', 'admin'
+  List<Dream> _communityPosts = [];
+  List<Community> _memberCommunities = [];
+  List<Community> _adminCommunities = [];
 
   @override
   void initState() {
@@ -33,14 +48,27 @@ class _ProfileState extends State<Profile> {
     setState(() => _isLoading = true);
     try {
       final user = await _authService.getProfile();
-      final dreams = await _dreamService.getUserDreams(user.id);
+      final responses = await Future.wait([
+        _dreamService.getUserDreams(user.id),
+        _dreamService.getUserCommunityPosts(user.id),
+        _dreamService.getUserMediaPosts(user.id),
+        _dreamService.getSavedDreams(),
+        _communityService.getUserMemberCommunities(user.id),
+        _communityService.getUserAdminCommunities(user.id),
+      ]);
+
       setState(() {
         _user = user;
-        _dreams = dreams;
+        _dreams = responses[0] as List<Dream>;
+        _communityPosts = responses[1] as List<Dream>;
+        _mediaPosts = responses[2] as List<Dream>;
+        _savedDreams = responses[3] as List<Dream>;
+        _memberCommunities = responses[4] as List<Community>;
+        _adminCommunities = responses[5] as List<Community>;
         _isLoading = false;
       });
     } catch (e) {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -68,133 +96,106 @@ class _ProfileState extends State<Profile> {
               const Text('Erro ao carregar perfil'),
               const SizedBox(height: 16),
               ElevatedButton(
-                  onPressed: _loadProfile,
-                  child: const Text('Tentar novamente')),
+                  onPressed: _loadProfile, child: const Text('Tentar novamente')),
             ],
           ),
         ),
       );
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('@${_user!.nomeUsuario}'),
-        centerTitle: true,
-        actions: [
-          PopupMenuButton(
-            itemBuilder: (_) => [
-              const PopupMenuItem(
-                value: 'logout',
-                child: Row(
-                  children: [
-                    Icon(Icons.logout, color: Colors.red),
-                    SizedBox(width: 8),
-                    Text('Sair', style: TextStyle(color: Colors.red)),
-                  ],
+    return DefaultTabController(
+      length: 4,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text('@${_user!.nomeUsuario}'),
+          centerTitle: true,
+          actions: [
+            PopupMenuButton(
+              itemBuilder: (_) => [
+                const PopupMenuItem(
+                  value: 'settings',
+                  child: Row(
+                    children: [
+                      Icon(Icons.settings, color: Colors.black54),
+                      SizedBox(width: 8),
+                      Text('Configurações'),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'logout',
+                  child: Row(
+                    children: [
+                      Icon(Icons.logout, color: Colors.red),
+                      SizedBox(width: 8),
+                      Text('Sair', style: TextStyle(color: Colors.red)),
+                    ],
+                  ),
+                ),
+              ],
+              onSelected: (value) {
+                if (value == 'settings') {
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
+                } else if (value == 'logout') {
+                  _logout();
+                }
+              },
+            ),
+          ],
+        ),
+        body: NestedScrollView(
+          headerSliverBuilder: (context, innerBoxIsScrolled) {
+            return [
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: ProfileHeader(
+                    user: _user!,
+                    isOwnProfile: true,
+                    onEditProfile: () async {
+                      final result = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => EditProfile(user: _user!),
+                        ),
+                      );
+                      if (result == true) _loadProfile();
+                    },
+                  ),
                 ),
               ),
-            ],
-            onSelected: (value) {
-              if (value == 'logout') _logout();
-            },
-          ),
-        ],
-      ),
-      body: RefreshIndicator(
-        onRefresh: _loadProfile,
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Column(
+              SliverPersistentHeader(
+                pinned: true,
+                delegate: _SliverAppBarDelegate(
+                  const TabBar(
+                    isScrollable: false,
+                    labelColor: Color(0xFF764BA2),
+                    unselectedLabelColor: Colors.grey,
+                    indicatorColor: Color(0xFF764BA2),
+                    tabs: [
+                      Tab(text: 'Sonhos'),
+                      Tab(text: 'Comunidades'),
+                      Tab(text: 'Mídia'),
+                      Tab(text: 'Salvos'),
+                    ],
+                  ),
+                ),
+              ),
+            ];
+          },
+          body: TabBarView(
             children: [
-              const SizedBox(height: 20),
+              // Aba Sonhos
+              _buildDreamsList(_dreams, 'Nenhum sonho publicado ainda', Icons.nights_stay),
 
-              // Avatar
-              CircleAvatar(
-                radius: 50,
-                backgroundImage: _user!.avatar != null
-                    ? CachedNetworkImageProvider(_user!.avatar!)
-                    : null,
-                child: _user!.avatar == null
-                    ? Text(
-                        _user!.nomeUsuario.substring(0, 1).toUpperCase(),
-                        style: const TextStyle(
-                            fontSize: 36, fontWeight: FontWeight.bold),
-                      )
-                    : null,
-              ),
-              const SizedBox(height: 12),
+              // Aba Comunidades
+              _buildCommunityTab(),
 
-              // Full name
-              Text(
-                _user!.nomeCompleto,
-                style:
-                    const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 4),
+              // Aba Midia
+              _buildDreamsList(_mediaPosts, 'Nenhum post com mídia ainda', Icons.image),
 
-              // Bio
-              if (_user!.bio != null && _user!.bio!.isNotEmpty)
-                Text(
-                  _user!.bio!,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey[600], fontSize: 14),
-                ),
-
-              const SizedBox(height: 20),
-
-              // Stats
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _buildStat('Sonhos', _user!.sonhosCount),
-                  _buildStat('Seguidores', _user!.seguidoresCount),
-                  _buildStat('Seguindo', _user!.seguindoCount),
-                ],
-              ),
-
-              const SizedBox(height: 16),
-
-              // Edit Profile button
-              SizedBox(
-                width: 160,
-                child: OutlinedButton.icon(
-                  onPressed: () async {
-                    final result = await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => EditProfile(user: _user!),
-                      ),
-                    );
-                    if (result == true) _loadProfile();
-                  },
-                  icon: const Icon(Icons.edit, size: 16),
-                  label: const Text('Editar Perfil'),
-                  style: OutlinedButton.styleFrom(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 20),
-              const Divider(),
-              const SizedBox(height: 8),
-
-              // User dreams
-              if (_dreams.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.all(32),
-                  child: Text(
-                    'Nenhum sonho publicado ainda',
-                    style: TextStyle(color: Colors.grey, fontSize: 16),
-                  ),
-                )
-              else
-                ..._dreams.map(
-                    (dream) => DreamCard(dream: dream, onUpdate: _loadProfile)),
+              // Aba Salvos
+              _buildDreamsList(_savedDreams, 'Nenhum sonho salvo ainda', Icons.bookmark_border),
             ],
           ),
         ),
@@ -202,19 +203,142 @@ class _ProfileState extends State<Profile> {
     );
   }
 
-  Widget _buildStat(String label, int count) {
+  Widget _buildDreamsList(List<Dream> items, String emptyMsg, IconData emptyIcon) {
+    if (items.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(emptyIcon, size: 64, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            Text(
+              emptyMsg,
+              style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+            ),
+          ],
+        ),
+      );
+    }
+    return RefreshIndicator(
+      onRefresh: _loadProfile,
+      child: ListView.builder(
+        padding: const EdgeInsets.only(top: 8),
+        itemCount: items.length,
+        itemBuilder: (context, index) {
+          return DreamCard(dream: items[index], onUpdate: _loadProfile);
+        },
+      ),
+    );
+  }
+
+  Widget _buildCommunityTab() {
     return Column(
       children: [
-        Text(
-          count.toString(),
-          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+        Container(
+          height: 50,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _buildSubTabChip('Posts', 'posts'),
+              const SizedBox(width: 8),
+              _buildSubTabChip('Membro', 'membro'),
+              const SizedBox(width: 8),
+              _buildSubTabChip('Admin/Mod', 'admin'),
+            ],
+          ),
         ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(color: Colors.grey[600]),
+        Expanded(
+          child: Builder(
+            builder: (context) {
+              if (_communitySubTab == 'posts') {
+                return _buildDreamsList(_communityPosts, 'Nenhum post em comunidades.', Icons.supervised_user_circle);
+              } else if (_communitySubTab == 'membro') {
+                return _buildCommunitiesList(_memberCommunities, 'Não é membro de nenhuma comunidade.');
+              } else {
+                return _buildCommunitiesList(_adminCommunities, 'Não administra nenhuma comunidade.');
+              }
+            },
+          ),
         ),
       ],
     );
+  }
+
+  Widget _buildSubTabChip(String label, String value) {
+    final isSelected = _communitySubTab == value;
+    return ChoiceChip(
+      label: Text(label),
+      selected: isSelected,
+      onSelected: (selected) {
+        if (selected) setState(() => _communitySubTab = value);
+      },
+      selectedColor: const Color(0xFF764BA2),
+      labelStyle: TextStyle(color: isSelected ? Colors.white : Colors.black87),
+      backgroundColor: Colors.grey[200],
+    );
+  }
+
+  Widget _buildCommunitiesList(List<Community> comms, String emptyMsg) {
+    if (comms.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.group, size: 64, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            Text(
+              emptyMsg,
+              style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+            ),
+          ],
+        ),
+      );
+    }
+    return ListView.builder(
+      itemCount: comms.length,
+      padding: const EdgeInsets.all(8),
+      itemBuilder: (context, index) {
+        final c = comms[index];
+        return Card(
+          elevation: 2,
+          margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          child: ListTile(
+            leading: CircleAvatar(
+              backgroundImage: c.avatar != null ? NetworkImage(c.avatar!) : null,
+              child: c.avatar == null ? const Icon(Icons.group) : null,
+            ),
+            title: Text(c.nome, style: const TextStyle(fontWeight: FontWeight.bold)),
+            subtitle: Text('${c.membrosCount} membros'),
+            onTap: () {
+              // Navegar para detalhe da comunidade (opcional/futuro)
+            },
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
+  final TabBar _tabBar;
+  _SliverAppBarDelegate(this._tabBar);
+
+  @override
+  double get minExtent => _tabBar.preferredSize.height;
+  @override
+  double get maxExtent => _tabBar.preferredSize.height;
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return Container(
+      color: Theme.of(context).scaffoldBackgroundColor,
+      child: _tabBar,
+    );
+  }
+
+  @override
+  bool shouldRebuild(_SliverAppBarDelegate oldDelegate) {
+    return false;
   }
 }
