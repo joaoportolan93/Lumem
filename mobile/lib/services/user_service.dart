@@ -14,12 +14,15 @@ class UserService {
     }
   }
 
-  Future<bool> followUser(String userId) async {
+  Future<String?> followUser(String userId) async {
     try {
-      await _api.dio.post('users/$userId/follow/');
-      return true;
+      final response = await _api.dio.post('users/$userId/follow/');
+      if (response.data is Map && response.data.containsKey('follow_status')) {
+        return response.data['follow_status'] as String;
+      }
+      return 'following';
     } on DioException {
-      return false;
+      return null;
     }
   }
 

@@ -6,19 +6,21 @@ import 'package:dreamshare/views/screens/followers_list.dart';
 class ProfileHeader extends StatelessWidget {
   final User user;
   final bool isOwnProfile;
-  final bool isFollowing;
+  final String followStatus;
   final bool isFollowLoading;
   final VoidCallback? onFollowToggle;
   final VoidCallback? onEditProfile;
+  final Widget? actionMenu;
 
   const ProfileHeader({
     super.key,
     required this.user,
     this.isOwnProfile = false,
-    this.isFollowing = false,
+    this.followStatus = 'none',
     this.isFollowLoading = false,
     this.onFollowToggle,
     this.onEditProfile,
+    this.actionMenu,
   });
 
   @override
@@ -111,6 +113,7 @@ class ProfileHeader extends StatelessWidget {
                   ],
                 ),
               ),
+              if (actionMenu != null) actionMenu!,
             ],
           ),
           const SizedBox(height: 20),
@@ -154,11 +157,12 @@ class ProfileHeader extends StatelessWidget {
               child: ElevatedButton(
                 onPressed: isFollowLoading ? null : onFollowToggle,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: isFollowing ? Colors.white24 : Colors.white,
-                  foregroundColor: isFollowing ? Colors.white : const Color(0xFF764BA2),
+                  backgroundColor: followStatus == 'following' ? Colors.white24 : 
+                                   followStatus == 'pending' ? Colors.black26 : Colors.white,
+                  foregroundColor: followStatus == 'following' || followStatus == 'pending' ? Colors.white : const Color(0xFF764BA2),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(20),
-                    side: isFollowing
+                    side: followStatus == 'following'
                         ? const BorderSide(color: Colors.white, width: 2)
                         : BorderSide.none,
                   ),
@@ -174,7 +178,8 @@ class ProfileHeader extends StatelessWidget {
                         ),
                       )
                     : Text(
-                        isFollowing ? 'Seguindo' : 'Seguir',
+                        followStatus == 'following' ? 'Seguindo' : 
+                        followStatus == 'pending' ? 'Solicitado' : 'Seguir',
                         style: const TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.bold,

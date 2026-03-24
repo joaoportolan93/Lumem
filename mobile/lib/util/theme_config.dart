@@ -31,6 +31,27 @@ class ThemeConfig {
         ),
       ).titleLarge,
     ),
+    switchTheme: SwitchThemeData(
+      thumbColor: MaterialStateProperty.resolveWith<Color>((states) {
+        if (states.contains(MaterialState.disabled)) {
+          return Colors.grey.shade400;
+        }
+        if (states.contains(MaterialState.selected)) {
+          return lightAccent;
+        }
+        return Colors.white;
+      }),
+      trackColor: MaterialStateProperty.resolveWith<Color>((states) {
+        if (states.contains(MaterialState.disabled)) {
+          return Colors.grey.shade200;
+        }
+        if (states.contains(MaterialState.selected)) {
+          return lightAccent.withOpacity(0.5);
+        }
+        return Colors.grey.shade400;
+      }),
+      trackOutlineColor: MaterialStateProperty.all(Colors.transparent),
+    ),
     colorScheme: ColorScheme.fromSwatch().copyWith(
       secondary: lightAccent,
       surface: lightBG,

@@ -175,6 +175,7 @@ class _DreamDetailState extends State<DreamDetail> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       appBar: AppBar(title: const Text('Sonho')),
       body: _isLoading
@@ -367,7 +368,7 @@ class _DreamDetailState extends State<DreamDetail> {
                       Container(
                         padding: const EdgeInsets.symmetric(
                             horizontal: 16, vertical: 6),
-                        color: Colors.grey[100],
+                        color: isDark ? Colors.grey[900] : Colors.grey[100],
                         child: Row(
                           children: [
                             const Icon(Icons.reply,
@@ -417,7 +418,7 @@ class _DreamDetailState extends State<DreamDetail> {
                                     borderSide: BorderSide.none,
                                   ),
                                   filled: true,
-                                  fillColor: Colors.grey[200],
+                                  fillColor: isDark ? Colors.grey[800] : Colors.grey[200],
                                   contentPadding: const EdgeInsets.symmetric(
                                       horizontal: 16, vertical: 10),
                                 ),
@@ -526,9 +527,9 @@ class _DreamDetailState extends State<DreamDetail> {
                                       text: comment.usuario?.nomeCompleto ??
                                           comment.usuario?.nomeUsuario ??
                                           'Anônimo',
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontWeight: FontWeight.bold,
-                                        color: Colors.black87,
+                                        color: Theme.of(context).textTheme.bodyLarge?.color,
                                         fontSize: 14,
                                       ),
                                     ),
@@ -559,7 +560,6 @@ class _DreamDetailState extends State<DreamDetail> {
                           comment.conteudoTexto,
                           style: const TextStyle(
                             fontSize: 14,
-                            color: Colors.black87,
                             height: 1.4,
                           ),
                         ),
