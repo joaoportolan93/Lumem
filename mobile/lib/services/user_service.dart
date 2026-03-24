@@ -59,6 +59,37 @@ class UserService {
     }
   }
 
+  Future<List<User>> getFollowRequests() async {
+    try {
+      final response = await _api.dio.get('follow-requests/');
+      final results = response.data is Map
+          ? (response.data['results'] as List? ?? [])
+          : (response.data as List? ?? []);
+      return results.map((json) => User.fromJson(json)).toList();
+    } on DioException catch (e) {
+      print('DEBUG: Falha em getFollowRequests: ${e.response?.statusCode} - ${e.response?.data}');
+      return [];
+    }
+  }
+
+  Future<bool> acceptFollowRequest(String userId) async {
+    try {
+      await _api.dio.post('follow-requests/$userId/action/', data: {'action': 'accept'});
+      return true;
+    } on DioException {
+      return false;
+    }
+  }
+
+  Future<bool> rejectFollowRequest(String userId) async {
+    try {
+      await _api.dio.post('follow-requests/$userId/action/', data: {'action': 'reject'});
+      return true;
+    } on DioException {
+      return false;
+    }
+  }
+
   Future<List<User>> search(String query) async {
     try {
       final response = await _api.dio.get('search/', queryParameters: {

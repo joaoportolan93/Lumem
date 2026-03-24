@@ -27,4 +27,13 @@ class NotificationService {
       return false;
     }
   }
+
+  Future<bool> markAllAsRead() async {
+    try {
+      await _api.dio.patch('notifications/read_all/');
+      return true;
+    } on DioException {
+      return false;
+    }
+  }
 }

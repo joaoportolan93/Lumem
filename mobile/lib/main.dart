@@ -7,7 +7,12 @@ import 'app.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load(fileName: '.env');
+  try {
+    await dotenv.load(fileName: '.env');
+    debugPrint('DEBUG: Arquivo .env carregado com sucesso.');
+  } catch (e) {
+    debugPrint('DEBUG: Arquivo .env não encontrado ou erro ao carregar. Usando defaults.');
+  }
   timeago.setLocaleMessages('pt_BR', timeago.PtBrMessages());
   runApp(
     MultiProvider(
