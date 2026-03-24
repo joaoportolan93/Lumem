@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:dreamshare/models/user.dart';
 import 'package:dreamshare/services/settings_service.dart';
 import 'package:dreamshare/services/auth_service.dart';
+import 'package:dreamshare/services/user_service.dart';
 import 'package:dreamshare/providers/settings_provider.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -16,10 +17,14 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   late TabController _tabController;
   final SettingsService _settingsService = SettingsService();
   final AuthService _authService = AuthService();
+  final UserService _userService = UserService();
 
   bool _isLoading = true;
   bool _saving = false;
   Map<String, dynamic> _settings = {};
+
+  User? _currentUser;
+  bool _isPrivateLocal = false;
 
   List<User> _closeFriends = [];
   bool _loadingFriends = false;
@@ -39,9 +44,11 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
 
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
-    await _authService.getProfile();
+    final user = await _authService.getProfile();
     final settings = await _settingsService.getUserSettings();
     setState(() {
+      _currentUser = user;
+      _isPrivateLocal = user.isPrivate;
       _settings = settings ?? {
         'notificacoes_novas_publicacoes': true,
         'notificacoes_comentarios': true,
@@ -132,6 +139,9 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         title: const Text('Configurações'),
         bottom: TabBar(
           controller: _tabController,
+          labelColor: Theme.of(context).colorScheme.secondary,
+          unselectedLabelColor: Colors.grey,
+          indicatorColor: Theme.of(context).colorScheme.secondary,
           tabs: const [
             Tab(text: 'Geral', icon: Icon(Icons.settings)),
             Tab(text: 'Melhores Amigos', icon: Icon(Icons.star)),
@@ -206,6 +216,31 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
           activeColor: Theme.of(context).colorScheme.secondary,
           value: _settings['notificacoes_novas_publicacoes'] ?? true,
           onChanged: (val) => setState(() => _settings['notificacoes_novas_publicacoes'] = val),
+        ),
+        const Divider(),
+        const Text('Privacidade', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+        SwitchListTile(
+          title: const Text('Conta Privada'),
+          subtitle: const Text('Apenas seguidores aprovados podem ver suas publicações e mídias.'),
+          activeColor: Theme.of(context).colorScheme.secondary,
+          value: _isPrivateLocal,
+          onChanged: (val) async {
+            setState(() => _isPrivateLocal = val);
+            if (_currentUser != null) {
+              final updated = await _userService.updateUser(_currentUser!.id, {
+                'privacidade_padrao': val ? 2 : 1,
+              });
+              if (updated == null && mounted) {
+                setState(() => _isPrivateLocal = !val);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Erro ao alterar privacidade.'), backgroundColor: Colors.red),
+                );
+              } else if (updated != null) {
+                _currentUser = updated;
+              }
+            }
+          },
         ),
         const Divider(),
         const Text('Aparência e Idioma', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),

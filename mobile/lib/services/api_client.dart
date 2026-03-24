@@ -1,7 +1,9 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
+import 'dart:io' show Platform;
+
 class ApiClient {
   static final ApiClient _instance = ApiClient._internal();
   factory ApiClient() => _instance;
@@ -10,15 +12,22 @@ class ApiClient {
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
   ApiClient._internal() {
-    String baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:8000/api/';
-    if (kIsWeb) {
-      baseUrl = 'http://127.0.0.1:8000/api/';
+    // Nota: Em dispositivos físicos, use o IP da sua rede (Ex: 192.168.0.12)
+    String defaultUrl = 'http://127.0.0.1:8000/api/';
+    if (!kIsWeb && Platform.isAndroid) {
+      defaultUrl = 'http://10.0.2.2:8000/api/';
+    }
+    String baseUrl = dotenv.env['API_BASE_URL'] ?? defaultUrl;
+    
+    debugPrint('DEBUG: ApiClient inicializado com BaseURL: $baseUrl');
+    if (baseUrl.contains('127.0.0.1') && !kIsWeb && Platform.isAndroid) {
+      debugPrint('WARNING: Você está tentando usar 127.0.0.1 em um Android (Nativo). Isso falhará a menos que use adb reverse!');
     }
 
     dio = Dio(BaseOptions(
       baseUrl: baseUrl,
-      connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 10),
+      connectTimeout: const Duration(seconds: 15),
+      receiveTimeout: const Duration(seconds: 15),
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',

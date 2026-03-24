@@ -5,6 +5,7 @@ import 'package:dreamshare/views/screens/explore.dart';
 import 'package:dreamshare/views/screens/notifications_dms.dart';
 import 'package:dreamshare/views/screens/profile.dart';
 import 'package:dreamshare/views/screens/create_dream.dart';
+import 'package:dreamshare/services/notification_service.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -16,6 +17,8 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   late PageController _pageController;
   int _page = 0;
+  int _unreadCount = 0;
+  final NotificationService _notificationService = NotificationService();
 
   final List<Widget> _pages = [
     const Home(),
@@ -29,6 +32,18 @@ class _MainScreenState extends State<MainScreen> {
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: 0);
+    _loadUnreadCount();
+  }
+
+  Future<void> _loadUnreadCount() async {
+    try {
+      final notifs = await _notificationService.getNotifications();
+      if (mounted) {
+        setState(() {
+          _unreadCount = notifs.where((n) => !n.lida).length;
+        });
+      }
+    } catch (_) {}
   }
 
   @override
@@ -63,24 +78,28 @@ class _MainScreenState extends State<MainScreen> {
         unselectedItemColor: Colors.grey,
         currentIndex: _page,
         onTap: navigationTapped,
-        items: const [
-          BottomNavigationBarItem(
+        items: [
+          const BottomNavigationBarItem(
             icon: Icon(Icons.home_rounded),
             label: 'Home',
           ),
-          BottomNavigationBarItem(
+          const BottomNavigationBarItem(
             icon: Icon(Icons.holiday_village_rounded),
             label: 'Comunidades',
           ),
-          BottomNavigationBarItem(
+          const BottomNavigationBarItem(
             icon: Icon(Icons.explore_rounded),
             label: 'Explorar',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.notifications_rounded),
+            icon: Badge(
+              isLabelVisible: _unreadCount > 0,
+              label: Text(_unreadCount.toString()),
+              child: const Icon(Icons.notifications_rounded),
+            ),
             label: 'Alertas',
           ),
-          BottomNavigationBarItem(
+          const BottomNavigationBarItem(
             icon: Icon(Icons.person_rounded),
             label: 'Perfil',
           ),
@@ -91,11 +110,27 @@ class _MainScreenState extends State<MainScreen> {
 
   void navigationTapped(int page) {
     _pageController.jumpToPage(page);
+    if (page == 3) {
+      _notificationService.markAllAsRead();
+      setState(() {
+        _unreadCount = 0;
+      });
+    } else {
+      _loadUnreadCount();
+    }
   }
 
   void onPageChanged(int page) {
     setState(() {
       _page = page;
     });
+    if (page == 3) {
+      _notificationService.markAllAsRead();
+      setState(() {
+        _unreadCount = 0;
+      });
+    } else {
+      _loadUnreadCount();
+    }
   }
 }

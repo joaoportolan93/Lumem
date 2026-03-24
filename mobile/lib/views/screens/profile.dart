@@ -143,7 +143,7 @@ class _ProfileState extends State<Profile> {
                         ],
                         onSelected: (value) {
                           if (value == 'settings') {
-                            Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
+                            Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen())).then((_) => _loadProfile());
                           } else if (value == 'logout') {
                             _logout();
                           }
