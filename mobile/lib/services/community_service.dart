@@ -30,7 +30,8 @@ class CommunityService {
   Future<List<Dream>> getCommunityPosts(String communityId) async {
     try {
       final response = await _api.dio.get('dreams/', queryParameters: {
-        'comunidade': communityId,
+        'tab': 'community',
+        'community_id': communityId,
       });
       final results = response.data is Map
           ? (response.data['results'] as List? ?? [])
@@ -129,11 +130,85 @@ class CommunityService {
 
   Future<String?> uploadCommunityIcon(String communityId, FormData data) async {
     try {
-      final response = await _api.dio.post('communities/$communityId/icon/', data: data);
+      final response = await _api.dio.post('communities/$communityId/upload-icon/', data: data);
       return response.data['imagem'];
     } on DioException catch (e) {
       print('Erro ao fazer upload do ícone: ${e.response?.data}');
       return null;
+    }
+  }
+
+  Future<String?> uploadCommunityBannerImage(String communityId, FormData data) async {
+    try {
+      final response = await _api.dio.post('communities/$communityId/upload-banner/', data: data);
+      return response.data['banner'];
+    } on DioException catch (e) {
+      print('Erro ao fazer upload do banner: ${e.response?.data}');
+      return null;
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getCommunityMembers(String communityId) async {
+    try {
+      final response = await _api.dio.get('communities/$communityId/members/');
+      final results = response.data is List ? response.data as List : [];
+      return results.cast<Map<String, dynamic>>();
+    } on DioException {
+      return [];
+    }
+  }
+
+  Future<Map<String, dynamic>?> getCommunityStats(String communityId) async {
+    try {
+      final response = await _api.dio.get('communities/$communityId/moderator_stats/');
+      return response.data as Map<String, dynamic>;
+    } on DioException {
+      return null;
+    }
+  }
+
+  Future<bool> manageCommunityRole(String communityId, String userId, String role) async {
+    try {
+      await _api.dio.post('communities/$communityId/manage-role/', data: {
+        'user_id': userId,
+        'role': role,
+      });
+      return true;
+    } on DioException {
+      return false;
+    }
+  }
+
+  Future<bool> banCommunityMember(String communityId, String userId, {String motivo = ''}) async {
+    try {
+      await _api.dio.post('communities/$communityId/ban-member/', data: {
+        'user_id': userId,
+        'motivo': motivo,
+      });
+      return true;
+    } on DioException {
+      return false;
+    }
+  }
+
+  Future<bool> unbanCommunityMember(String communityId, String userId) async {
+    try {
+      await _api.dio.post('communities/$communityId/unban-member/', data: {
+        'user_id': userId,
+      });
+      return true;
+    } on DioException {
+      return false;
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getBannedMembers(String communityId) async {
+    try {
+      final response = await _api.dio.get('communities/$communityId/banned-members/');
+      final results = response.data is List ? response.data as List : [];
+      return results.cast<Map<String, dynamic>>();
+    } on DioException {
+      return [];
     }
   }
 }

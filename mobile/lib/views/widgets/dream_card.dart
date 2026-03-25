@@ -111,6 +111,25 @@ class _DreamCardState extends State<DreamCard> {
                         ),
                       ),
                     ),
+                  if (dream.isOwner)
+                    PopupMenuButton<String>(
+                      icon: const Icon(Icons.more_vert, size: 18, color: Colors.grey),
+                      onSelected: (value) {
+                        if (value == 'delete') _confirmDelete();
+                      },
+                      itemBuilder: (_) => [
+                        const PopupMenuItem(
+                          value: 'delete',
+                          child: Row(
+                            children: [
+                              Icon(Icons.delete_outline, color: Colors.red, size: 18),
+                              SizedBox(width: 8),
+                              Text('Excluir post', style: TextStyle(color: Colors.red)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                 ],
               ),
               const SizedBox(height: 12),
@@ -267,6 +286,40 @@ class _DreamCardState extends State<DreamCard> {
       setState(() {
         _isSaved = !_isSaved;
       });
+    }
+  }
+
+  Future<void> _confirmDelete() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Excluir post'),
+        content: const Text('Tem certeza que deseja excluir este sonho? Esta ação não pode ser desfeita.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Excluir', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      final success = await _dreamService.deleteDream(widget.dream.id);
+      if (success) {
+        widget.onUpdate?.call();
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Erro ao excluir post.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 }

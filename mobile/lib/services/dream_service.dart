@@ -36,12 +36,15 @@ class DreamService {
     required String conteudoTexto,
     List<String>? hashtags,
     File? imagem,
+    String? communityId,
   }) async {
     try {
       final formData = FormData.fromMap({
         'conteudo_texto': conteudoTexto,
         if (hashtags != null && hashtags.isNotEmpty)
           'hashtags': hashtags.join(','),
+        if (communityId != null)
+          'comunidade': communityId,
         if (imagem != null)
           'imagem': await MultipartFile.fromFile(
             imagem.path,
@@ -172,6 +175,15 @@ class DreamService {
       return results.map((json) => Dream.fromJson(json)).toList();
     } on DioException {
       return [];
+    }
+  }
+
+  Future<bool> deleteDream(String dreamId) async {
+    try {
+      await _api.dio.delete('dreams/$dreamId/');
+      return true;
+    } on DioException {
+      return false;
     }
   }
 }

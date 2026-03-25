@@ -34,9 +34,11 @@ class Community {
       banner: json['banner'],
       imagem: json['imagem'],
       regras: json['regras'] as List<dynamic>?,
-      cargo: json['cargo'],
+      cargo: json['user_role'] ?? json['cargo'],
       membrosCount: json['membros_count'] ?? 0,
-      isMembro: json['is_membro'] ?? false,
+      isMembro: (json['is_member'] ?? json['is_membro'] ?? false) || 
+                (json['user_role'] != null) || 
+                (json['cargo'] != null),
       dataCriacao: json['data_criacao'] != null
           ? DateTime.parse(json['data_criacao'])
           : DateTime.now(),

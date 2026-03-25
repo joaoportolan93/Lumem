@@ -6,6 +6,8 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:dreamshare/providers/settings_provider.dart';
 import 'package:dreamshare/views/screens/splash_screen.dart';
+import 'package:dreamshare/main.dart';
+import 'package:dreamshare/views/screens/alarm_ring_screen.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -30,7 +32,11 @@ class MyApp extends StatelessWidget {
             Locale('en', 'US'),
           ],
           locale: settingsProvider.locale,
+          navigatorKey: navigatorKey,
           home: const SplashScreen(),
+          routes: {
+            '/alarm_ring': (context) => const AlarmRingScreen(),
+          },
         );
       },
     );

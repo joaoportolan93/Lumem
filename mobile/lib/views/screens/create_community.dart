@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -21,17 +20,21 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _descController = TextEditingController();
-  
-  File? _image;
+
+  XFile? _imageFile;
   final List<RuleInput> _rules = [];
   bool _isLoading = false;
 
   Future<void> _pickImage() async {
     final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    final pickedFile = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 50,
+      maxWidth: 1024,
+    );
     if (pickedFile != null) {
       setState(() {
-        _image = File(pickedFile.path);
+        _imageFile = pickedFile;
       });
     }
   }
@@ -46,6 +49,27 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
     setState(() {
       _rules.removeAt(index);
     });
+  }
+
+  Widget _buildPickerPlaceholder() {
+    return Container(
+      height: 120,
+      decoration: BoxDecoration(
+        color: Theme.of(context).brightness == Brightness.dark
+            ? Colors.grey[900]
+            : Colors.grey[200],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[400]!),
+      ),
+      child: const Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.camera_alt, size: 40, color: Colors.grey),
+          SizedBox(height: 8),
+          Text('Tocar para escolher foto', style: TextStyle(color: Colors.grey)),
+        ],
+      ),
+    );
   }
 
   Future<void> _submit() async {
@@ -66,10 +90,12 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
 
     final formData = FormData.fromMap(formDataMap);
 
-    if (_image != null) {
+    if (_imageFile != null) {
+      final bytes = await _imageFile!.readAsBytes();
+      final filename = _imageFile!.name.isNotEmpty ? _imageFile!.name : 'community.jpg';
       formData.files.add(MapEntry(
         'imagem',
-        await MultipartFile.fromFile(_image!.path, filename: _image!.path.split('/').last),
+        MultipartFile.fromBytes(bytes, filename: filename),
       ));
     }
 
@@ -165,34 +191,30 @@ class _CreateCommunityScreenState extends State<CreateCommunityScreen> {
               const SizedBox(height: 8),
               GestureDetector(
                 onTap: _pickImage,
-                child: Container(
-                  height: 120,
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).brightness == Brightness.dark ? Colors.grey[900] : Colors.grey[200],
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey[400]!),
-                    image: _image != null ? DecorationImage(image: FileImage(_image!), fit: BoxFit.cover) : null,
-                  ),
-                  child: _image == null
-                      ? const Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.camera_alt, size: 40, color: Colors.grey),
-                            SizedBox(height: 8),
-                            Text('Tocar para escolher foto', style: TextStyle(color: Colors.grey)),
-                          ],
-                        )
-                      : const Align(
-                          alignment: Alignment.topRight,
-                          child: Padding(
-                            padding: EdgeInsets.all(8.0),
+                child: _imageFile != null
+                    ? Stack(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Image.network(
+                              _imageFile!.path,
+                              height: 120,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                              // Para web, path é uma URL object; no mobile usa file path
+                              errorBuilder: (_, __, ___) => _buildPickerPlaceholder(),
+                            ),
+                          ),
+                          const Positioned(
+                            top: 8, right: 8,
                             child: CircleAvatar(
                               backgroundColor: Colors.black54,
                               child: Icon(Icons.edit, color: Colors.white, size: 18),
                             ),
                           ),
-                        ),
-                ),
+                        ],
+                      )
+                    : _buildPickerPlaceholder(),
               ),
               const SizedBox(height: 24),
 
