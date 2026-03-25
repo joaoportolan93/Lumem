@@ -6,15 +6,15 @@ echo "  Dream Share Backend - Entrypoint"
 echo "=========================================="
 
 # -----------------------------------------------
-# 1. Esperar PostgreSQL ficar disponível
+# 1. Esperar MySQL ficar disponível
 # -----------------------------------------------
-if [ "$DB_ENGINE" = "django.db.backends.postgresql" ]; then
-    echo "⏳ Aguardando PostgreSQL em ${DB_HOST}:${DB_PORT}..."
-    while ! pg_isready -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -q 2>/dev/null; do
-        echo "   PostgreSQL não disponível ainda, tentando em 2s..."
+if [ "$DB_ENGINE" = "django.db.backends.mysql" ]; then
+    echo "⏳ Aguardando MySQL em ${DB_HOST}:${DB_PORT}..."
+    while ! mysqladmin ping -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USER" -p"$DB_PASSWORD" --silent 2>/dev/null; do
+        echo "   MySQL não disponível ainda, tentando em 2s..."
         sleep 2
     done
-    echo "✅ PostgreSQL disponível!"
+    echo "✅ MySQL disponível!"
 fi
 
 # -----------------------------------------------
