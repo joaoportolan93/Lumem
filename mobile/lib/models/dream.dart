@@ -12,6 +12,7 @@ class Dream {
   final int viewsCount;
   final bool isLiked;
   final bool isSaved;
+  final bool isOwner;
   final DateTime dataPublicacao;
   final String? comunidadeId;
   final String? comunidadeNome;
@@ -28,6 +29,7 @@ class Dream {
     this.viewsCount = 0,
     this.isLiked = false,
     this.isSaved = false,
+    this.isOwner = false,
     required this.dataPublicacao,
     this.comunidadeId,
     this.comunidadeNome,
@@ -63,6 +65,7 @@ class Dream {
       viewsCount: json['views_count'] ?? 0,
       isLiked: json['is_liked'] ?? json['user_has_reacted'] ?? false,
       isSaved: json['is_saved'] ?? json['user_has_saved'] ?? false,
+      isOwner: json['is_owner'] ?? false,
       dataPublicacao: json['data_publicacao'] != null
           ? DateTime.parse(json['data_publicacao'])
           : DateTime.now(),

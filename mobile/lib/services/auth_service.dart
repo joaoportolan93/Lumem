@@ -93,7 +93,7 @@ class AuthService {
         e.type == DioExceptionType.receiveTimeout) {
       return 'Sem conexão com o servidor';
     }
-    return 'Erro inesperado. Tente novamente.';
+    return 'Erro Rede: ${e.message}\nURL: ${e.requestOptions.baseUrl}';
   }
 }
 

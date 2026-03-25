@@ -4,7 +4,9 @@ import 'package:image_picker/image_picker.dart';
 import 'package:dreamshare/services/dream_service.dart';
 
 class CreateDream extends StatefulWidget {
-  const CreateDream({super.key});
+  final String? communityId;
+
+  const CreateDream({super.key, this.communityId});
 
   @override
   _CreateDreamState createState() => _CreateDreamState();
@@ -72,6 +74,7 @@ class _CreateDreamState extends State<CreateDream> {
       conteudoTexto: _contentController.text.trim(),
       hashtags: _hashtags.isNotEmpty ? _hashtags : null,
       imagem: _image,
+      communityId: widget.communityId,
     );
 
     setState(() => _isPosting = false);
