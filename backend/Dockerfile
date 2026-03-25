@@ -5,17 +5,20 @@ ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
+# Dependências do sistema (inclui libpq-dev para psycopg2 e postgresql-client para pg_isready)
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends gcc libjpeg-dev zlib1g-dev && \
+    apt-get install -y --no-install-recommends gcc libjpeg-dev zlib1g-dev libpq-dev postgresql-client && \
     rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt gunicorn
+RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-RUN python manage.py collectstatic --noinput || true
+# Copiar e dar permissão ao entrypoint
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 EXPOSE 8000
 
-CMD ["gunicorn", "dreamshare_backend.wsgi:application", "--bind", "0.0.0.0:8000"]
+ENTRYPOINT ["/entrypoint.sh"]

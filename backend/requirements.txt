@@ -11,3 +11,6 @@ factory-boy==3.3.0
 coverage==7.4.0
 faker==22.0.0
 uuid6>=2025.0.1
+psycopg2-binary>=2.9
+whitenoise>=6.5
+gunicorn>=22.0

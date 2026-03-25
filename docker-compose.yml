@@ -1,20 +1,42 @@
 services:
+  # ==========================================
+  # PostgreSQL 16
+  # ==========================================
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-dreamshare}
+      POSTGRES_USER: ${DB_USER:-dreamshare}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-dreamshare_secret}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-dreamshare}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ==========================================
+  # Backend Django/DRF
+  # ==========================================
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    ports:
-      - "8000:8000"
-    environment:
-      - SECRET_KEY=troque-por-uma-chave-secreta-forte
-      - DEBUG=True
-      - ALLOWED_HOSTS=*
-      - CORS_ALLOW_ALL=True
-    volumes:
-      - backend-data:/app/db.sqlite3
-      - backend-media:/app/media
     restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - .env
+    ports:
+      - "${BACKEND_PORT:-8000}:${BACKEND_PORT:-8000}"
+    volumes:
+      - backend_media:/app/media
 
 volumes:
-  backend-data:
-  backend-media:
+  postgres_data:
+  backend_media:
