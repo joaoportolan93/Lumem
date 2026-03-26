@@ -163,8 +163,7 @@ class GoogleLoginView(APIView):
             user = User.objects.create_user(
                 nome_usuario=username,
                 email=email,
-                nome_completo=nome_completo,
-                password=User.objects.make_random_password()
+                nome_completo=nome_completo
             )
 
         # Generate JWT tokens
@@ -541,7 +540,7 @@ class PublicacaoViewSet(viewsets.ModelViewSet):
 
             elif tab == 'user_media':
                 user_id = self.request.query_params.get('user_id')
-                media_filter = Q(imagem__isnull=False) & ~Q(imagem='')
+                media_filter = (Q(imagem__isnull=False) & ~Q(imagem='')) | (Q(video__isnull=False) & ~Q(video=''))
                 if user_id:
                     from django.shortcuts import get_object_or_404
                     from django.contrib.auth import get_user_model
@@ -777,6 +776,21 @@ class PublicacaoViewSet(viewsets.ModelViewSet):
             'message': message
         }, status=status.HTTP_200_OK)
 
+
+class RascunhoViewSet(viewsets.ModelViewSet):
+    """ViewSet para gerenciar rascunhos de publicações"""
+    from .serializers import RascunhoSerializer
+    from .models import Rascunho
+    
+    serializer_class = RascunhoSerializer
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def get_queryset(self):
+        from .models import Rascunho
+        return Rascunho.objects.filter(usuario=self.request.user).order_by('-data_atualizacao')
+
+    def perform_create(self, serializer):
+        serializer.save(usuario=self.request.user)
 
 class FollowView(APIView):
     """Views for following/unfollowing users"""
