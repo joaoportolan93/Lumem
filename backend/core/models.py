@@ -327,7 +327,7 @@ class Conversa(models.Model):
         db_table = 'conversas'
         constraints = [
             CheckConstraint(
-                check=Q(usuario_a__lt=F('usuario_b')),
+                condition=Q(usuario_a__lt=F('usuario_b')),
                 name='conversa_usuario_a_lt_b'
             ),
             models.UniqueConstraint(
