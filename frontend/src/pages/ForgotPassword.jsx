@@ -92,7 +92,7 @@ const ForgotPassword = () => {
                 transition={{ duration: 0.6, ease: "easeOut" }}
             >
                 <div className="text-center mb-6">
-                    <h1 className="auth-title">DreamShare</h1>
+                    <h1 className="auth-title">Lumem</h1>
                 </div>
 
                 <AnimatePresence mode="wait">

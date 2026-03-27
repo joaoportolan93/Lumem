@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:dreamshare/services/settings_service.dart';
+import 'package:lumem/services/settings_service.dart';
 
 class SettingsProvider extends ChangeNotifier {
   final SettingsService _settingsService = SettingsService();

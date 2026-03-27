@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:dreamshare/util/const.dart';
-import 'package:dreamshare/util/theme_config.dart';
+import 'package:lumem/util/const.dart';
+import 'package:lumem/util/theme_config.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
-import 'package:dreamshare/providers/settings_provider.dart';
-import 'package:dreamshare/views/screens/splash_screen.dart';
-import 'package:dreamshare/main.dart';
-import 'package:dreamshare/views/screens/alarm_ring_screen.dart';
+import 'package:lumem/providers/settings_provider.dart';
+import 'package:lumem/views/screens/splash_screen.dart';
+import 'package:lumem/main.dart';
+import 'package:lumem/views/screens/alarm_ring_screen.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});

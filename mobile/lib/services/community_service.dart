@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
-import 'package:dreamshare/models/community.dart';
-import 'package:dreamshare/models/dream.dart';
+import 'package:lumem/models/community.dart';
+import 'package:lumem/models/dream.dart';
 import 'api_client.dart';
 
 class CommunityService {

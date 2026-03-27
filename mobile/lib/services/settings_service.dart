@@ -1,5 +1,5 @@
 import 'package:dio/dio.dart';
-import 'package:dreamshare/models/user.dart';
+import 'package:lumem/models/user.dart';
 import 'api_client.dart';
 
 class SettingsService {

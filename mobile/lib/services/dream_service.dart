@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
-import 'package:dreamshare/models/dream.dart';
-import 'package:dreamshare/models/comment.dart';
+import 'package:lumem/models/dream.dart';
+import 'package:lumem/models/comment.dart';
 import 'api_client.dart';
 
 class DreamService {

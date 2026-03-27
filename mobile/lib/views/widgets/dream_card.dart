@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:dreamshare/models/dream.dart';
-import 'package:dreamshare/services/dream_service.dart';
-import 'package:dreamshare/views/screens/dream_detail.dart';
+import 'package:lumem/models/dream.dart';
+import 'package:lumem/services/dream_service.dart';
+import 'package:lumem/views/screens/dream_detail.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
 class DreamCard extends StatefulWidget {

@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:dreamshare/models/notification_model.dart';
-import 'package:dreamshare/models/user.dart';
-import 'package:dreamshare/services/notification_service.dart';
-import 'package:dreamshare/services/user_service.dart';
-import 'package:dreamshare/util/data.dart';
-import 'package:dreamshare/views/widgets/chat_item.dart';
+import 'package:lumem/models/notification_model.dart';
+import 'package:lumem/models/user.dart';
+import 'package:lumem/services/notification_service.dart';
+import 'package:lumem/services/user_service.dart';
+import 'package:lumem/util/data.dart';
+import 'package:lumem/views/widgets/chat_item.dart';
 import 'package:timeago/timeago.dart' as timeago;
-import 'package:dreamshare/views/screens/user_profile.dart';
-import 'package:dreamshare/views/screens/dream_detail.dart';
+import 'package:lumem/views/screens/user_profile.dart';
+import 'package:lumem/views/screens/dream_detail.dart';
 
 class NotificationsDms extends StatefulWidget {
   const NotificationsDms({super.key});

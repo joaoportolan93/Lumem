@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:dreamshare/models/community.dart';
-import 'package:dreamshare/services/community_service.dart';
-import 'package:dreamshare/views/screens/community_detail.dart';
-import 'package:dreamshare/views/screens/create_community.dart';
+import 'package:lumem/models/community.dart';
+import 'package:lumem/services/community_service.dart';
+import 'package:lumem/views/screens/community_detail.dart';
+import 'package:lumem/views/screens/create_community.dart';
 
 class Communities extends StatefulWidget {
   const Communities({super.key});

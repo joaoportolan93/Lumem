@@ -44,7 +44,7 @@ fi
 # -----------------------------------------------
 BACKEND_PORT="${BACKEND_PORT:-8000}"
 echo "🚀 Iniciando Gunicorn na porta ${BACKEND_PORT}..."
-exec gunicorn dreamshare_backend.wsgi:application \
+exec gunicorn lumem_backend.wsgi:application \
     --bind "0.0.0.0:${BACKEND_PORT}" \
     --workers 3 \
     --timeout 120 \

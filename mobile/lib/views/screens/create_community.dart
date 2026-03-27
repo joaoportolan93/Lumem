@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:dreamshare/services/community_service.dart';
+import 'package:lumem/services/community_service.dart';
 
 class RuleInput {
   String title = '';

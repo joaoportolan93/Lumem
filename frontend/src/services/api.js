@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-    baseURL: 'http://127.0.0.1:8000',
+    baseURL: 'http://webmin.highdevs.com.br:5370', // ALTERADO TEMPORARIAMENTE PARA TESTE
 });
 
 // Add auth token to every request
@@ -26,7 +26,7 @@ api.interceptors.response.use(
             try {
                 const refresh = localStorage.getItem('refresh');
                 if (refresh) {
-                    const response = await axios.post('http://127.0.0.1:8000/api/auth/refresh/', {
+                    const response = await axios.post('http://webmin.highdevs.com.br:5370/api/auth/refresh/', {
                         refresh: refresh
                     });
                     localStorage.setItem('access', response.data.access);
@@ -104,7 +104,7 @@ export const createDream = (data) => api.post('/api/dreams/', data);
 
 export const getDream = (id) => api.get(`/api/dreams/${id}/`);
 
-export const updateDream = (id, data) => api.put(`/api/dreams/${id}/`, data);
+export const updateDream = (id, data) => api.patch(`/api/dreams/${id}/`, data);
 
 export const deleteDream = (id) => api.delete(`/api/dreams/${id}/`);
 

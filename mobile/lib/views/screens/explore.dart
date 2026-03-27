@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:dreamshare/models/user.dart';
-import 'package:dreamshare/services/user_service.dart';
-import 'package:dreamshare/views/screens/user_profile.dart';
+import 'package:lumem/models/user.dart';
+import 'package:lumem/services/user_service.dart';
+import 'package:lumem/views/screens/user_profile.dart';
 
 class Explore extends StatefulWidget {
   const Explore({super.key});

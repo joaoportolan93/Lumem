@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:dreamshare/models/user.dart';
-import 'package:dreamshare/models/dream.dart';
-import 'package:dreamshare/models/community.dart';
-import 'package:dreamshare/services/auth_service.dart';
-import 'package:dreamshare/services/dream_service.dart';
-import 'package:dreamshare/services/community_service.dart';
-import 'package:dreamshare/views/screens/auth/login.dart';
-import 'package:dreamshare/views/screens/edit_profile.dart';
-import 'package:dreamshare/views/screens/settings.dart';
-import 'package:dreamshare/views/widgets/dream_card.dart';
-import 'package:dreamshare/views/widgets/profile_header.dart';
-import 'package:dreamshare/util/router.dart';
+import 'package:lumem/models/user.dart';
+import 'package:lumem/models/dream.dart';
+import 'package:lumem/models/community.dart';
+import 'package:lumem/services/auth_service.dart';
+import 'package:lumem/services/dream_service.dart';
+import 'package:lumem/services/community_service.dart';
+import 'package:lumem/views/screens/auth/login.dart';
+import 'package:lumem/views/screens/edit_profile.dart';
+import 'package:lumem/views/screens/settings.dart';
+import 'package:lumem/views/widgets/dream_card.dart';
+import 'package:lumem/views/widgets/profile_header.dart';
+import 'package:lumem/util/router.dart';
 
 class Profile extends StatefulWidget {
   const Profile({super.key});

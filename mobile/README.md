@@ -1,6 +1,6 @@
-# DreamShare
+# Lumem
 
-DreamShare é uma rede social para sonhadores: compartilhe seus sonhos, curta e comente os sonhos de outras pessoas, e conecte-se com uma comunidade de pessoas que acreditam no poder dos sonhos.
+Lumem é uma rede social para sonhadores: compartilhe seus sonhos, curta e comente os sonhos de outras pessoas, e conecte-se com uma comunidade de pessoas que acreditam no poder dos sonhos.
 
 ## ✨ Funcionalidades
 

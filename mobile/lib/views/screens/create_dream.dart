@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:dreamshare/services/dream_service.dart';
+import 'package:lumem/services/dream_service.dart';
 
 class CreateDream extends StatefulWidget {
   final String? communityId;

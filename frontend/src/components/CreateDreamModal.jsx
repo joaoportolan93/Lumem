@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaTimes, FaMoon, FaImage, FaVideo, FaSmile, FaGlobeAmericas, FaUserFriends } from 'react-icons/fa';
 import { useTranslation } from 'react-i18next';
-import { createDream, updateDream, getProfile } from '../services/api';
+import { createDream, updateDream, getProfile, createDraft } from '../services/api';
 
 const CreateDreamModal = ({ isOpen, onClose, onSuccess, editingDream = null, communityId = null }) => {
     const { t } = useTranslation();
@@ -19,6 +19,8 @@ const CreateDreamModal = ({ isOpen, onClose, onSuccess, editingDream = null, com
     const [customEmotion, setCustomEmotion] = useState('');
     const [imagePreview, setImagePreview] = useState(null);
     const [videoPreview, setVideoPreview] = useState(null);
+    const [showDraftPrompt, setShowDraftPrompt] = useState(false);
+    const [savingDraft, setSavingDraft] = useState(false);
 
     const dreamTypes = [
         { value: t('createDream.typeLucid'), icon: '✨', color: 'text-purple-400' },
@@ -49,7 +51,21 @@ const CreateDreamModal = ({ isOpen, onClose, onSuccess, editingDream = null, com
             setVisibility(editingDream.visibilidade || 1);
             setDreamType(editingDream.tipo_sonho || '');
             setEmotions(editingDream.emocoes_sentidas ? editingDream.emocoes_sentidas.split(',').map(e => e.trim()) : []);
-            // TODO: Handle existing image preview if needed
+            
+            // Set existing previews if present
+            if (editingDream.imagem) {
+                setImagePreview(editingDream.imagem);
+            } else {
+                setImagePreview(null);
+            }
+            if (editingDream.video) {
+                setVideoPreview(editingDream.video);
+            } else {
+                setVideoPreview(null);
+            }
+            
+            setSelectedImage(null);
+            setSelectedVideo(null);
         } else {
             setContent('');
             setVisibility(1);
@@ -78,8 +94,21 @@ const CreateDreamModal = ({ isOpen, onClose, onSuccess, editingDream = null, com
 
         if (dreamType) formData.append('tipo_sonho', dreamType);
         if (emotions.length > 0) formData.append('emocoes_sentidas', emotions.join(', '));
-        if (selectedImage) formData.append('imagem', selectedImage);
-        if (selectedVideo) formData.append('video', selectedVideo);
+        
+        if (selectedImage) {
+            formData.append('imagem', selectedImage);
+        } else if (editingDream && !imagePreview && editingDream.imagem) {
+            // Se tinha imagem e agora o preview é nulo, enviamos vazio pra apagar lá
+            formData.append('imagem', '');
+        }
+
+        if (selectedVideo) {
+            formData.append('video', selectedVideo);
+        } else if (editingDream && !videoPreview && editingDream.video) {
+             // Se tinha video e agora o preview é nulo, enviamos vazio pra apagar
+            formData.append('video', '');
+        }
+
         if (communityId) formData.append('comunidade', communityId);
 
         try {
@@ -96,6 +125,42 @@ const CreateDreamModal = ({ isOpen, onClose, onSuccess, editingDream = null, com
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleAttemptClose = () => {
+        if (!editingDream && (content.trim() || selectedImage || selectedVideo || dreamType || emotions.length > 0)) {
+            setShowDraftPrompt(true);
+        } else {
+            onClose();
+        }
+    };
+
+    const handleSaveDraft = async () => {
+        if (savingDraft) return;
+        setSavingDraft(true);
+        try {
+            const formData = new FormData();
+            formData.append('conteudo_texto', content);
+            if (dreamType) formData.append('tipo_sonho', dreamType);
+            if (emotions.length > 0) formData.append('emocoes_sentidas', emotions.join(', '));
+            if (communityId) formData.append('comunidade', communityId);
+            if (selectedImage) formData.append('imagem', selectedImage);
+
+            await createDraft(formData);
+            
+            setShowDraftPrompt(false);
+            onSuccess?.();
+            onClose();
+        } catch (err) {
+            console.error('Error saving draft:', err);
+        } finally {
+            setSavingDraft(false);
+        }
+    };
+
+    const handleDiscard = () => {
+        setShowDraftPrompt(false);
+        onClose();
     };
 
     const handleImageUpload = (e) => {
@@ -146,7 +211,7 @@ const CreateDreamModal = ({ isOpen, onClose, onSuccess, editingDream = null, com
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-start justify-center pt-[10vh] px-4"
-                onClick={onClose}
+                onClick={handleAttemptClose}
             >
                 <motion.div
                     initial={{ scale: 0.95, opacity: 0, y: -20 }}
@@ -158,7 +223,7 @@ const CreateDreamModal = ({ isOpen, onClose, onSuccess, editingDream = null, com
                     {/* Header */}
                     <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
                         <button
-                            onClick={onClose}
+                            onClick={handleAttemptClose}
                             className="p-2 rounded-full hover:bg-white/10 transition-colors"
                         >
                             <FaTimes className="text-white text-lg" />
@@ -380,6 +445,47 @@ const CreateDreamModal = ({ isOpen, onClose, onSuccess, editingDream = null, com
                         </button>
                     </div>
                 </motion.div>
+
+                {/* Drafts Prompt Modal inside AnimatePresence */}
+                <AnimatePresence>
+                    {showDraftPrompt && (
+                        <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm rounded-2xl" onClick={e => e.stopPropagation()}>
+                            <motion.div
+                                initial={{ scale: 0.95, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                exit={{ scale: 0.95, opacity: 0 }}
+                                className="bg-[#202327] rounded-2xl p-6 max-w-[320px] w-full text-center shadow-xl border border-white/10"
+                            >
+                                <h3 className="text-xl font-bold text-white mb-2">Salvar post?</h3>
+                                <p className="text-gray-400 text-sm mb-6 text-left">
+                                    Você pode salvar esse conteúdo nos rascunhos para enviá-lo posteriormente.
+                                </p>
+                                <div className="flex flex-col gap-3">
+                                    <button 
+                                        onClick={handleDiscard}
+                                        className="w-full py-3 rounded-full bg-red-500/10 text-red-500 font-bold hover:bg-red-500/20 transition-colors"
+                                    >
+                                        Excluir
+                                    </button>
+                                    <button 
+                                        onClick={handleSaveDraft}
+                                        disabled={savingDraft}
+                                        className="w-full py-3 rounded-full bg-white text-black font-bold hover:bg-gray-200 transition-colors disabled:opacity-70"
+                                    >
+                                        {savingDraft ? 'Salvando...' : 'Salvar'}
+                                    </button>
+                                </div>
+                                <button 
+                                    onClick={() => setShowDraftPrompt(false)}
+                                    className="w-full mt-3 py-3 rounded-full font-bold text-gray-400 hover:text-white"
+                                >
+                                    Cancelar
+                                </button>
+                            </motion.div>
+                        </div>
+                    )}
+                </AnimatePresence>
+
             </motion.div>
         </AnimatePresence>
     );
