@@ -1,5 +1,5 @@
 import 'package:dio/dio.dart';
-import 'package:dreamshare/models/notification_model.dart';
+import 'package:lumem/models/notification_model.dart';
 import 'api_client.dart';
 
 class NotificationService {

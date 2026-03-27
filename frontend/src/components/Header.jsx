@@ -104,7 +104,7 @@ const Header = () => {
                         </div>
                         {/* Texto some no mobile muito pequeno para economizar espaço se houver muitos ícones, ou fica */}
                         <span className="text-lg font-bold bg-gradient-to-r from-secondary to-primary bg-clip-text text-transparent hidden sm:block">
-                            DreamShare
+                            Lumem
                         </span>
                     </Link>
                 </div>
@@ -223,7 +223,7 @@ const Header = () => {
                                 <div className="flex items-center gap-2">
                                     <FaCloud className="text-2xl text-primary" />
                                     <span className="text-lg font-bold bg-gradient-to-r from-secondary to-primary bg-clip-text text-transparent">
-                                        DreamShare
+                                        Lumem
                                     </span>
                                 </div>
                                 <button

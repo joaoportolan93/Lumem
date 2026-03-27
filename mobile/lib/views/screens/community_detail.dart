@@ -2,12 +2,12 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:dreamshare/models/community.dart';
-import 'package:dreamshare/models/dream.dart';
-import 'package:dreamshare/services/community_service.dart';
-import 'package:dreamshare/views/widgets/dream_card.dart';
-import 'package:dreamshare/views/screens/create_dream.dart';
-import 'package:dreamshare/views/screens/mod_dashboard.dart';
+import 'package:lumem/models/community.dart';
+import 'package:lumem/models/dream.dart';
+import 'package:lumem/services/community_service.dart';
+import 'package:lumem/views/widgets/dream_card.dart';
+import 'package:lumem/views/screens/create_dream.dart';
+import 'package:lumem/views/screens/mod_dashboard.dart';
 import 'package:intl/intl.dart';
 
 class CommunityDetail extends StatefulWidget {

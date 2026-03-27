@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:dreamshare/providers/settings_provider.dart';
-import 'package:dreamshare/models/dream.dart';
-import 'package:dreamshare/services/dream_service.dart';
-import 'package:dreamshare/views/widgets/dream_card.dart';
+import 'package:lumem/providers/settings_provider.dart';
+import 'package:lumem/models/dream.dart';
+import 'package:lumem/services/dream_service.dart';
+import 'package:lumem/views/widgets/dream_card.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key});

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:dreamshare/views/widgets/animations/fade_page_route.dart';
+import 'package:lumem/views/widgets/animations/fade_page_route.dart';
 
 class Navigate {
   static Future pushPage(BuildContext context, Widget page) async {

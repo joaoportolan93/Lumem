@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
-import 'package:dreamshare/util/animations.dart';
-import 'package:dreamshare/util/const.dart';
-import 'package:dreamshare/util/enum.dart';
-import 'package:dreamshare/util/router.dart';
-import 'package:dreamshare/util/validations.dart';
-import 'package:dreamshare/views/screens/main_screen.dart';
-import 'package:dreamshare/views/screens/onboarding.dart';
-import 'package:dreamshare/views/widgets/custom_button.dart';
-import 'package:dreamshare/views/widgets/custom_text_field.dart';
-import 'package:dreamshare/util/extensions.dart';
-import 'package:dreamshare/services/auth_service.dart';
+import 'package:lumem/util/animations.dart';
+import 'package:lumem/util/const.dart';
+import 'package:lumem/util/enum.dart';
+import 'package:lumem/util/router.dart';
+import 'package:lumem/util/validations.dart';
+import 'package:lumem/views/screens/main_screen.dart';
+import 'package:lumem/views/screens/onboarding.dart';
+import 'package:lumem/views/widgets/custom_button.dart';
+import 'package:lumem/views/widgets/custom_text_field.dart';
+import 'package:lumem/util/extensions.dart';
+import 'package:lumem/services/auth_service.dart';
 
 class Login extends StatefulWidget {
   const Login({super.key});

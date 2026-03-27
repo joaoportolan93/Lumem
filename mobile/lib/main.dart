@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
 import 'package:timeago/timeago.dart' as timeago;
-import 'package:dreamshare/providers/settings_provider.dart';
-import 'package:dreamshare/providers/alarm_provider.dart';
-import 'package:dreamshare/services/alarm_service.dart';
+import 'package:lumem/providers/settings_provider.dart';
+import 'package:lumem/providers/alarm_provider.dart';
+import 'package:lumem/services/alarm_service.dart';
 import 'app.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();

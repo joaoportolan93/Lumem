@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:dreamshare/util/data.dart';
+import 'package:lumem/util/data.dart';
 
 class Friends extends StatefulWidget {
   const Friends({super.key});

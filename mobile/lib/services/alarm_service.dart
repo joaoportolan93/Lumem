@@ -12,7 +12,7 @@ import '../providers/alarm_provider.dart';
 import '../main.dart';
 
 class AlarmService {
-  static const String _prefsKey = 'dreamshare_alarms';
+  static const String _prefsKey = 'lumem_alarms';
   static final FlutterLocalNotificationsPlugin _localNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
 

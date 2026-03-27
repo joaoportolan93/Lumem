@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
-import 'package:dreamshare/models/alarm_model.dart';
-import 'package:dreamshare/providers/alarm_provider.dart';
+import 'package:lumem/models/alarm_model.dart';
+import 'package:lumem/providers/alarm_provider.dart';
 import 'package:provider/provider.dart';
 
 class AlarmRingScreen extends StatefulWidget {

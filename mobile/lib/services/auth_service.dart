@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:dreamshare/models/user.dart';
+import 'package:lumem/models/user.dart';
 import 'api_client.dart';
 
 class AuthService {

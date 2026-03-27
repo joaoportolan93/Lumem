@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:dreamshare/views/widgets/chat_item.dart';
-import 'package:dreamshare/util/data.dart';
+import 'package:lumem/views/widgets/chat_item.dart';
+import 'package:lumem/util/data.dart';
 
 class Chats extends StatefulWidget {
   const Chats({super.key});

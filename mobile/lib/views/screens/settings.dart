@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:dreamshare/models/user.dart';
-import 'package:dreamshare/services/settings_service.dart';
-import 'package:dreamshare/services/auth_service.dart';
-import 'package:dreamshare/services/user_service.dart';
-import 'package:dreamshare/providers/settings_provider.dart';
-import 'package:dreamshare/providers/alarm_provider.dart';
-import 'package:dreamshare/models/alarm_model.dart';
+import 'package:lumem/models/user.dart';
+import 'package:lumem/services/settings_service.dart';
+import 'package:lumem/services/auth_service.dart';
+import 'package:lumem/services/user_service.dart';
+import 'package:lumem/providers/settings_provider.dart';
+import 'package:lumem/providers/alarm_provider.dart';
+import 'package:lumem/models/alarm_model.dart';
 import 'package:file_picker/file_picker.dart';
 
 class SettingsScreen extends StatefulWidget {

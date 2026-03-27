@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:dreamshare/models/user.dart';
-import 'package:dreamshare/views/screens/followers_list.dart';
+import 'package:lumem/models/user.dart';
+import 'package:lumem/views/screens/followers_list.dart';
 
 class ProfileHeader extends StatelessWidget {
   final User user;

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:dreamshare/models/dream.dart';
-import 'package:dreamshare/models/comment.dart';
-import 'package:dreamshare/models/user.dart';
-import 'package:dreamshare/services/dream_service.dart';
-import 'package:dreamshare/services/auth_service.dart';
+import 'package:lumem/models/dream.dart';
+import 'package:lumem/models/comment.dart';
+import 'package:lumem/models/user.dart';
+import 'package:lumem/services/dream_service.dart';
+import 'package:lumem/services/auth_service.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
 class DreamDetail extends StatefulWidget {

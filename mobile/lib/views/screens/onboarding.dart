@@ -1,9 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:dreamshare/services/user_service.dart';
-import 'package:dreamshare/services/auth_service.dart';
-import 'package:dreamshare/views/screens/main_screen.dart';
+import 'package:lumem/services/user_service.dart';
+import 'package:lumem/services/auth_service.dart';
+import 'package:lumem/views/screens/main_screen.dart';
 
 class Onboarding extends StatefulWidget {
   const Onboarding({super.key});

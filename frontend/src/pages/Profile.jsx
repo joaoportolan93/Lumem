@@ -95,7 +95,7 @@ const Profile = () => {
                 setMediaLoading(true);
                 try {
                     const res = await getMyMediaPosts();
-                    setMediaPosts(res.data);
+                    setMediaPosts(res.data.results ? res.data.results : res.data);
                 } catch (error) {
                     console.error('Error fetching media posts:', error);
                 } finally {

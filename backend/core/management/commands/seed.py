@@ -20,91 +20,91 @@ USER_PROFILES = [
     {
         'nome_usuario': 'luna_freitas',
         'nome_completo': 'Luna Freitas',
-        'email': 'luna.freitas@dreamshare.test',
+        'email': 'luna.freitas@lumem.test',
         'bio': 'Sonhadora lúcida desde os 14 🌙 | Estudante de Psicologia | Meus sonhos contam histórias que minha mente acordada não consegue',
     },
     {
         'nome_usuario': 'rafael_dreams',
         'nome_completo': 'Rafael Mendes',
-        'email': 'rafael.mendes@dreamshare.test',
+        'email': 'rafael.mendes@lumem.test',
         'bio': 'Diário de sonhos desde 2022 📖 | Às vezes engraçados, às vezes aterrorizantes | Tento entender o que meu subconsciente quer dizer',
     },
     {
         'nome_usuario': 'isa_noturna',
         'nome_completo': 'Isabela Rocha',
-        'email': 'isabela.rocha@dreamshare.test',
+        'email': 'isabela.rocha@lumem.test',
         'bio': 'Enfermeira de dia, viajante astral de noite ✨ | Tenho sonhos premonitórios desde criança e isso me assusta e fascina ao mesmo tempo',
     },
     {
         'nome_usuario': 'gustavoo_s',
         'nome_completo': 'Gustavo Santana',
-        'email': 'gustavo.santana@dreamshare.test',
+        'email': 'gustavo.santana@lumem.test',
         'bio': 'Meus sonhos são mais interessantes que minha vida real kkkk 💤 | Dev frontend | Café e pesadelos',
     },
     {
         'nome_usuario': 'camila.oneiros',
         'nome_completo': 'Camila Duarte',
-        'email': 'camila.duarte@dreamshare.test',
+        'email': 'camila.duarte@lumem.test',
         'bio': 'Artista plástica 🎨 | Pinto quadros baseados nos meus sonhos | O subconsciente é o melhor curador de arte que existe',
     },
     {
         'nome_usuario': 'thi_lucido',
         'nome_completo': 'Thiago Borges',
-        'email': 'thiago.borges@dreamshare.test',
+        'email': 'thiago.borges@lumem.test',
         'bio': 'Praticante de sonho lúcido há 3 anos 🧠 | Técnicas WILD e MILD | Compartilhando minhas experiências e aprendizados',
     },
     {
         'nome_usuario': 'mariana.sonha',
         'nome_completo': 'Mariana Vasconcelos',
-        'email': 'mariana.vasc@dreamshare.test',
+        'email': 'mariana.vasc@lumem.test',
         'bio': 'Mãe, professora e sonhadora 🌟 | Acredito que sonhos são mensagens que precisamos aprender a ler',
     },
     {
         'nome_usuario': 'pedrohmartins',
         'nome_completo': 'Pedro Henrique Martins',
-        'email': 'pedro.martins@dreamshare.test',
+        'email': 'pedro.martins@lumem.test',
         'bio': 'Estudante de Medicina 🩺 | Pesadelos frequentes desde a faculdade (será coincidência?) | Registro tudo aqui',
     },
     {
         'nome_usuario': 'juju_astral',
         'nome_completo': 'Juliana Correia',
-        'email': 'juliana.correia@dreamshare.test',
+        'email': 'juliana.correia@lumem.test',
         'bio': 'Espiritualista e curiosa 🔮 | Sonhos, tarot e autoconhecimento | Cada sonho é uma porta para dentro de si',
     },
     {
         'nome_usuario': 'lucas.rpg',
         'nome_completo': 'Lucas Almeida',
-        'email': 'lucas.almeida@dreamshare.test',
+        'email': 'lucas.almeida@lumem.test',
         'bio': 'Nerd assumido 🎮 | Meus sonhos parecem cutscenes de RPG | Às vezes acordo e quero continuar a quest',
     },
     {
         'nome_usuario': 'bia_notivaga',
         'nome_completo': 'Beatriz Fonseca',
-        'email': 'beatriz.fonseca@dreamshare.test',
+        'email': 'beatriz.fonseca@lumem.test',
         'bio': 'Insone crônica que pelo menos tem sonhos incríveis quando dorme 🌃 | Escritora | Meus livros nascem dos meus sonhos',
     },
     {
         'nome_usuario': 'andre.onirico',
         'nome_completo': 'André Cavalcanti',
-        'email': 'andre.cavalcanti@dreamshare.test',
+        'email': 'andre.cavalcanti@lumem.test',
         'bio': 'Psicólogo junguiano 🧩 | A análise de sonhos mudou minha vida | Aqui compartilho os meus',
     },
     {
         'nome_usuario': 'fernanda_mp',
         'nome_completo': 'Fernanda Monteiro',
-        'email': 'fernanda.monteiro@dreamshare.test',
+        'email': 'fernanda.monteiro@lumem.test',
         'bio': 'Musicista 🎵 | Já compus 3 músicas baseadas em melodias que ouvi dormindo | O inconsciente é o melhor compositor',
     },
     {
         'nome_usuario': 'davi_sleepwalker',
         'nome_completo': 'Davi Rezende',
-        'email': 'davi.rezende@dreamshare.test',
+        'email': 'davi.rezende@lumem.test',
         'bio': 'Sonâmbulo em recuperação 😅 | Minha família tem histórias absurdas sobre o que eu já fiz dormindo',
     },
     {
         'nome_usuario': 'carol_rj',
         'nome_completo': 'Carolina Ribeiro',
-        'email': 'carolina.ribeiro@dreamshare.test',
+        'email': 'carolina.ribeiro@lumem.test',
         'bio': 'Carioca sonhadora 🏖️ | Meus sonhos geralmente envolvem o mar | Estudante de Oceanografia',
     },
 ]
@@ -893,5 +893,5 @@ class Command(BaseCommand):
             '\n🔑 Test credentials: Any seeded user with password "teste123"'
         ))
         self.stdout.write(self.style.WARNING(
-            '📧 Example login: luna.freitas@dreamshare.test / teste123'
+            '📧 Example login: luna.freitas@lumem.test / teste123'
         ))

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:dreamshare/services/api_client.dart';
-import 'package:dreamshare/views/screens/auth/login.dart';
-import 'package:dreamshare/views/screens/main_screen.dart';
-import 'package:dreamshare/util/router.dart';
+import 'package:lumem/services/api_client.dart';
+import 'package:lumem/views/screens/auth/login.dart';
+import 'package:lumem/views/screens/main_screen.dart';
+import 'package:lumem/util/router.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});

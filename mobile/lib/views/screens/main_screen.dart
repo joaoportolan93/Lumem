@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:dreamshare/views/screens/home.dart';
-import 'package:dreamshare/views/screens/communities.dart';
-import 'package:dreamshare/views/screens/explore.dart';
-import 'package:dreamshare/views/screens/notifications_dms.dart';
-import 'package:dreamshare/views/screens/profile.dart';
-import 'package:dreamshare/views/screens/create_dream.dart';
-import 'package:dreamshare/services/notification_service.dart';
+import 'package:lumem/views/screens/home.dart';
+import 'package:lumem/views/screens/communities.dart';
+import 'package:lumem/views/screens/explore.dart';
+import 'package:lumem/views/screens/notifications_dms.dart';
+import 'package:lumem/views/screens/profile.dart';
+import 'package:lumem/views/screens/create_dream.dart';
+import 'package:lumem/services/notification_service.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});

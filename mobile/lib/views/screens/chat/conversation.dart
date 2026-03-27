@@ -1,8 +1,8 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:dreamshare/views/widgets/chat_bubble.dart';
-import 'package:dreamshare/util/data.dart';
+import 'package:lumem/views/widgets/chat_bubble.dart';
+import 'package:lumem/util/data.dart';
 
 class Conversation extends StatefulWidget {
   const Conversation({super.key});
