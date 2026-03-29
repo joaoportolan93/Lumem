@@ -11,12 +11,23 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
-from decouple import config
+import os
 from datetime import timedelta
 from django.utils.translation import gettext_lazy as _
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Carrega o backend/.env ANTES do decouple, com override=True
+# para garantir que localmente as configurações do backend/.env prevaleçam.
+# No Docker/servidor, o backend/.env não existe no container,
+# então as variáveis de ambiente do docker-compose serão usadas.
+_env_file = BASE_DIR / '.env'
+if _env_file.exists():
+    from dotenv import load_dotenv
+    load_dotenv(str(_env_file), override=True)
+
+from decouple import config
 
 
 # Quick-start development settings - unsuitable for production
