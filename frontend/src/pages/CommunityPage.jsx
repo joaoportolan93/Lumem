@@ -335,17 +335,17 @@ const CommunityPage = () => {
                         </div>
 
                         {/* Title & Actions */}
-                        <div className="flex-1 ml-4 flex justify-between items-end pb-1">
-                            <div>
-                                <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                        <div className="flex-1 ml-4 block sm:flex justify-between items-start pt-2 pb-1 gap-4">
+                            <div className="min-w-0 pr-4">
+                                <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2 truncate">
                                     {community.nome}
                                 </h1>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">
+                                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">
                                     {community.descricao}
                                 </p>
                             </div>
 
-                            <div className="flex gap-2 items-center relative">
+                            <div className="flex gap-2 items-center relative flex-shrink-0 mt-3 sm:mt-0">
                                 {/* Create Post Button */}
                                 <button
                                     onClick={() => navigate(`/community/${id}/submit`)}

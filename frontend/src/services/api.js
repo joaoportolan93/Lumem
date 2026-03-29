@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// URL da API: usa variável de ambiente ou localhost para desenvolvimento local
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+// URL da API: usa variável de ambiente ou o ip da máquina host (porta 8000)
+const API_BASE_URL = process.env.REACT_APP_API_URL || `http://${window.location.hostname}:8000`;
 
 const api = axios.create({
     baseURL: API_BASE_URL,
