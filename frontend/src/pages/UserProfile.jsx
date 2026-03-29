@@ -55,7 +55,7 @@ const UserProfile = () => {
 
                 if (canSee) {
                     const dreamsRes = await getUserPosts(id);
-                    setUserDreams(dreamsRes.data);
+                    setUserDreams(dreamsRes.data.results || dreamsRes.data);
                 }
             } catch (error) {
                 console.error('Error fetching user:', error);
@@ -79,7 +79,7 @@ const UserProfile = () => {
                     setCommunityLoading(true);
                     try {
                         const res = await getUserCommunityPosts(id);
-                        setCommunityPosts(res.data);
+                        setCommunityPosts(res.data.results || res.data);
                     } catch (error) {
                         console.error('Error fetching community posts:', error);
                     } finally {
@@ -93,7 +93,7 @@ const UserProfile = () => {
                     setMemberCommLoading(true);
                     try {
                         const res = await getUserMemberCommunities(id);
-                        setMemberCommunities(res.data);
+                        setMemberCommunities(res.data.results || res.data);
                     } catch (error) {
                         console.error('Error fetching member communities:', error);
                     } finally {
@@ -107,7 +107,7 @@ const UserProfile = () => {
                     setAdminCommLoading(true);
                     try {
                         const res = await getUserAdminCommunities(id);
-                        setAdminCommunities(res.data);
+                        setAdminCommunities(res.data.results || res.data);
                     } catch (error) {
                         console.error('Error fetching admin communities:', error);
                     } finally {
@@ -130,7 +130,7 @@ const UserProfile = () => {
                 setMediaLoading(true);
                 try {
                     const res = await getUserMediaPosts(id);
-                    setMediaPosts(res.data);
+                    setMediaPosts(res.data.results || res.data);
                 } catch (error) {
                     console.error('Error fetching media posts:', error);
                 } finally {
@@ -217,7 +217,7 @@ const UserProfile = () => {
             setIsBlocked(false);
             // Fetch posts now that we unblocked
             const dreamsRes = await getUserPosts(id);
-            setUserDreams(dreamsRes.data);
+            setUserDreams(dreamsRes.data.results || dreamsRes.data);
         } catch (error) {
             console.error('Error unblocking user:', error);
         }
