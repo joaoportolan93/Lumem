@@ -5,6 +5,7 @@ Dream content is original, inspired by real dream journal narratives.
 """
 import random
 from django.core.management.base import BaseCommand
+from django.db import models
 from django.utils import timezone
 from datetime import timedelta
 from core.models import (
@@ -705,8 +706,14 @@ class Command(BaseCommand):
         
         users = []
         for profile in USER_PROFILES:
-            if Usuario.objects.filter(email=profile['email']).exists():
-                users.append(Usuario.objects.get(email=profile['email']))
+            # Check both email and nome_usuario to avoid IntegrityError
+            existing = Usuario.objects.filter(
+                models.Q(email=profile['email']) | 
+                models.Q(nome_usuario=profile['nome_usuario'])
+            ).first()
+            
+            if existing:
+                users.append(existing)
                 continue
                 
             user = Usuario.objects.create_user(
@@ -743,7 +750,14 @@ class Command(BaseCommand):
         self.stdout.write('Creating posts...')
         
         posts = []
+        created_count = 0
         for i, dream in enumerate(DREAM_POSTS):
+            # Check if post with this exact title already exists
+            existing = Publicacao.objects.filter(titulo=dream['titulo']).first()
+            if existing:
+                posts.append(existing)
+                continue
+
             # Distribute posts among users in a weighted way (some users post more)
             if i < 4:
                 user = users[i % len(users)]
@@ -773,7 +787,7 @@ class Command(BaseCommand):
             # Create hashtag relationships
             for h_key in post_hashtag_keys:
                 if h_key in hashtags:
-                    PublicacaoHashtag.objects.create(
+                    PublicacaoHashtag.objects.get_or_create(
                         publicacao=post,
                         hashtag=hashtags[h_key]
                     )
@@ -781,8 +795,9 @@ class Command(BaseCommand):
                     hashtags[h_key].save()
             
             posts.append(post)
+            created_count += 1
             
-        self.stdout.write(f'  Created {len(posts)} posts')
+        self.stdout.write(f'  Created {created_count} new posts (found {len(posts) - created_count} existing)')
         return posts
 
     def create_follows(self, users):
@@ -834,6 +849,10 @@ class Command(BaseCommand):
         
         comment_count = 0
         for post in posts:
+            # Skip posts that already have comments (idempotent)
+            if post.comentario_set.exists():
+                continue
+
             # Each post gets 1-6 comments
             num_comments = random.randint(1, 6)
             available_commenters = [u for u in users if u != post.usuario]
@@ -863,19 +882,24 @@ class Command(BaseCommand):
         self.stdout.write('Creating sample reports...')
         
         sample_posts = random.sample(posts, k=min(2, len(posts)))
+        reports_created = 0
         
         for post in sample_posts:
             reporter = random.choice([u for u in users if u != post.usuario])
-            Denuncia.objects.create(
+            report, created = Denuncia.objects.get_or_create(
                 usuario_denunciante=reporter,
                 tipo_conteudo=1,
                 id_conteudo=post.id_publicacao,
-                motivo_denuncia=random.randint(1, 3),
-                descricao_denuncia="Conteúdo reportado para teste de moderação.",
-                status_denuncia=1
+                defaults={
+                    'motivo_denuncia': random.randint(1, 3),
+                    'descricao_denuncia': "Conteúdo reportado para teste de moderação.",
+                    'status_denuncia': 1
+                }
             )
+            if created:
+                reports_created += 1
             
-        self.stdout.write(f'  Created {len(sample_posts)} sample reports')
+        self.stdout.write(f'  Created {reports_created} new sample reports')
 
     def print_summary(self):
         """Print database summary"""
