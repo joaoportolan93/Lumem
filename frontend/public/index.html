@@ -6,9 +6,24 @@
     <meta name="theme-color" content="#000000" />
     <meta
       name="description"
-      content="Dream Share - Compartilhe seus sonhos"
+      content="Lumem - Compartilhe seus sonhos"
     />
-    <title>Dream Share</title>
+    <title>Lumem</title>
+    <script>
+      (function() {
+        try {
+          var savedTheme = localStorage.getItem('theme');
+          var isDark = savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches) || savedTheme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches;
+          if (isDark) {
+            document.documentElement.classList.add('dark');
+          } else if (savedTheme === 'light') {
+            document.documentElement.classList.remove('dark');
+          } else {
+            document.documentElement.classList.add('dark'); // default is dark
+          }
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <noscript>Você precisa habilitar JavaScript para executar este app.</noscript>

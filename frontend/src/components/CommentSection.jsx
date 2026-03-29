@@ -76,7 +76,18 @@ const CommentSection = ({
         setLoading(true);
         try {
             const response = await getComments(dreamId, sortBy);
-            setComments(response.data);
+            console.log('API getComments response:', response.data);
+            
+            let dataArr = [];
+            if (response.data && Array.isArray(response.data.results)) {
+                dataArr = response.data.results;
+            } else if (Array.isArray(response.data)) {
+                dataArr = response.data;
+            } else {
+                console.error("Unrecognized response format:", response.data);
+            }
+            
+            setComments(dataArr);
             setError(null);
         } catch (err) {
             console.error('Error fetching comments:', err);
