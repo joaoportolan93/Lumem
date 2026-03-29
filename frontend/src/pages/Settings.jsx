@@ -57,6 +57,12 @@ const Settings = () => {
                 if (response.data.idioma && (response.data.idioma === 'pt-BR' || response.data.idioma === 'en')) {
                     i18n.changeLanguage(response.data.idioma);
                 }
+                // Sync theme from backend to localStorage on load
+                if (response.data.tema_interface) {
+                    const themeMap = { 1: 'light', 2: 'dark', 3: 'system' };
+                    const backendTheme = themeMap[response.data.tema_interface] || 'dark';
+                    localStorage.setItem('theme', backendTheme);
+                }
             } catch (err) {
                 console.error('Error fetching settings:', err);
                 setError(t('settings.errorLoad'));

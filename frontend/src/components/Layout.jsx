@@ -5,7 +5,7 @@ import SidebarRight from './SidebarRight';
 
 const Layout = ({ children, hideRightSidebar = false }) => {
     return (
-        <div className="min-h-screen bg-background-main dark:bg-galaxy-gradient dark:text-gray-100 font-sans transition-colors duration-500">
+        <div className="min-h-screen bg-background-main dark:bg-cosmic-bg dark:text-gray-100 font-sans transition-colors duration-500">
             <Header />
 
             <div className="pt-[60px] flex justify-center">

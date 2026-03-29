@@ -1,7 +1,10 @@
 import axios from 'axios';
 
+// URL da API: usa variável de ambiente ou localhost para desenvolvimento local
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+
 const api = axios.create({
-    baseURL: 'http://webmin.highdevs.com.br:5370', // ALTERADO TEMPORARIAMENTE PARA TESTE
+    baseURL: API_BASE_URL,
 });
 
 // Add auth token to every request
@@ -26,7 +29,7 @@ api.interceptors.response.use(
             try {
                 const refresh = localStorage.getItem('refresh');
                 if (refresh) {
-                    const response = await axios.post('http://webmin.highdevs.com.br:5370/api/auth/refresh/', {
+                    const response = await axios.post(`${API_BASE_URL}/api/auth/refresh/`, {
                         refresh: refresh
                     });
                     localStorage.setItem('access', response.data.access);

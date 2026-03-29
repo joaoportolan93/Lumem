@@ -92,14 +92,17 @@ const PostPage = () => {
         try {
             const response = await getComments(id, ordering);
 
-            // MOCKING SPAM DATA FOR DEMO
-            // Adding mock properties to demonstrate the "Spam" feature
-            const enrichedComments = response.data.map((c, i) => ({
-                ...c,
-                is_spam: i > 2 && i % 4 === 0 // Mark every 4th comment as "spam" for visual test after index 2
-            }));
+            // Handle both paginated ({ results: [...] }) and plain array responses
+            let dataArr = [];
+            if (response.data && Array.isArray(response.data.results)) {
+                dataArr = response.data.results;
+            } else if (Array.isArray(response.data)) {
+                dataArr = response.data;
+            } else {
+                console.error("Unrecognized comments response format:", response.data);
+            }
 
-            setComments(enrichedComments);
+            setComments(dataArr);
         } catch (err) {
             console.error('Error fetching comments:', err);
         } finally {

@@ -599,7 +599,7 @@
     "admin": {
         "dashboard": {
             "title": "Dashboard",
-            "subtitle": "Dream Share system overview",
+            "subtitle": "Lumem system overview",
             "totalUsers": "Total Users",
             "pendingReports": "Pending Reports",
             "bannedUsers": "Banned Users",
