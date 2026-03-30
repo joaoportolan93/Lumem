@@ -317,9 +317,9 @@ class RequestPasswordResetCodeView(APIView):
             # Send Email
             try:
                 send_mail(
-                    subject=_('Lumen - Código de Verificação'),
+                    subject=_('Lumem - Código de Verificação'),
                     message=_('Seu código de verificação para redefinir a senha é: %(code)s. Ele é válido por 15 minutos.') % {'code': code},
-                    from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@lumen.com'),
+                    from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@lumem.com'),
                     recipient_list=[email],
                     fail_silently=True,
                 )

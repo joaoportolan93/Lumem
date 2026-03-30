@@ -199,7 +199,7 @@ const Login = () => {
                         </button>
                     </div>
 
-                    <h2 className="auth-title">Lumen</h2>
+                    <h2 className="auth-title">Lumem</h2>
                     <p className="auth-subtitle">{t('login.subtitle')}</p>
 
                     {error && (
