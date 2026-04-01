@@ -736,5 +736,87 @@
         "noFollowing": "Not following anyone yet.",
         "btnFollowing": "Following",
         "btnFollow": "Follow"
+    },
+    "legal": {
+        "about": {
+            "title": "About Lumem",
+            "intro": "Lumem is a community to share dreams, connections, and experiences responsibly.",
+            "missionTitle": "Our mission",
+            "missionBody": "We aim to provide a creative space to share dreams, interact respectfully, and build a safe community for everyone.",
+            "responsibilityTitle": "Safety commitment",
+            "responsibilityBody": "We adopt community rules, moderation measures, and reporting channels to reduce abuse, protect users, and comply with applicable law.",
+            "contactTitle": "Institutional contact",
+            "contactBody": "For legal, privacy, or terms-related questions, please use the platform's official support channels."
+        },
+        "privacy": {
+            "title": "Privacy Policy",
+            "intro": "This summary explains how personal data may be collected, used, stored, and protected on Lumem.",
+            "sections": [
+                {
+                    "heading": "1. Data we collect",
+                    "body": "We may process registration data, authentication data, published content, interactions, and minimum technical data required for operation, security, and service improvement."
+                },
+                {
+                    "heading": "2. Purpose of use",
+                    "body": "Data may be used to operate accounts, personalize experience, prevent fraud, moderate content, and meet legal obligations."
+                },
+                {
+                    "heading": "3. Sharing and retention",
+                    "body": "Data may be shared with technical operators when needed to run the platform. Retention follows operational necessity and legal obligations."
+                },
+                {
+                    "heading": "4. Data subject rights",
+                    "body": "Users may request access, correction, and information about data processing, according to applicable law."
+                },
+                {
+                    "heading": "5. Security and incident response",
+                    "body": "We maintain administrative and technical safeguards, plus response processes for investigating and handling security incidents."
+                }
+            ]
+        },
+        "terms": {
+            "title": "Terms of Use",
+            "intro": "By using Lumem, you agree to the platform rules and related policies.",
+            "sections": [
+                {
+                    "heading": "1. Platform usage",
+                    "body": "Users must use Lumem lawfully, without violating third-party rights, without harassment, and without publishing illegal content."
+                },
+                {
+                    "heading": "2. Content and responsibility",
+                    "body": "Each user is responsible for the content they publish. The platform may remove content that violates internal rules or applicable law."
+                },
+                {
+                    "heading": "3. Moderation and sanctions",
+                    "body": "Lumem may apply moderation actions, suspension, or bans in cases of abuse, fraud, risk to others, or breach of these terms."
+                },
+                {
+                    "heading": "4. Child and adolescent protection",
+                    "body": "Content involving exploitation, sexualization, or any kind of violence against children and adolescents is strictly prohibited and may be reported to competent authorities."
+                },
+                {
+                    "heading": "5. Updates and validity",
+                    "body": "These terms may be updated to reflect legal, technical, or operational changes. The current version will always be available on the platform."
+                }
+            ]
+        },
+        "help": {
+            "title": "Help and Compliance",
+            "intro": "This section provides guidance on support, reporting, and safe-use best practices.",
+            "topics": [
+                {
+                    "heading": "How to report content",
+                    "body": "Use in-app reporting features to report abuse, threats, harassment, discrimination, or potentially unlawful content."
+                },
+                {
+                    "heading": "Applying the so-called \"Felca Law\"",
+                    "body": "At this time, we could not identify a formally consolidated Brazilian federal law under this exact name. As a compliance measure, we enforce child and adolescent protection rules, cooperation duties with authorities, and prompt removal of illegal content."
+                },
+                {
+                    "heading": "When to contact support",
+                    "body": "Contact support for account, privacy, security, or feature questions. In imminent risk scenarios, seek public authorities immediately."
+                }
+            ]
+        }
     }
 }

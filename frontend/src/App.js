@@ -25,6 +25,10 @@ import UserProfile from './pages/UserProfile';
 import SearchPage from './pages/SearchPage';
 import CreatePostPage from './pages/CreatePostPage';
 import PostPage from './pages/PostPage';
+import About from './pages/About';
+import Privacy from './pages/Privacy';
+import Terms from './pages/Terms';
+import Help from './pages/Help';
 
 // Admin - Issue #29
 import AdminLayout from './layouts/AdminLayout';
@@ -248,6 +252,10 @@ function App() {
                                 </PrivateRoute>
                             }
                         />
+                        <Route path="/about" element={<About />} />
+                        <Route path="/privacy" element={<Privacy />} />
+                        <Route path="/terms" element={<Terms />} />
+                        <Route path="/help" element={<Help />} />
 
                         {/* Admin Routes - Issue #29 */}
                         <Route

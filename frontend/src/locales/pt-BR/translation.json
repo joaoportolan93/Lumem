@@ -736,5 +736,87 @@
         "noFollowing": "Não segue ninguém ainda.",
         "btnFollowing": "Seguindo",
         "btnFollow": "Seguir"
+    },
+    "legal": {
+        "about": {
+            "title": "Sobre a Lumem",
+            "intro": "A Lumem é uma comunidade para compartilhar sonhos, conexões e experiências com responsabilidade.",
+            "missionTitle": "Nossa proposta",
+            "missionBody": "Queremos oferecer um espaço criativo para relatar sonhos, conversar com respeito e construir uma comunidade segura para todos.",
+            "responsibilityTitle": "Compromisso com segurança",
+            "responsibilityBody": "Adotamos regras de convivência, moderação e canais de denúncia para reduzir abusos, proteger usuários e cumprir a legislação aplicável.",
+            "contactTitle": "Contato institucional",
+            "contactBody": "Para dúvidas legais, privacidade ou termos de uso, use os canais oficiais de suporte da plataforma."
+        },
+        "privacy": {
+            "title": "Política de Privacidade",
+            "intro": "Este resumo explica como dados pessoais podem ser coletados, utilizados, armazenados e protegidos na Lumem.",
+            "sections": [
+                {
+                    "heading": "1. Dados coletados",
+                    "body": "Podemos tratar dados de cadastro, autenticação, conteúdo publicado, interações e dados técnicos mínimos para funcionamento, segurança e melhoria do serviço."
+                },
+                {
+                    "heading": "2. Finalidades de uso",
+                    "body": "Os dados podem ser usados para operar a conta, personalizar a experiência, prevenir fraude, moderar conteúdo e atender obrigações legais."
+                },
+                {
+                    "heading": "3. Compartilhamento e retenção",
+                    "body": "Dados podem ser compartilhados com operadores técnicos quando necessário para operação da plataforma. A retenção respeita necessidade operacional e obrigações legais."
+                },
+                {
+                    "heading": "4. Direitos do titular",
+                    "body": "Usuários podem solicitar acesso, correção e informações sobre tratamento de dados, conforme a legislação aplicável (incluindo a LGPD)."
+                },
+                {
+                    "heading": "5. Segurança e resposta a incidentes",
+                    "body": "Mantemos medidas administrativas e técnicas de proteção, além de processos para apuração e resposta em caso de incidentes de segurança."
+                }
+            ]
+        },
+        "terms": {
+            "title": "Termos de Uso",
+            "intro": "Ao utilizar a Lumem, você concorda com as regras de uso da plataforma e com as políticas relacionadas.",
+            "sections": [
+                {
+                    "heading": "1. Uso da plataforma",
+                    "body": "O usuário deve utilizar a Lumem de forma lícita, sem violar direitos de terceiros, sem assédio e sem publicar conteúdo ilegal."
+                },
+                {
+                    "heading": "2. Conteúdo e responsabilidade",
+                    "body": "Cada usuário é responsável pelo conteúdo que publica. A plataforma pode remover conteúdo que infrinja regras internas ou legislação."
+                },
+                {
+                    "heading": "3. Moderação e sanções",
+                    "body": "A Lumem pode aplicar medidas de moderação, suspensão ou banimento em casos de abuso, fraude, risco a terceiros ou descumprimento dos termos."
+                },
+                {
+                    "heading": "4. Proteção de crianças e adolescentes",
+                    "body": "Conteúdos envolvendo exploração, sexualização ou qualquer forma de violência contra crianças e adolescentes são proibidos e podem gerar comunicação às autoridades competentes."
+                },
+                {
+                    "heading": "5. Atualizações e vigência",
+                    "body": "Estes termos podem ser atualizados para refletir mudanças legais, técnicas ou operacionais. A versão vigente será sempre disponibilizada na plataforma."
+                }
+            ]
+        },
+        "help": {
+            "title": "Ajuda e Conformidade",
+            "intro": "Esta seção orienta sobre suporte, denúncias e boas práticas para uso seguro da comunidade.",
+            "topics": [
+                {
+                    "heading": "Como denunciar conteúdo",
+                    "body": "Use os recursos internos de denúncia para reportar abuso, ameaças, assédio, discriminação ou conteúdo potencialmente ilícito."
+                },
+                {
+                    "heading": "Aplicação da chamada \"Lei Felca\"",
+                    "body": "Até o momento não identificamos uma lei federal oficialmente consolidada com esse nome. Como medida de conformidade, aplicamos políticas de proteção de crianças e adolescentes, dever de cooperação com autoridades e pronta remoção de conteúdo ilícito."
+                },
+                {
+                    "heading": "Quando buscar suporte",
+                    "body": "Procure suporte para dúvidas sobre conta, privacidade, segurança ou recursos da plataforma. Em risco iminente, procure autoridades públicas imediatamente."
+                }
+            ]
+        }
     }
 }
