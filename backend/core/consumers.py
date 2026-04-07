@@ -6,7 +6,7 @@ import json
 import logging
 from datetime import datetime
 
-from channels.generic.websocket import AsyncJsonWebSocketConsumer
+from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from channels.db import database_sync_to_async
 from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone
@@ -14,7 +14,7 @@ from django.utils import timezone
 logger = logging.getLogger(__name__)
 
 
-class ChatConsumer(AsyncJsonWebSocketConsumer):
+class ChatConsumer(AsyncJsonWebsocketConsumer):
     """
     Consumer WebSocket para chat 1:1 em tempo real.
 
@@ -248,7 +248,7 @@ class ChatConsumer(AsyncJsonWebSocketConsumer):
             logger.error(f"Erro ao disparar push de chat: {e}")
 
 
-class NotificationConsumer(AsyncJsonWebSocketConsumer):
+class NotificationConsumer(AsyncJsonWebsocketConsumer):
     """
     Consumer WebSocket para notificações em tempo real.
 
