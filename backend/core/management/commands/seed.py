@@ -701,25 +701,9 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS('Data cleared!'))
 
     def create_users(self):
-        """Create realistic user profiles and an admin user"""
+        """Create realistic user profiles"""
         self.stdout.write('Creating users...')
         
-        # Ensure an admin exists
-        admin_email = 'admin@lumem.com'
-        admin_usuario = 'admin'
-        
-        admin_existing = Usuario.objects.filter(email=admin_email).first()
-        if not admin_existing:
-            Usuario.objects.create_superuser(
-                email=admin_email,
-                nome_usuario=admin_usuario,
-                nome_completo='Administrador Lumem',
-                password='admin'
-            )
-            self.stdout.write(self.style.SUCCESS(f'  Created Admin user: {admin_usuario} / admin'))
-        else:
-            self.stdout.write(f'  Admin user {admin_usuario} already exists')
-
         users = []
         for profile in USER_PROFILES:
             # Check both email and nome_usuario to avoid IntegrityError
