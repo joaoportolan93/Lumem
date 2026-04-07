@@ -48,16 +48,22 @@ class Usuario(AbstractBaseUser):
     verificado = models.BooleanField(default=False)
     is_admin = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)  # Required for authentication
-    
-    # Remove secret questions completely
-    
+
+    # Firebase Cloud Messaging token para push notifications
+    fcm_token = models.CharField(max_length=512, null=True, blank=True)
+    fcm_token_updated_at = models.DateTimeField(null=True, blank=True)
+
+    # Registro LGPD: data/hora exata em que o usuário aceitou os Termos de Uso
+    # e a Política de Privacidade. Prova legal de consentimento.
+    aceite_termos_em = models.DateTimeField(null=True, blank=True)
+
     STATUS_CHOICES = (
         (1, _('Ativo')),
         (2, _('Suspenso')),
         (3, _('Desativado')),
     )
     status = models.SmallIntegerField(choices=STATUS_CHOICES, default=1)
-    
+
     PRIVACIDADE_CHOICES = (
         (1, _('Público')),
         (2, _('Privado')),
@@ -74,6 +80,9 @@ class Usuario(AbstractBaseUser):
 
     def __str__(self):
         return self.nome_usuario
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
 
     @property
     def is_staff(self):
@@ -379,6 +388,12 @@ class MensagemDireta(models.Model):
     upload = models.ForeignKey(UploadChat, on_delete=models.SET_NULL, null=True, blank=True, db_column='id_upload')
     publicacao_compartilhada = models.ForeignKey('Publicacao', on_delete=models.SET_NULL, null=True, blank=True, related_name='compartilhamentos_chat', db_column='id_publicacao_compartilhada')
 
+    # Campos de moderação (auditoria admin)
+    moderada = models.BooleanField(default=False)
+    moderada_por = models.ForeignKey(Usuario, on_delete=models.SET_NULL, null=True, blank=True, related_name='mensagens_moderadas', db_column='id_moderador_msg')
+    moderada_em = models.DateTimeField(null=True, blank=True)
+    motivo_moderacao = models.TextField(null=True, blank=True)
+
     class Meta:
         db_table = 'mensagens_diretas'
         ordering = ['-data_envio']
@@ -587,3 +602,179 @@ class PasswordResetCode(models.Model):
 
     def is_valid(self):
         return not self.is_used and timezone.now() < self.expires_at
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# MODELOS DE CONFORMIDADE E MODERAÇÃO
+# ══════════════════════════════════════════════════════════════════════════════
+
+class ModeracaoConteudo(models.Model):
+    """Histórico de decisões de moderação sobre conteúdos e usuários.
+    Atende ao Marco Civil da Internet (Art. 15 — retenção de registros)."""
+    id_moderacao = models.UUIDField(primary_key=True, default=uuid6.uuid7, editable=False)
+
+    TIPO_CONTEUDO_CHOICES = (
+        ('publicacao', _('Publicação')),
+        ('comentario', _('Comentário')),
+        ('usuario', _('Usuário')),
+        ('mensagem', _('Mensagem Direta')),
+    )
+    tipo_conteudo = models.CharField(max_length=20, choices=TIPO_CONTEUDO_CHOICES)
+
+    # UUID do conteúdo afetado (publicação, comentário, usuário, etc.)
+    id_conteudo = models.CharField(max_length=36)
+
+    # Usuário que sofreu a ação (pode ser null se o conteúdo foi anônimo)
+    usuario_afetado = models.ForeignKey(
+        Usuario,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='moderacoes_recebidas',
+        db_column='id_usuario_afetado'
+    )
+
+    # Moderador ou admin que tomou a decisão (null = ação automática do sistema)
+    moderador = models.ForeignKey(
+        Usuario,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='moderacoes_aplicadas',
+        db_column='id_moderador'
+    )
+
+    # Denúncia que originou essa ação (pode ser null para ações proativas)
+    denuncia_origem = models.ForeignKey(
+        'Denuncia',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='moderacoes',
+        db_column='id_denuncia'
+    )
+
+    ACAO_CHOICES = (
+        ('remocao', _('Conteúdo Removido')),
+        ('restauracao', _('Conteúdo Restaurado')),
+        ('suspensao', _('Usuário Suspenso')),
+        ('banimento', _('Usuário Banido')),
+        ('advertencia', _('Advertência Emitida')),
+        ('sem_acao', _('Analisado — Sem Ação Necessária')),
+    )
+    acao = models.CharField(max_length=20, choices=ACAO_CHOICES)
+
+    # Texto completo do conteúdo removido (preservado para fins de auditoria)
+    conteudo_snapshot = models.TextField(null=True, blank=True)
+
+    motivo = models.TextField(blank=True, default='')
+    data_acao = models.DateTimeField(default=timezone.now)
+
+    # Retenção obrigatória: Art. 15 do Marco Civil da Internet exige 6 meses
+    # Este campo marca a data mínima de retenção do registro.
+    retencao_minima_ate = models.DateField(null=True, blank=True)
+
+    class Meta:
+        db_table = 'moderacao_conteudo'
+        ordering = ['-data_acao']
+
+    def __str__(self):
+        return f"[{self.acao.upper()}] {self.tipo_conteudo} {self.id_conteudo} em {self.data_acao:%d/%m/%Y}"
+
+    def save(self, *args, **kwargs):
+        if not self.retencao_minima_ate:
+            from datetime import date, timedelta
+            self.retencao_minima_ate = date.today() + timedelta(days=180)  # 6 meses
+        super().save(*args, **kwargs)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# NOTIFICAÇÕES ADMIN (BROADCAST)
+# ══════════════════════════════════════════════════════════════════════════════
+
+class NotificacaoAdmin(models.Model):
+    """Notificações broadcast criadas pelo admin para envio em massa."""
+    id_notificacao = models.UUIDField(primary_key=True, default=uuid6.uuid7, editable=False)
+    titulo = models.CharField(max_length=200)
+    mensagem = models.TextField()
+
+    TIPO_CHOICES = (
+        ('info', _('Informação')),
+        ('alerta', _('Alerta')),
+        ('promo', _('Promoção')),
+        ('atualizacao', _('Atualização')),
+        ('manutencao', _('Manutenção')),
+    )
+    tipo = models.CharField(max_length=20, choices=TIPO_CHOICES, default='info')
+
+    DESTINATARIOS_CHOICES = (
+        ('todos', _('Todos os Usuários')),
+        ('ativos', _('Usuários Ativos (7 dias)')),
+        ('verificados', _('Usuários Verificados')),
+    )
+    destinatarios = models.CharField(max_length=30, choices=DESTINATARIOS_CHOICES, default='todos')
+
+    criado_por = models.ForeignKey(Usuario, on_delete=models.SET_NULL, null=True, related_name='notificacoes_admin_criadas', db_column='id_admin_criador')
+    data_criacao = models.DateTimeField(auto_now_add=True)
+    data_envio = models.DateTimeField(null=True, blank=True)
+    enviada = models.BooleanField(default=False)
+    total_enviados = models.IntegerField(default=0)
+
+    class Meta:
+        db_table = 'notificacoes_admin'
+        ordering = ['-data_criacao']
+
+    def __str__(self):
+        status = 'Enviada' if self.enviada else 'Rascunho'
+        return f"[{status}] {self.titulo}"
+
+
+class ConfiguracaoNotificacaoAdmin(models.Model):
+    """Configurações globais de notificações (singleton, gerenciada pelo admin)."""
+    id_config = models.AutoField(primary_key=True)
+    push_habilitado = models.BooleanField(default=True)
+    email_habilitado = models.BooleanField(default=False)
+    frequencia_max_diaria = models.IntegerField(default=10, help_text='Máximo de pushes por dia por usuário')
+    horario_silencio_inicio = models.TimeField(null=True, blank=True, help_text='Início do horário de silêncio (ex: 22:00)')
+    horario_silencio_fim = models.TimeField(null=True, blank=True, help_text='Fim do horário de silêncio (ex: 08:00)')
+    ultima_atualizacao = models.DateTimeField(auto_now=True)
+    atualizado_por = models.ForeignKey(Usuario, on_delete=models.SET_NULL, null=True, blank=True, db_column='id_admin_atualizador')
+
+    class Meta:
+        db_table = 'configuracao_notificacao_admin'
+
+    def __str__(self):
+        return f"Config Notificações (Push: {'ON' if self.push_habilitado else 'OFF'})"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# AUDITORIA DE CHAT
+# ══════════════════════════════════════════════════════════════════════════════
+
+class AuditLogChat(models.Model):
+    """Log de auditoria de ações de moderação em chats."""
+    id_log = models.UUIDField(primary_key=True, default=uuid6.uuid7, editable=False)
+    conversa = models.ForeignKey(Conversa, on_delete=models.SET_NULL, null=True, blank=True, related_name='audit_logs', db_column='id_conversa')
+    mensagem = models.ForeignKey(MensagemDireta, on_delete=models.SET_NULL, null=True, blank=True, related_name='audit_logs', db_column='id_mensagem')
+
+    ACAO_CHOICES = (
+        ('view', _('Visualização')),
+        ('moderate', _('Moderação')),
+        ('delete', _('Exclusão')),
+        ('restore', _('Restauração')),
+        ('flag', _('Sinalização')),
+        ('export', _('Exportação')),
+    )
+    acao = models.CharField(max_length=20, choices=ACAO_CHOICES)
+
+    admin = models.ForeignKey(Usuario, on_delete=models.SET_NULL, null=True, related_name='audit_logs_chat', db_column='id_admin')
+    detalhes = models.JSONField(null=True, blank=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    data_acao = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'audit_log_chat'
+        ordering = ['-data_acao']
+
+    def __str__(self):
+        return f"[{self.acao.upper()}] Conversa {self.conversa_id} por {self.admin} em {self.data_acao:%d/%m/%Y %H:%M}"

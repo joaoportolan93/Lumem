@@ -17,8 +17,8 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ('id_usuario', 'nome_usuario', 'email', 'nome_completo', 'bio', 'avatar_url', 
-                  'data_nascimento', 'data_criacao', 'seguidores_count', 'seguindo_count', 
+        fields = ('id_usuario', 'nome_usuario', 'email', 'nome_completo', 'bio', 'avatar_url',
+                  'data_nascimento', 'data_criacao', 'seguidores_count', 'seguindo_count',
                   'is_following', 'is_blocked', 'is_muted', 'is_admin', 'privacidade_padrao')
 
     def get_avatar_url(self, obj):
@@ -101,19 +101,55 @@ class ChangePasswordSerializer(serializers.Serializer):
 
 
 class RegisterSerializer(serializers.ModelSerializer):
+    """
+    Serializer de cadastro orientado para adultos (+18).
+    Valida:
+      - data_nascimento obrigatória
+      - Bloqueia cadastro de menores de 18 anos
+      - Exige aceite explícito dos Termos e Política de Privacidade
+    """
     password = serializers.CharField(write_only=True)
+    aceite_termos = serializers.BooleanField(write_only=True)
 
     class Meta:
         model = User
-        fields = ('nome_usuario', 'email', 'nome_completo', 'password')
+        fields = ('nome_usuario', 'email', 'nome_completo', 'password',
+                  'data_nascimento', 'aceite_termos')
+
+    def validate_data_nascimento(self, value):
+        from datetime import date
+        if not value:
+            raise serializers.ValidationError(_('A data de nascimento é obrigatória.'))
+        today = date.today()
+        age = today.year - value.year - ((today.month, today.day) < (value.month, value.day))
+        if age < 18:
+            raise serializers.ValidationError(
+                _('O Lumem é restrito a usuários com 18 anos ou mais.')
+            )
+        return value
+
+    def validate_aceite_termos(self, value):
+        if not value:
+            raise serializers.ValidationError(
+                _('Você precisa aceitar os Termos de Uso e a Política de Privacidade para continuar.')
+            )
+        return value
 
     def create(self, validated_data):
+        from django.utils import timezone as tz
+        validated_data.pop('aceite_termos')
+
         user = User.objects.create_user(
             email=validated_data['email'],
             nome_usuario=validated_data['nome_usuario'],
             nome_completo=validated_data['nome_completo'],
-            password=validated_data['password']
+            password=validated_data['password'],
         )
+        user.data_nascimento = validated_data.get('data_nascimento')
+        user.aceite_termos_em = tz.now()
+        user.is_active = True
+        user.save(update_fields=['data_nascimento', 'aceite_termos_em', 'is_active'])
+
         return user
 
 class UserUpdateSerializer(serializers.ModelSerializer):
@@ -773,3 +809,48 @@ class ConversaListSerializer(serializers.ModelSerializer):
             usuario_destinatario=request.user,
             lida=False
         ).count()
+
+
+# ==========================================
+# NOTIFICAÇÕES ADMIN SERIALIZERS
+# ==========================================
+
+from .models import NotificacaoAdmin, ConfiguracaoNotificacaoAdmin, AuditLogChat
+
+class NotificacaoAdminSerializer(serializers.ModelSerializer):
+    criado_por_nome = serializers.CharField(source='criado_por.nome_usuario', read_only=True, default=None)
+
+    class Meta:
+        model = NotificacaoAdmin
+        fields = (
+            'id_notificacao', 'titulo', 'mensagem', 'tipo', 'destinatarios',
+            'criado_por', 'criado_por_nome', 'data_criacao', 'data_envio',
+            'enviada', 'total_enviados',
+        )
+        read_only_fields = ('id_notificacao', 'criado_por', 'criado_por_nome', 'data_criacao', 'data_envio', 'enviada', 'total_enviados')
+
+
+class ConfiguracaoNotificacaoAdminSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ConfiguracaoNotificacaoAdmin
+        fields = (
+            'id_config', 'push_habilitado', 'email_habilitado',
+            'frequencia_max_diaria', 'horario_silencio_inicio',
+            'horario_silencio_fim', 'ultima_atualizacao',
+        )
+        read_only_fields = ('id_config', 'ultima_atualizacao')
+
+
+class AuditLogChatSerializer(serializers.ModelSerializer):
+    admin_nome = serializers.CharField(source='admin.nome_usuario', read_only=True, default=None)
+    conversa_id = serializers.UUIDField(source='conversa.id_conversa', read_only=True, default=None)
+    mensagem_id = serializers.UUIDField(source='mensagem.id_mensagem', read_only=True, default=None)
+
+    class Meta:
+        model = AuditLogChat
+        fields = (
+            'id_log', 'conversa_id', 'mensagem_id', 'acao',
+            'admin', 'admin_nome', 'detalhes', 'ip_address', 'data_acao',
+        )
+        read_only_fields = ('id_log', 'data_acao')
+

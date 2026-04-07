@@ -13,15 +13,18 @@ const Register = () => {
         email: '',
         password: '',
         confirmPassword: '',
+        dataNascimento: '',
+        aceiteTermos: false,
     });
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
     const handleChange = (e) => {
+        const { name, value, type, checked } = e.target;
         setFormData({
             ...formData,
-            [e.target.name]: e.target.value,
+            [name]: type === 'checkbox' ? checked : value,
         });
     };
 
@@ -49,6 +52,8 @@ const Register = () => {
                 email: formData.email,
                 nome_completo: formData.username,
                 password: formData.password,
+                data_nascimento: formData.dataNascimento,
+                aceite_termos: formData.aceiteTermos,
             });
 
             const loginResponse = await login({
@@ -151,6 +156,34 @@ const Register = () => {
                         onChange={handleChange}
                         required
                     />
+
+                    <input
+                        type="date"
+                        name="dataNascimento"
+                        className="auth-input immersive-input mb-4"
+                        placeholder="Data de Nascimento"
+                        value={formData.dataNascimento}
+                        onChange={handleChange}
+                        required
+                        max={new Date().toISOString().split("T")[0]}
+                    />
+
+                    <div className="flex items-start mb-6 text-left">
+                        <input
+                            type="checkbox"
+                            name="aceiteTermos"
+                            id="aceiteTermos"
+                            className="mt-1 mr-2 cursor-pointer"
+                            checked={formData.aceiteTermos}
+                            onChange={handleChange}
+                            required
+                        />
+                        <label htmlFor="aceiteTermos" className="text-sm text-gray-300">
+                            Li e aceito os{' '}
+                            <Link to="/termos" target="_blank" className="text-[#a78bfa] hover:text-[#c4b5fd]">Termos de Uso</Link> e a{' '}
+                            <Link to="/privacidade" target="_blank" className="text-[#a78bfa] hover:text-[#c4b5fd]">Política de Privacidade</Link>.
+                        </label>
+                    </div>
 
 
                     <button

@@ -2,7 +2,7 @@
 set -e
 
 echo "=========================================="
-echo "  Dream Share Backend - Entrypoint"
+echo "  Lumem Backend - Entrypoint"
 echo "=========================================="
 
 # -----------------------------------------------
@@ -18,19 +18,34 @@ if [ "$DB_ENGINE" = "django.db.backends.mysql" ]; then
 fi
 
 # -----------------------------------------------
-# 2. Migrações
+# 2. Esperar Redis ficar disponível
+# -----------------------------------------------
+if [ -n "$REDIS_URL" ]; then
+    # Extrair host e porta da REDIS_URL (redis://host:port/db)
+    REDIS_HOST=$(echo "$REDIS_URL" | sed -E 's|redis://([^:]+):([0-9]+)/.*|\1|')
+    REDIS_PORT=$(echo "$REDIS_URL" | sed -E 's|redis://([^:]+):([0-9]+)/.*|\2|')
+    echo "⏳ Aguardando Redis em ${REDIS_HOST}:${REDIS_PORT}..."
+    while ! redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" ping 2>/dev/null | grep -q PONG; do
+        echo "   Redis não disponível ainda, tentando em 2s..."
+        sleep 2
+    done
+    echo "✅ Redis disponível!"
+fi
+
+# -----------------------------------------------
+# 3. Migrações
 # -----------------------------------------------
 echo "🔄 Aplicando migrações..."
 python manage.py migrate --noinput
 
 # -----------------------------------------------
-# 3. Collectstatic
+# 4. Collectstatic
 # -----------------------------------------------
 echo "📦 Coletando arquivos estáticos..."
 python manage.py collectstatic --noinput
 
 # -----------------------------------------------
-# 4. Seed condicional
+# 5. Seed condicional
 # -----------------------------------------------
 if [ "${RUN_SEED,,}" = "true" ]; then
     echo "🌱 Rodando seed de dados..."
@@ -40,13 +55,16 @@ if [ "${RUN_SEED,,}" = "true" ]; then
 fi
 
 # -----------------------------------------------
-# 5. Iniciar Gunicorn
+# 6. Iniciar Celery Worker em background
+# -----------------------------------------------
+echo "🔧 Iniciando Celery Worker..."
+celery -A dreamshare_backend worker --loglevel=info --concurrency=2 &
+CELERY_PID=$!
+echo "✅ Celery Worker iniciado (PID: $CELERY_PID)"
+
+# -----------------------------------------------
+# 7. Iniciar Daphne (ASGI - suporta HTTP + WebSocket)
 # -----------------------------------------------
 BACKEND_PORT="${BACKEND_PORT:-8000}"
-echo "🚀 Iniciando Gunicorn na porta ${BACKEND_PORT}..."
-exec gunicorn dreamshare_backend.wsgi:application \
-    --bind "0.0.0.0:${BACKEND_PORT}" \
-    --workers 3 \
-    --timeout 120 \
-    --access-logfile - \
-    --error-logfile -
+echo "🚀 Iniciando Daphne (ASGI) na porta ${BACKEND_PORT}..."
+exec daphne -b 0.0.0.0 -p "${BACKEND_PORT}" dreamshare_backend.asgi:application
