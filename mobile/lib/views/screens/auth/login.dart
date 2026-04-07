@@ -25,6 +25,8 @@ class _LoginState extends State<Login> {
   GlobalKey<FormState> formKey = GlobalKey<FormState>();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   String email = '', password = '', name = '', username = '';
+  String dataNascimentoStr = '';
+  bool aceiteTermos = false;
   FocusNode nameFN = FocusNode();
   FocusNode usernameFN = FocusNode();
   FocusNode emailFN = FocusNode();
@@ -42,6 +44,18 @@ class _LoginState extends State<Login> {
       return;
     }
 
+    if (formMode == FormMode.REGISTER) {
+      if (dataNascimentoStr.isEmpty || !aceiteTermos) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Por favor, informe a data de nascimento e aceite os termos.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+    }
+
     setState(() => loading = true);
 
     try {
@@ -53,6 +67,8 @@ class _LoginState extends State<Login> {
           nomeUsuario: username,
           nomeCompleto: name,
           password: password,
+          dataNascimento: dataNascimentoStr,
+          aceiteTermos: aceiteTermos,
         );
       } else if (formMode == FormMode.FORGOT_PASSWORD) {
         // Mocking forgot password behavior
@@ -253,6 +269,45 @@ class _LoginState extends State<Login> {
                 },
                 focusNode: usernameFN,
                 nextFocusNode: emailFN,
+              ),
+              const SizedBox(height: 20.0),
+              GestureDetector(
+                onTap: () async {
+                  if (loading) return;
+                  final DateTime? picked = await showDatePicker(
+                    context: context,
+                    initialDate: DateTime.now().subtract(const Duration(days: 365 * 18)),
+                    firstDate: DateTime(1900),
+                    lastDate: DateTime.now(),
+                  );
+                  if (picked != null) {
+                    setState(() {
+                      dataNascimentoStr = "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
+                    });
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 15),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(10.0),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.calendar_today, color: Theme.of(context).iconTheme.color),
+                      const SizedBox(width: 10),
+                      Text(dataNascimentoStr.isEmpty ? "Data de nascimento" : dataNascimentoStr),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20.0),
+              CheckboxListTile(
+              	value: aceiteTermos,
+              	onChanged: loading ? null : (v) => setState(() => aceiteTermos = v ?? false),
+              	title: const Text('Li e aceito os Termos de Uso e a Política de Privacidade', style: TextStyle(fontSize: 12)),
+              	controlAffinity: ListTileControlAffinity.leading,
+                contentPadding: EdgeInsets.zero,
               ),
               const SizedBox(height: 20.0),
             ],

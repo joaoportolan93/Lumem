@@ -2,9 +2,9 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenRefreshView
 from .views import (
-    RegisterView, UserProfileView, UserDetailView, LogoutView, 
+    RegisterView, UserProfileView, UserDetailView, LogoutView,
     RequestPasswordResetCodeView, VerifyAndResetPasswordView,
-    AvatarUploadView, PublicacaoViewSet, FollowView, SuggestedUsersView, 
+    AvatarUploadView, PublicacaoViewSet, FollowView, SuggestedUsersView,
     ComentarioViewSet, NotificacaoViewSet, SearchView, CustomTokenObtainPairView,
     GoogleLoginView,
     AdminStatsView, AdminUsersView, AdminUserDetailView, AdminReportsView, AdminReportActionView,
@@ -15,7 +15,18 @@ from .views import (
     ConversationListView, ChatView, MessageReadView,
     ChangePasswordView,
     ConversaViewSet, UploadChatView,
+    # FCM Token
+    FCMTokenView,
+    # Admin Notifications
+    AdminNotificacaoListCreateView, AdminNotificacaoDetailView,
+    AdminNotificacaoSendView, AdminNotificacaoConfigView, AdminNotificacaoStatsView,
+    # Admin Chat Audit
+    AdminChatConversationsView, AdminChatMessagesView,
+    AdminChatModerateView, AdminChatAuditLogView, AdminChatStatsView,
+    # Conformidade Legal — LGPD
+    DeleteAccountView, DataExportView,
 )
+
 
 # Router for ViewSets
 router = DefaultRouter()
@@ -44,7 +55,11 @@ urlpatterns = [
     path('auth/password-reset/request/', RequestPasswordResetCodeView.as_view(), name='password_reset_request'),
     path('auth/password-reset/verify/', VerifyAndResetPasswordView.as_view(), name='password_reset_verify'),
     path('auth/change-password/', ChangePasswordView.as_view(), name='change_password'),
-    
+
+    # Conformidade Legal — LGPD
+    path('profile/delete/', DeleteAccountView.as_view(), name='delete_account'),
+    path('profile/export/', DataExportView.as_view(), name='data_export'),
+
     # User endpoints
     path('profile/', UserProfileView.as_view(), name='profile'),
     path('users/suggested/', SuggestedUsersView.as_view(), name='suggested_users'),
@@ -95,10 +110,27 @@ urlpatterns = [
     # V2 DM endpoints (upload de mídia)
     path('v2/uploads/chat/', UploadChatView.as_view(), name='chat-upload'),
     path('v2/uploads/chat/<uuid:pk>/', UploadChatView.as_view(), name='chat-upload-delete'),
-    
+
+    # FCM Token registration
+    path('users/fcm-token/', FCMTokenView.as_view(), name='fcm-token'),
+
+    # Admin: Notificações Broadcast
+    path('admin/notifications/', AdminNotificacaoListCreateView.as_view(), name='admin-notifications-list'),
+    path('admin/notifications/<uuid:pk>/', AdminNotificacaoDetailView.as_view(), name='admin-notifications-detail'),
+    path('admin/notifications/<uuid:pk>/send/', AdminNotificacaoSendView.as_view(), name='admin-notifications-send'),
+    path('admin/notifications/config/', AdminNotificacaoConfigView.as_view(), name='admin-notifications-config'),
+    path('admin/notifications/stats/', AdminNotificacaoStatsView.as_view(), name='admin-notifications-stats'),
+
+    # Admin: Auditoria de Chat
+    path('admin/chat/conversations/', AdminChatConversationsView.as_view(), name='admin-chat-conversations'),
+    path('admin/chat/conversations/<uuid:pk>/messages/', AdminChatMessagesView.as_view(), name='admin-chat-messages'),
+    path('admin/chat/messages/<uuid:pk>/moderate/', AdminChatModerateView.as_view(), name='admin-chat-moderate'),
+    path('admin/chat/audit-log/', AdminChatAuditLogView.as_view(), name='admin-chat-audit-log'),
+    path('admin/chat/stats/', AdminChatStatsView.as_view(), name='admin-chat-stats'),
+
     # Include router URLs (dreams CRUD + notifications)
     path('', include(router.urls)),
-    
+
     # V2 DM router (conversations)
     path('v2/', include(v2_router.urls)),
 ]

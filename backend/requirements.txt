@@ -16,3 +16,15 @@ mysqlclient>=2.2
 whitenoise>=6.5
 gunicorn>=22.0
 requests>=2.31.0
+
+# Real-time (WebSocket via Django Channels)
+daphne>=4.1
+channels>=4.0
+channels-redis>=4.2
+
+# Task Queue (Celery com broker Redis)
+celery>=5.3
+redis>=5.0
+
+# Firebase (Push Notifications)
+firebase-admin>=6.0

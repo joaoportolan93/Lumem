@@ -101,11 +101,10 @@ class ChangePasswordView(generics.UpdateAPIView):
 
 
 class CustomTokenObtainPairView(TokenObtainPairView):
-    """Custom login view with rate limiting and ban check"""
+    """Custom login view with rate limiting, ban check and age-gate interception."""
     throttle_classes = [LoginRateThrottle]
 
     def post(self, request, *args, **kwargs):
-        # First check if user is banned before attempting login
         email = request.data.get('email')
         if email:
             try:
@@ -118,11 +117,24 @@ class CustomTokenObtainPairView(TokenObtainPairView):
                     }, status=status.HTTP_403_FORBIDDEN)
             except User.DoesNotExist:
                 pass  # Let the parent handle invalid credentials
-        
-        return super().post(request, *args, **kwargs)
+
+        response = super().post(request, *args, **kwargs)
+
+        # Após login bem-sucedido, retornar info de ausência de idade sem persistir em colunas deletadas
+        if response.status_code == 200:
+            try:
+                user = User.objects.get(email=email)
+                # Mantemos a flag 'pendente_idade' na resposta para manter o frontend legando funcionando
+                response.data['pendente_idade'] = not bool(user.data_nascimento)
+            except User.DoesNotExist:
+                pass
+
+        return response
 
 class GoogleLoginView(APIView):
-    """Handles Google OAuth login/registration"""
+    """Handles Google OAuth login/registration with age-gate interception.
+    Novos usuários e usuários legados sem data_nascimento recebem a flag
+    pendente_idade=True e devem ser redirecionados para /complete-registration."""
     permission_classes = (permissions.AllowAny,)
     throttle_classes = [LoginRateThrottle]
 
@@ -131,48 +143,153 @@ class GoogleLoginView(APIView):
         if not access_token:
             return Response({'error': _('Token não fornecido.')}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Request user info from Google
-        google_response = requests.get(f'https://www.googleapis.com/oauth2/v3/userinfo?access_token={access_token}')
+        # Buscar informações do usuário no Google
+        google_response = requests.get(
+            f'https://www.googleapis.com/oauth2/v3/userinfo?access_token={access_token}'
+        )
         if not google_response.ok:
             return Response({'error': _('Token do Google inválido.')}, status=status.HTTP_400_BAD_REQUEST)
 
         user_info = google_response.json()
         email = user_info.get('email')
         nome_completo = user_info.get('name', '')
-        
+
         if not email:
             return Response({'error': _('O e-mail não foi retornado pelo Google.')}, status=status.HTTP_400_BAD_REQUEST)
 
+        is_new_user = False
         try:
             user = User.objects.get(email=email)
-            if user.status == 2:  # Banned
+            if user.status == 2:  # Banido
                 return Response({
                     'error': _('Conta banida'),
                     'message': _('Sua conta foi banida por tempo indeterminado devido a violação das regras da comunidade.'),
                     'banned': True
                 }, status=status.HTTP_403_FORBIDDEN)
+
+            # Usuário legado não quebra, flag enviada apenas via Response depois.
         except User.DoesNotExist:
-            # Create user based on Google info
+            # Criar conta Google — inativa até fornecer data de nascimento
+            is_new_user = True
             base_username = email.split('@')[0]
             username = base_username
             counter = 1
             while User.objects.filter(nome_usuario=username).exists():
                 username = f"{base_username}{counter}"
                 counter += 1
-                
+
             user = User.objects.create_user(
                 nome_usuario=username,
                 email=email,
                 nome_completo=nome_completo
             )
 
-        # Generate JWT tokens
+        # Gerar tokens JWT
         refresh = RefreshToken.for_user(user)
         return Response({
             'refresh': str(refresh),
             'access': str(refresh.access_token),
-            'user': UserSerializer(user, context={'request': request}).data
+            'user': UserSerializer(user, context={'request': request}).data,
+            'pendente_idade': not bool(user.data_nascimento),
+            'is_new_user': is_new_user,
         })
+
+
+class DeleteAccountView(APIView):
+    """Permite que o próprio usuário exclua sua conta de forma permanente.
+    Exigido pela LGPD, Art. 18, VI — direito à eliminação dos dados pessoais.
+    Logs de moderação são preservados conforme o Art. 15 do Marco Civil."""
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def delete(self, request):
+        from django.contrib.auth.hashers import check_password
+
+        # Exige confirmação da senha atual (ou flag 'confirmar' para contas Google sem senha)
+        senha_confirmacao = request.data.get('senha')
+        confirmar = request.data.get('confirmar', False)
+
+        user = request.user
+
+        # Se o usuário tem senha, exigir confirmação
+        if user.has_usable_password():
+            if not senha_confirmacao:
+                return Response(
+                    {'error': _('A confirmação de senha é obrigatória.')},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            if not check_password(senha_confirmacao, user.password):
+                return Response(
+                    {'error': _('Senha incorreta. A conta não foi excluída.')},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        else:
+            # Conta Google: exigir flag de confirmação explícita
+            if not confirmar:
+                return Response(
+                    {'error': _('Confirmação explícita necessária para excluir a conta.')},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+        # Invalidar tokens ativos
+        try:
+            refresh_token = request.data.get('refresh')
+            if refresh_token:
+                from rest_framework_simplejwt.tokens import RefreshToken as RT
+                RT(refresh_token).blacklist()
+        except Exception:
+            pass  # Não bloquear a exclusão se o token já for inválido
+
+        email = user.email
+        user.delete()  # CASCADE elimina posts, comentários, mensagens, etc.
+
+        return Response(
+            {'message': _('Sua conta e todos os seus dados foram excluídos permanentemente.')},
+            status=status.HTTP_200_OK
+        )
+
+
+class DataExportView(APIView):
+    """Exporta todos os dados do usuário autenticado em formato JSON.
+    Exigido pela LGPD, Art. 18, V — direito à portabilidade dos dados."""
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def get(self, request):
+        user = request.user
+        from .models import Publicacao, Comentario, Seguidor
+
+        posts = list(Publicacao.objects.filter(usuario=user).values(
+            'id_publicacao', 'titulo', 'conteudo_texto', 'data_sonho',
+            'tipo_sonho', 'visibilidade', 'emocoes_sentidas', 'data_publicacao'
+        ))
+
+        comentarios = list(Comentario.objects.filter(usuario=user).values(
+            'id_comentario', 'conteudo_texto', 'data_comentario', 'publicacao_id'
+        ))
+
+        seguindo = list(Seguidor.objects.filter(
+            usuario_seguidor=user, status=1
+        ).values('usuario_seguido__nome_usuario', 'data_seguimento'))
+
+        data = {
+            'perfil': {
+                'nome_usuario': user.nome_usuario,
+                'nome_completo': user.nome_completo,
+                'email': user.email,
+                'bio': user.bio,
+                'data_nascimento': str(user.data_nascimento) if user.data_nascimento else None,
+                'data_criacao': str(user.data_criacao),
+                'aceite_termos_em': str(user.aceite_termos_em) if user.aceite_termos_em else None,
+            },
+            'publicacoes': posts,
+            'comentarios': comentarios,
+            'seguindo': seguindo,
+        }
+
+        from django.http import JsonResponse
+        import json
+        response = JsonResponse(data, json_dumps_params={'ensure_ascii': False, 'indent': 2})
+        response['Content-Disposition'] = f'attachment; filename="lumem_dados_{user.nome_usuario}.json"'
+        return response
 
 class UserProfileView(APIView):
     """Get/update current authenticated user's profile"""
@@ -2717,3 +2834,445 @@ class UploadChatView(APIView):
         upload.arquivo.delete(save=False)
         upload.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+# ==========================================
+# FCM TOKEN REGISTRATION
+# ==========================================
+
+class FCMTokenView(APIView):
+    """Registrar ou atualizar o token FCM do dispositivo do usuário."""
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def put(self, request):
+        token = request.data.get('fcm_token', '').strip()
+        if not token:
+            return Response({'error': _('fcm_token é obrigatório')}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = request.user
+        user.fcm_token = token
+        user.fcm_token_updated_at = timezone.now()
+        user.save(update_fields=['fcm_token', 'fcm_token_updated_at'])
+
+        return Response({'message': _('Token FCM atualizado com sucesso')}, status=status.HTTP_200_OK)
+
+    def delete(self, request):
+        """Remove o token FCM (ex: ao fazer logout)."""
+        user = request.user
+        user.fcm_token = None
+        user.fcm_token_updated_at = None
+        user.save(update_fields=['fcm_token', 'fcm_token_updated_at'])
+
+        return Response({'message': _('Token FCM removido')}, status=status.HTTP_200_OK)
+
+
+# ==========================================
+# ADMIN: NOTIFICAÇÕES BROADCAST
+# ==========================================
+
+from .models import NotificacaoAdmin, ConfiguracaoNotificacaoAdmin, AuditLogChat
+from .serializers import NotificacaoAdminSerializer, ConfiguracaoNotificacaoAdminSerializer, AuditLogChatSerializer
+
+
+class AdminNotificacaoListCreateView(APIView):
+    """Listar e criar notificações broadcast (admin only)."""
+    permission_classes = [IsAdminPermission]
+
+    def get(self, request):
+        """Lista todas as notificações broadcast."""
+        notifs = NotificacaoAdmin.objects.all().select_related('criado_por')
+
+        # Filtros
+        status_filter = request.query_params.get('status')
+        if status_filter == 'enviada':
+            notifs = notifs.filter(enviada=True)
+        elif status_filter == 'rascunho':
+            notifs = notifs.filter(enviada=False)
+
+        tipo_filter = request.query_params.get('tipo')
+        if tipo_filter:
+            notifs = notifs.filter(tipo=tipo_filter)
+
+        serializer = NotificacaoAdminSerializer(notifs[:50], many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        """Criar uma nova notificação broadcast (rascunho)."""
+        serializer = NotificacaoAdminSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(criado_por=request.user)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class AdminNotificacaoDetailView(APIView):
+    """Detalhe, edição e exclusão de notificação broadcast (admin only)."""
+    permission_classes = [IsAdminPermission]
+
+    def get(self, request, pk):
+        notif = get_object_or_404(NotificacaoAdmin, pk=pk)
+        serializer = NotificacaoAdminSerializer(notif)
+        return Response(serializer.data)
+
+    def patch(self, request, pk):
+        notif = get_object_or_404(NotificacaoAdmin, pk=pk)
+        if notif.enviada:
+            return Response({'error': _('Não é possível editar notificação já enviada')}, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = NotificacaoAdminSerializer(notif, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk):
+        notif = get_object_or_404(NotificacaoAdmin, pk=pk)
+        if notif.enviada:
+            return Response({'error': _('Não é possível excluir notificação já enviada')}, status=status.HTTP_400_BAD_REQUEST)
+        notif.delete()
+        return Response({'message': _('Notificação excluída')}, status=status.HTTP_200_OK)
+
+
+class AdminNotificacaoSendView(APIView):
+    """Disparar envio de uma notificação broadcast (admin only)."""
+    permission_classes = [IsAdminPermission]
+
+    def post(self, request, pk):
+        notif = get_object_or_404(NotificacaoAdmin, pk=pk)
+
+        if notif.enviada:
+            return Response({'error': _('Notificação já foi enviada')}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Disparar task Celery para envio assíncrono
+        from .tasks import send_broadcast_push
+        send_broadcast_push.delay(str(notif.id_notificacao))
+
+        return Response({
+            'message': _('Envio de notificação iniciado em background'),
+            'id_notificacao': str(notif.id_notificacao),
+        }, status=status.HTTP_200_OK)
+
+
+class AdminNotificacaoConfigView(APIView):
+    """Configurações globais de notificações (admin only, singleton)."""
+    permission_classes = [IsAdminPermission]
+
+    def get(self, request):
+        config, _ = ConfiguracaoNotificacaoAdmin.objects.get_or_create(pk=1)
+        serializer = ConfiguracaoNotificacaoAdminSerializer(config)
+        return Response(serializer.data)
+
+    def patch(self, request):
+        config, _ = ConfiguracaoNotificacaoAdmin.objects.get_or_create(pk=1)
+        serializer = ConfiguracaoNotificacaoAdminSerializer(config, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save(atualizado_por=request.user)
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class AdminNotificacaoStatsView(APIView):
+    """Estatísticas de notificações (admin only)."""
+    permission_classes = [IsAdminPermission]
+
+    def get(self, request):
+        from django.db.models import Sum
+
+        total_broadcasts = NotificacaoAdmin.objects.count()
+        total_enviadas = NotificacaoAdmin.objects.filter(enviada=True).count()
+        total_rascunhos = NotificacaoAdmin.objects.filter(enviada=False).count()
+        total_pushes = NotificacaoAdmin.objects.filter(enviada=True).aggregate(
+            total=Sum('total_enviados')
+        )['total'] or 0
+
+        # Estatísticas de notificações in-app
+        total_notif_inapp = Notificacao.objects.count()
+        total_notif_lidas = Notificacao.objects.filter(lida=True).count()
+        taxa_leitura = round((total_notif_lidas / total_notif_inapp * 100), 1) if total_notif_inapp > 0 else 0
+
+        # Usuários com FCM token
+        users_com_fcm = User.objects.filter(fcm_token__isnull=False).exclude(fcm_token='').count()
+        users_total = User.objects.filter(status=1).count()
+
+        return Response({
+            'broadcasts': {
+                'total': total_broadcasts,
+                'enviadas': total_enviadas,
+                'rascunhos': total_rascunhos,
+                'total_pushes_enviados': total_pushes,
+            },
+            'notificacoes_inapp': {
+                'total': total_notif_inapp,
+                'lidas': total_notif_lidas,
+                'taxa_leitura_pct': taxa_leitura,
+            },
+            'dispositivos': {
+                'usuarios_com_fcm_token': users_com_fcm,
+                'usuarios_ativos_total': users_total,
+                'cobertura_pct': round((users_com_fcm / users_total * 100), 1) if users_total > 0 else 0,
+            },
+        })
+
+
+# ==========================================
+# ADMIN: AUDITORIA DE CHAT
+# ==========================================
+
+class AdminChatConversationsView(APIView):
+    """Listar todas as conversas para auditoria (admin only)."""
+    permission_classes = [IsAdminPermission]
+
+    def get(self, request):
+        from .models import Conversa
+        from django.db.models import Count, Max
+
+        conversas = Conversa.objects.select_related('usuario_a', 'usuario_b').annotate(
+            total_mensagens=Count('mensagens'),
+            ultima_mensagem_data=Max('mensagens__data_envio'),
+            mensagens_moderadas=Count('mensagens', filter=Q(mensagens__moderada=True)),
+        ).order_by('-data_atualizacao')
+
+        # Filtros
+        user_filter = request.query_params.get('user')
+        if user_filter:
+            conversas = conversas.filter(
+                Q(usuario_a__nome_usuario__icontains=user_filter) |
+                Q(usuario_b__nome_usuario__icontains=user_filter)
+            )
+
+        flagged = request.query_params.get('flagged')
+        if flagged == 'true':
+            conversas = conversas.filter(mensagens_moderadas__gt=0)
+
+        data = []
+        for c in conversas[:100]:
+            data.append({
+                'id_conversa': str(c.id_conversa),
+                'usuario_a': {
+                    'id': str(c.usuario_a.id_usuario),
+                    'nome_usuario': c.usuario_a.nome_usuario,
+                    'nome_completo': c.usuario_a.nome_completo,
+                    'avatar_url': c.usuario_a.avatar_url,
+                },
+                'usuario_b': {
+                    'id': str(c.usuario_b.id_usuario),
+                    'nome_usuario': c.usuario_b.nome_usuario,
+                    'nome_completo': c.usuario_b.nome_completo,
+                    'avatar_url': c.usuario_b.avatar_url,
+                },
+                'total_mensagens': c.total_mensagens,
+                'mensagens_moderadas': c.mensagens_moderadas,
+                'ultima_mensagem_data': c.ultima_mensagem_data.isoformat() if c.ultima_mensagem_data else None,
+                'data_criacao': c.data_criacao.isoformat(),
+            })
+
+        # Registrar no audit log
+        AuditLogChat.objects.create(
+            admin=request.user,
+            acao='view',
+            detalhes={'action': 'list_conversations', 'filters': dict(request.query_params)},
+            ip_address=self._get_client_ip(request),
+        )
+
+        return Response(data)
+
+    def _get_client_ip(self, request):
+        x_forwarded = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded:
+            return x_forwarded.split(',')[0].strip()
+        return request.META.get('REMOTE_ADDR')
+
+
+class AdminChatMessagesView(APIView):
+    """Ver mensagens de uma conversa específica (admin only)."""
+    permission_classes = [IsAdminPermission]
+
+    def get(self, request, pk):
+        from .models import Conversa
+
+        conversa = get_object_or_404(Conversa, pk=pk)
+        mensagens = conversa.mensagens.select_related(
+            'usuario_remetente', 'usuario_destinatario', 'moderada_por'
+        ).order_by('data_envio')
+
+        # Filtros
+        keyword = request.query_params.get('q')
+        if keyword:
+            mensagens = mensagens.filter(conteudo__icontains=keyword)
+
+        date_from = request.query_params.get('date_from')
+        if date_from:
+            mensagens = mensagens.filter(data_envio__gte=date_from)
+
+        date_to = request.query_params.get('date_to')
+        if date_to:
+            mensagens = mensagens.filter(data_envio__lte=date_to)
+
+        data = []
+        for msg in mensagens[:500]:
+            data.append({
+                'id_mensagem': str(msg.id_mensagem),
+                'remetente': {
+                    'id': str(msg.usuario_remetente.id_usuario),
+                    'nome_usuario': msg.usuario_remetente.nome_usuario,
+                    'avatar_url': msg.usuario_remetente.avatar_url,
+                },
+                'destinatario': {
+                    'id': str(msg.usuario_destinatario.id_usuario),
+                    'nome_usuario': msg.usuario_destinatario.nome_usuario,
+                },
+                'conteudo': msg.conteudo,
+                'tipo_mensagem': msg.tipo_mensagem,
+                'data_envio': msg.data_envio.isoformat(),
+                'lida': msg.lida,
+                'moderada': msg.moderada,
+                'moderada_por': msg.moderada_por.nome_usuario if msg.moderada_por else None,
+                'moderada_em': msg.moderada_em.isoformat() if msg.moderada_em else None,
+                'motivo_moderacao': msg.motivo_moderacao,
+            })
+
+        # Registrar audit log
+        AuditLogChat.objects.create(
+            conversa=conversa,
+            admin=request.user,
+            acao='view',
+            detalhes={'action': 'view_messages', 'conversa_id': str(pk), 'msg_count': len(data)},
+            ip_address=self._get_client_ip(request),
+        )
+
+        return Response({
+            'conversa': {
+                'id_conversa': str(conversa.id_conversa),
+                'usuario_a': conversa.usuario_a.nome_usuario,
+                'usuario_b': conversa.usuario_b.nome_usuario,
+            },
+            'mensagens': data,
+            'total': len(data),
+        })
+
+    def _get_client_ip(self, request):
+        x_forwarded = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded:
+            return x_forwarded.split(',')[0].strip()
+        return request.META.get('REMOTE_ADDR')
+
+
+class AdminChatModerateView(APIView):
+    """Moderar uma mensagem de chat (admin only)."""
+    permission_classes = [IsAdminPermission]
+
+    def post(self, request, pk):
+        msg = get_object_or_404(MensagemDireta, pk=pk)
+        action = request.data.get('action')  # 'moderate' ou 'restore'
+        motivo = request.data.get('motivo', '')
+
+        if action == 'moderate':
+            msg.moderada = True
+            msg.moderada_por = request.user
+            msg.moderada_em = timezone.now()
+            msg.motivo_moderacao = motivo
+            msg.save(update_fields=['moderada', 'moderada_por', 'moderada_em', 'motivo_moderacao'])
+
+            # Registrar audit log
+            AuditLogChat.objects.create(
+                conversa=msg.conversa,
+                mensagem=msg,
+                admin=request.user,
+                acao='moderate',
+                detalhes={
+                    'action': 'moderate_message',
+                    'original_content': msg.conteudo[:500] if msg.conteudo else None,
+                    'motivo': motivo,
+                },
+                ip_address=self._get_client_ip(request),
+            )
+
+            return Response({'message': _('Mensagem moderada com sucesso'), 'moderada': True})
+
+        elif action == 'restore':
+            msg.moderada = False
+            msg.moderada_por = None
+            msg.moderada_em = None
+            msg.motivo_moderacao = None
+            msg.save(update_fields=['moderada', 'moderada_por', 'moderada_em', 'motivo_moderacao'])
+
+            AuditLogChat.objects.create(
+                conversa=msg.conversa,
+                mensagem=msg,
+                admin=request.user,
+                acao='restore',
+                detalhes={'action': 'restore_message'},
+                ip_address=self._get_client_ip(request),
+            )
+
+            return Response({'message': _('Mensagem restaurada'), 'moderada': False})
+
+        return Response({'error': _('Ação inválida. Use: moderate, restore')}, status=status.HTTP_400_BAD_REQUEST)
+
+    def _get_client_ip(self, request):
+        x_forwarded = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded:
+            return x_forwarded.split(',')[0].strip()
+        return request.META.get('REMOTE_ADDR')
+
+
+class AdminChatAuditLogView(APIView):
+    """Consultar log de auditoria de chat (admin only)."""
+    permission_classes = [IsAdminPermission]
+
+    def get(self, request):
+        logs = AuditLogChat.objects.select_related('admin', 'conversa', 'mensagem').all()
+
+        # Filtros
+        admin_filter = request.query_params.get('admin')
+        if admin_filter:
+            logs = logs.filter(admin__nome_usuario__icontains=admin_filter)
+
+        acao_filter = request.query_params.get('acao')
+        if acao_filter:
+            logs = logs.filter(acao=acao_filter)
+
+        serializer = AuditLogChatSerializer(logs[:100], many=True)
+        return Response(serializer.data)
+
+
+class AdminChatStatsView(APIView):
+    """Estatísticas gerais de chat (admin only)."""
+    permission_classes = [IsAdminPermission]
+
+    def get(self, request):
+        from .models import Conversa
+        from datetime import timedelta
+
+        hoje = timezone.now()
+        semana = hoje - timedelta(days=7)
+        mes = hoje - timedelta(days=30)
+
+        total_conversas = Conversa.objects.count()
+        total_mensagens = MensagemDireta.objects.count()
+        mensagens_semana = MensagemDireta.objects.filter(data_envio__gte=semana).count()
+        mensagens_mes = MensagemDireta.objects.filter(data_envio__gte=mes).count()
+        mensagens_moderadas = MensagemDireta.objects.filter(moderada=True).count()
+
+        # Conversas mais ativas (últimos 7 dias)
+        from django.db.models import Count
+        top_conversas = Conversa.objects.annotate(
+            msgs_recentes=Count('mensagens', filter=Q(mensagens__data_envio__gte=semana))
+        ).filter(msgs_recentes__gt=0).order_by('-msgs_recentes').select_related('usuario_a', 'usuario_b')[:10]
+
+        top_data = [{
+            'id_conversa': str(c.id_conversa),
+            'usuario_a': c.usuario_a.nome_usuario,
+            'usuario_b': c.usuario_b.nome_usuario,
+            'msgs_recentes': c.msgs_recentes,
+        } for c in top_conversas]
+
+        return Response({
+            'total_conversas': total_conversas,
+            'total_mensagens': total_mensagens,
+            'mensagens_ultimos_7_dias': mensagens_semana,
+            'mensagens_ultimos_30_dias': mensagens_mes,
+            'mensagens_moderadas': mensagens_moderadas,
+            'top_conversas_semana': top_data,
+        })
+

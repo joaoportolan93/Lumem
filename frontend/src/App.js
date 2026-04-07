@@ -31,6 +31,8 @@ import AdminLayout from './layouts/AdminLayout';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import ModerationQueue from './pages/admin/ModerationQueue';
 import UserManagement from './pages/admin/UserManagement';
+import AdminNotifications from './pages/admin/AdminNotifications';
+import AdminChatAudit from './pages/admin/AdminChatAudit';
 
 // Components
 import PrivateRoute from './components/PrivateRoute';
@@ -276,6 +278,26 @@ function App() {
                                 <PrivateRoute>
                                     <AdminLayout>
                                         <UserManagement />
+                                    </AdminLayout>
+                                </PrivateRoute>
+                            }
+                        />
+                        <Route
+                            path="/admin/notifications"
+                            element={
+                                <PrivateRoute>
+                                    <AdminLayout>
+                                        <AdminNotifications />
+                                    </AdminLayout>
+                                </PrivateRoute>
+                            }
+                        />
+                        <Route
+                            path="/admin/chat-audit"
+                            element={
+                                <PrivateRoute>
+                                    <AdminLayout>
+                                        <AdminChatAudit />
                                     </AdminLayout>
                                 </PrivateRoute>
                             }

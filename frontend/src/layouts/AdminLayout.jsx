@@ -4,7 +4,7 @@
  */
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
-import { FaChartLine, FaShieldAlt, FaUsers, FaGlobe, FaCog, FaSignOutAlt, FaCloud } from 'react-icons/fa';
+import { FaChartLine, FaShieldAlt, FaUsers, FaGlobe, FaCog, FaSignOutAlt, FaCloud, FaBell, FaComments } from 'react-icons/fa';
 import { getProfile } from '../services/api';
 
 const AdminLayout = ({ children }) => {
@@ -43,6 +43,8 @@ const AdminLayout = ({ children }) => {
         { path: '/admin', icon: FaChartLine, label: 'Dashboard' },
         { path: '/admin/moderation', icon: FaShieldAlt, label: 'Moderação' },
         { path: '/admin/users', icon: FaUsers, label: 'Usuários' },
+        { path: '/admin/notifications', icon: FaBell, label: 'Notificações' },
+        { path: '/admin/chat-audit', icon: FaComments, label: 'Auditoria Chat' },
         { path: '/admin/communities', icon: FaGlobe, label: 'Comunidades' },
         { path: '/admin/settings', icon: FaCog, label: 'Configurações' },
     ];

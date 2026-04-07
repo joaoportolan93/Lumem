@@ -30,6 +30,8 @@ class AuthService {
     required String nomeUsuario,
     required String nomeCompleto,
     required String password,
+    required String dataNascimento,
+    required bool aceiteTermos,
   }) async {
     try {
       await _api.dio.post('auth/register/', data: {
@@ -37,6 +39,8 @@ class AuthService {
         'nome_usuario': nomeUsuario,
         'nome_completo': nomeCompleto,
         'password': password,
+        'data_nascimento': dataNascimento,
+        'aceite_termos': aceiteTermos,
       });
 
       // After registration, login automatically

@@ -5,9 +5,9 @@ ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-# Dependências do sistema (inclui libmysqlclient-dev para mysqlclient e mysql-client para healthcheck)
+# Dependências do sistema (inclui libmysqlclient-dev para mysqlclient, redis-tools para healthcheck)
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends gcc libjpeg-dev zlib1g-dev default-libmysqlclient-dev default-mysql-client pkg-config && \
+    apt-get install -y --no-install-recommends gcc libjpeg-dev zlib1g-dev default-libmysqlclient-dev default-mysql-client pkg-config redis-tools && \
     rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
