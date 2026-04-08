@@ -228,6 +228,9 @@ export const deleteDraft = (id) => api.delete(`/api/drafts/${id}/`);
 export const getTrends = () => api.get('/api/trends/');
 export const getTopCommunityPosts = () => api.get('/api/communities/top-posts/');
 
+// Account deletion (LGPD Art. 18, VI)
+export const deleteAccount = (data) => api.delete('/api/profile/delete/', { data });
+
 export default api;
 
 

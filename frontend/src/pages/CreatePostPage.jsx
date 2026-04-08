@@ -343,7 +343,7 @@ const CreatePostPage = () => {
                                 <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center text-xs font-bold">
                                     {selectedCommunity.nome.charAt(0).toUpperCase()}
                                 </div>
-                                <span className="text-sm">r/{selectedCommunity.nome}</span>
+                                <span className="text-sm">{selectedCommunity.nome}</span>
                             </>
                         ) : (
                             <span className="text-gray-400 text-sm">{t('createPost.selectCommunity')}</span>
@@ -374,7 +374,7 @@ const CreatePostPage = () => {
                                             {community.nome.charAt(0).toUpperCase()}
                                         </div>
                                         <div>
-                                            <p className="text-sm font-medium">r/{community.nome}</p>
+                                            <p className="text-sm font-medium">{community.nome}</p>
                                             <p className="text-xs text-gray-500">{community.membros_count} {t('createPost.members')}</p>
                                         </div>
                                     </button>

@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { FaCog, FaBell, FaLock, FaPalette, FaUser, FaSave, FaArrowLeft, FaShieldAlt, FaStar, FaSearch, FaUserFriends, FaFire } from 'react-icons/fa';
+import { FaCog, FaBell, FaLock, FaPalette, FaUser, FaSave, FaArrowLeft, FaShieldAlt, FaStar, FaSearch, FaUserFriends, FaFire, FaTrash, FaExclamationTriangle } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { getProfile, getUserSettings, updateUserSettings, getCloseFriendsManage, toggleCloseFriend, patchUser } from '../services/api';
+import { getProfile, getUserSettings, updateUserSettings, getCloseFriendsManage, toggleCloseFriend, patchUser, deleteAccount } from '../services/api';
 
 const Settings = () => {
     const navigate = useNavigate();
@@ -18,6 +18,13 @@ const Settings = () => {
     const [followers, setFollowers] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [loadingFollowers, setLoadingFollowers] = useState(false);
+
+    // Delete account state
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [deletePassword, setDeletePassword] = useState('');
+    const [deleteConfirmText, setDeleteConfirmText] = useState('');
+    const [deleting, setDeleting] = useState(false);
+    const [deleteError, setDeleteError] = useState('');
 
     // Settings state - mapped from backend ConfiguracaoUsuario
     const [settings, setSettings] = useState({
@@ -192,6 +199,48 @@ const Settings = () => {
         f.nome_usuario.toLowerCase().includes(searchQuery.toLowerCase()) ||
         f.nome_completo.toLowerCase().includes(searchQuery.toLowerCase())
     );
+
+    // Handle account deletion
+    const handleDeleteAccount = async () => {
+        setDeleteError('');
+
+        if (deleteConfirmText !== t('settings.deleteConfirmWord')) {
+            setDeleteError(t('settings.deleteConfirmError'));
+            return;
+        }
+
+        setDeleting(true);
+        try {
+            const payload = {};
+            if (currentUser?.has_usable_password !== false) {
+                if (!deletePassword) {
+                    setDeleteError(t('settings.deletePasswordRequired'));
+                    setDeleting(false);
+                    return;
+                }
+                payload.senha = deletePassword;
+            } else {
+                payload.confirmar = true;
+            }
+
+            const refresh = localStorage.getItem('refresh');
+            if (refresh) {
+                payload.refresh = refresh;
+            }
+
+            await deleteAccount(payload);
+
+            // Limpar sessão e redirecionar
+            localStorage.removeItem('access');
+            localStorage.removeItem('refresh');
+            window.location.href = '/login';
+        } catch (err) {
+            console.error('Error deleting account:', err);
+            setDeleteError(err.response?.data?.error || t('settings.deleteGenericError'));
+        } finally {
+            setDeleting(false);
+        }
+    };
 
     const ToggleSwitch = ({ enabled, onToggle }) => (
         <button
@@ -413,6 +462,24 @@ const Settings = () => {
                             </>
                         )}
                     </button>
+
+                    {/* Danger Zone - Account Deletion (LGPD Art. 18, VI) */}
+                    <div className="bg-red-900/10 border border-red-500/30 backdrop-blur-sm rounded-2xl p-6 mt-6">
+                        <h2 className="text-lg font-semibold text-red-500 mb-2 flex items-center gap-2">
+                            <FaExclamationTriangle />
+                            {t('settings.dangerZone')}
+                        </h2>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                            {t('settings.deleteAccountDesc')}
+                        </p>
+                        <button
+                            onClick={() => { setShowDeleteModal(true); setDeleteError(''); setDeletePassword(''); setDeleteConfirmText(''); }}
+                            className="w-full flex items-center justify-center gap-2 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition-all"
+                        >
+                            <FaTrash />
+                            {t('settings.btnDeleteAccount')}
+                        </button>
+                    </div>
                 </>
             )}
 
@@ -515,6 +582,92 @@ const Settings = () => {
                             </span>
                         </div>
                     )}
+                </div>
+            )}
+        {/* Delete Account Confirmation Modal comes after all content pages */}
+            {/* Delete Account Confirmation Modal */}
+            {showDeleteModal && (
+                <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={() => setShowDeleteModal(false)}>
+                    <div className="bg-white dark:bg-[#1a1a1b] rounded-2xl w-full max-w-md shadow-2xl border border-red-500/30" onClick={e => e.stopPropagation()}>
+                        <div className="p-6">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center">
+                                    <FaExclamationTriangle className="text-red-500 text-xl" />
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-lg text-gray-900 dark:text-white">{t('settings.deleteModalTitle')}</h3>
+                                    <p className="text-sm text-red-400">{t('settings.deleteModalSubtitle')}</p>
+                                </div>
+                            </div>
+
+                            <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 mb-4">
+                                <p className="text-sm text-gray-700 dark:text-gray-300">
+                                    {t('settings.deleteModalWarning')}
+                                </p>
+                                <ul className="text-sm text-gray-500 dark:text-gray-400 mt-2 space-y-1">
+                                    <li>• {t('settings.deleteItem1')}</li>
+                                    <li>• {t('settings.deleteItem2')}</li>
+                                    <li>• {t('settings.deleteItem3')}</li>
+                                    <li>• {t('settings.deleteItem4')}</li>
+                                </ul>
+                            </div>
+
+                            {/* Password confirmation */}
+                            <div className="mb-4">
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    {t('settings.deletePasswordLabel')}
+                                </label>
+                                <input
+                                    type="password"
+                                    value={deletePassword}
+                                    onChange={e => setDeletePassword(e.target.value)}
+                                    placeholder={t('settings.deletePasswordPlaceholder')}
+                                    className="w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#272729] text-gray-900 dark:text-white focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none"
+                                />
+                            </div>
+
+                            {/* Type confirmation word */}
+                            <div className="mb-4">
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    {t('settings.deleteConfirmLabel', { word: t('settings.deleteConfirmWord') })}
+                                </label>
+                                <input
+                                    type="text"
+                                    value={deleteConfirmText}
+                                    onChange={e => setDeleteConfirmText(e.target.value)}
+                                    placeholder={t('settings.deleteConfirmWord')}
+                                    className="w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#272729] text-gray-900 dark:text-white focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none"
+                                />
+                            </div>
+
+                            {deleteError && (
+                                <div className="mb-4 p-3 bg-red-900/20 text-red-400 rounded-lg text-sm border border-red-500/20">
+                                    {deleteError}
+                                </div>
+                            )}
+
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setShowDeleteModal(false)}
+                                    className="flex-1 py-3 bg-gray-200 dark:bg-white/10 text-gray-700 dark:text-gray-300 font-bold rounded-xl hover:bg-gray-300 dark:hover:bg-white/20 transition-all"
+                                >
+                                    {t('settings.deleteCancel')}
+                                </button>
+                                <button
+                                    onClick={handleDeleteAccount}
+                                    disabled={deleting || deleteConfirmText !== t('settings.deleteConfirmWord')}
+                                    className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                >
+                                    {deleting ? (
+                                        <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div>
+                                    ) : (
+                                        <FaTrash />
+                                    )}
+                                    {t('settings.deleteConfirmBtn')}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

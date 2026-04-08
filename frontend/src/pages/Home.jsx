@@ -195,13 +195,21 @@ const Home = () => {
                 </div>
             )}
 
-            {/* Create/Edit Modal */}
             <CreateDreamModal
                 isOpen={isModalOpen}
                 onClose={() => { setIsModalOpen(false); setEditingDream(null); }}
                 onSuccess={handleDreamCreated}
                 editingDream={editingDream}
             />
+
+            {/* Mobile Footer Links (visíveis quando a SidebarRight é ocultada no mobile) */}
+            <div className="flex flex-wrap lg:hidden gap-x-4 gap-y-2 text-xs text-text-secondary/50 dark:text-white/20 px-2 mt-8 pb-4 text-center justify-center">
+                <button onClick={() => navigate('/about')} className="hover:text-text-main dark:hover:text-white/50 transition-colors">{t('explore.footerAbout', 'Sobre')}</button>
+                <button onClick={() => navigate('/privacy')} className="hover:text-text-main dark:hover:text-white/50 transition-colors">{t('explore.footerPrivacy', 'Privacidade')}</button>
+                <button onClick={() => navigate('/terms')} className="hover:text-text-main dark:hover:text-white/50 transition-colors">{t('explore.footerTerms', 'Termos')}</button>
+                <button onClick={() => navigate('/help')} className="hover:text-text-main dark:hover:text-white/50 transition-colors">{t('explore.footerHelp', 'Ajuda')}</button>
+                <span>© {new Date().getFullYear()} Lumem</span>
+            </div>
         </div>
     );
 };
