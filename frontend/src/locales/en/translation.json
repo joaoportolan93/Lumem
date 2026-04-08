@@ -273,6 +273,8 @@
         "likedDream": "liked your dream \"{{content}}\"",
         "yourDream": "your dream",
         "commented": "commented: \"{{content}}\"",
+        "communityInvite": "invited you to moderate the community \"{{community}}\"",
+        "errorInviteAction": "Error processing the invite.",
         "interacted": "interacted with you",
         "timeNow": "just now",
         "timeMins": "{{min}} mins ago",

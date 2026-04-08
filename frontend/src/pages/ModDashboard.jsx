@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { getCommunityStats, getCommunityMembers, getBannedMembers, banCommunityMember, unbanCommunityMember, manageCommunityRole, getCommunity } from '../services/api';
-import { FaUsers, FaChartLine, FaFlag, FaUserShield, FaBan, FaArrowLeft, FaSpinner, FaCrown, FaStar, FaUser, FaTrash, FaChevronUp, FaChevronDown, FaTimes } from 'react-icons/fa';
+import { FaUsers, FaChartLine, FaFlag, FaUserShield, FaBan, FaArrowLeft, FaSpinner, FaCrown, FaStar, FaUser, FaTrash, FaChevronUp, FaChevronDown, FaTimes, FaQuestionCircle } from 'react-icons/fa';
 
 const ModDashboard = () => {
     const { t } = useTranslation();
@@ -200,7 +200,15 @@ const ModDashboard = () => {
                                 <th className="px-4 py-3">Usuário</th>
                                 <th className="px-4 py-3">Cargo</th>
                                 <th className="px-4 py-3">Entrou em</th>
-                                <th className="px-4 py-3 text-right">Ações</th>
+                                <th className="px-4 py-3 text-right">
+                                    <div className="flex items-center justify-end gap-1 relative group cursor-help">
+                                        <span>Ações</span>
+                                        <FaQuestionCircle className="text-gray-400" />
+                                        <div className="absolute top-full right-0 mt-2 w-64 p-3 bg-gray-900 text-white text-xs rounded shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                                            Admins podem promover/rebaixar. Mods apenas moderam posts/usuários (ex: banir).
+                                        </div>
+                                    </div>
+                                </th>
                             </tr>
                         </thead>
                         <tbody>
@@ -285,7 +293,15 @@ const ModDashboard = () => {
                                     <th className="px-4 py-3">Motivo</th>
                                     <th className="px-4 py-3">Banido por</th>
                                     <th className="px-4 py-3">Data</th>
-                                    <th className="px-4 py-3 text-right">Ações</th>
+                                    <th className="px-4 py-3 text-right">
+                                        <div className="flex items-center justify-end gap-1 relative group cursor-help">
+                                            <span>Ações</span>
+                                            <FaQuestionCircle className="text-gray-400" />
+                                            <div className="absolute top-full right-0 mt-2 w-64 p-3 bg-gray-900 text-white text-xs rounded shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                                                Apenas Admins/Mods podem remover o banimento.
+                                            </div>
+                                        </div>
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody>

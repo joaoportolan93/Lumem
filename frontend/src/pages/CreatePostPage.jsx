@@ -10,6 +10,7 @@ import {
 import {
     getUserCommunities, createDream, getDrafts, createDraft, updateDraft, deleteDraft, getCommunity
 } from '../services/api';
+import DraftsModal from '../components/DraftsModal';
 
 const CreatePostPage = () => {
     const { t } = useTranslation();
@@ -36,6 +37,7 @@ const CreatePostPage = () => {
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
+    const [isDraftsModalOpen, setIsDraftsModalOpen] = useState(false);
 
     const fileInputRef = useRef(null);
     const textareaRef = useRef(null);
@@ -321,8 +323,11 @@ const CreatePostPage = () => {
                 {/* Drafts Link */}
                 {drafts.length > 0 && (
                     <div className="flex justify-end mb-4">
-                        <button className="text-red-400 text-sm hover:underline">
-                            {t('createPost.drafts')} {drafts.length}
+                        <button 
+                            onClick={() => setIsDraftsModalOpen(true)}
+                            className="text-red-400 text-sm hover:underline font-bold"
+                        >
+                            {t('createPost.drafts')} ({drafts.length})
                         </button>
                     </div>
                 )}
@@ -579,6 +584,17 @@ const CreatePostPage = () => {
                     </button>
                 </div>
             </div>
+
+            <DraftsModal 
+                isOpen={isDraftsModalOpen}
+                onClose={() => {
+                    setIsDraftsModalOpen(false);
+                    // recarregar os rascunhos para atualizar contagem se a modal deletou algum
+                    getDrafts().then(res => setDrafts(res.data.results ? res.data.results : res.data));
+                }}
+                onSelectDraft={loadDraft}
+            />
+
         </div>
     );
 };

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { FaBell, FaHeart, FaComment, FaUserPlus, FaCheck, FaArrowLeft } from 'react-icons/fa';
+import { FaBell, FaHeart, FaComment, FaUserPlus, FaCheck, FaArrowLeft, FaShieldAlt } from 'react-icons/fa';
 import { Link, useNavigate } from 'react-router-dom';
-import { acceptFollowRequest, getFollowRequests, getNotifications, markAllNotificationsRead, rejectFollowRequest } from '../services/api';
+import { acceptFollowRequest, getFollowRequests, getNotifications, markAllNotificationsRead, rejectFollowRequest, acceptCommunityInvite, rejectCommunityInvite } from '../services/api';
 import { useTranslation } from 'react-i18next';
 
 const Notifications = () => {
@@ -62,6 +62,23 @@ const Notifications = () => {
         }
     };
 
+    const handleCommunityInvite = async (e, idReferencia, action) => {
+        e.preventDefault();
+        e.stopPropagation();
+        try {
+            const [communityId, inviteId] = idReferencia.split('::');
+            if (action === 'accept') {
+                await acceptCommunityInvite(communityId, inviteId);
+            } else {
+                await rejectCommunityInvite(communityId, inviteId);
+            }
+            setNotifications(prev => prev.filter(n => n.id_referencia !== idReferencia));
+        } catch (error) {
+            console.error('Error handling community invite:', error);
+            setError(t('notifications.errorInviteAction') || 'Erro ao processar convite');
+        }
+    };
+
     const getIcon = (type) => {
         switch (type) {
             case 'follower':
@@ -70,9 +87,22 @@ const Notifications = () => {
                 return <FaHeart className="text-red-400" />;
             case 'comment':
                 return <FaComment className="text-green-400" />;
+            case 'community_invite':
+                return <FaShieldAlt className="text-blue-500" />;
             default:
                 return <FaBell className="text-primary" />;
         }
+    };
+
+    const getNotificationLink = (notification) => {
+        if (notification.tipo_notificacao_display === 'community_invite') {
+            if (notification.id_referencia) {
+                const [communityId] = notification.id_referencia.split('::');
+                return `/community/${communityId}`;
+            }
+            return '#';
+        }
+        return notification.id_referencia ? `/post/${notification.id_referencia}` : `/user/${notification.usuario_origem?.id_usuario}`;
     };
 
     const getMessage = (notification) => {
@@ -83,6 +113,8 @@ const Notifications = () => {
                 return t('notifications.likedDream', { content: notification.conteudo || t('notifications.yourDream') });
             case 'comment':
                 return t('notifications.commented', { content: notification.conteudo || '' });
+            case 'community_invite':
+                return t('notifications.communityInvite', { community: notification.conteudo || '' });
             default:
                 return notification.conteudo || t('notifications.interacted');
         }
@@ -232,7 +264,7 @@ const Notifications = () => {
                         notifications.map(notification => (
                             <Link
                                 key={notification.id_notificacao}
-                                to={notification.id_referencia ? `/post/${notification.id_referencia}` : `/user/${notification.usuario_origem?.id_usuario}`}
+                                to={getNotificationLink(notification)}
                                 className={`flex items-start gap-4 p-4 rounded-xl transition-colors hover:bg-gray-100 dark:hover:bg-white/5 ${!notification.lida ? 'bg-gray-100 dark:bg-white/5 border-l-4 border-primary' : ''
                                     }`}
                             >
@@ -257,6 +289,23 @@ const Notifications = () => {
                                         <span className="text-gray-600 dark:text-gray-300">{getMessage(notification)}</span>
                                     </p>
                                     <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">{formatDate(notification.data_criacao)}</p>
+                                    
+                                    {notification.tipo_notificacao_display === 'community_invite' && (
+                                        <div className="flex gap-2 mt-3">
+                                            <button
+                                                onClick={(e) => handleCommunityInvite(e, notification.id_referencia, 'reject')}
+                                                className="px-4 py-1.5 border border-red-500 text-red-500 rounded-lg text-sm hover:bg-red-500/10 transition-colors"
+                                            >
+                                                {t('notifications.btnReject')}
+                                            </button>
+                                            <button
+                                                onClick={(e) => handleCommunityInvite(e, notification.id_referencia, 'accept')}
+                                                className="px-4 py-1.5 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600 transition-colors"
+                                            >
+                                                {t('notifications.btnAccept')}
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Unread Indicator */}

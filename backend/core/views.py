@@ -1886,7 +1886,7 @@ class ToggleCloseFriendView(APIView):
 # COMMUNITIES VIEWS
 # ==========================================
 
-from .models import Comunidade, MembroComunidade, BanimentoComunidade
+from .models import Comunidade, MembroComunidade, BanimentoComunidade, ConviteModerador, Notificacao
 from .serializers import ComunidadeSerializer, CommunityStatsSerializer, BanimentoComunidadeSerializer
 
 class ComunidadeViewSet(viewsets.ModelViewSet):
@@ -2302,7 +2302,7 @@ class ComunidadeViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'], url_path='invite-moderator')
     def invite_moderator(self, request, pk=None):
-        """Invite/promote a user to moderator (Admins only)"""
+        """Invite a user to be moderator (Admins only)"""
         community = self.get_object()
         
         # Only admins can invite moderators
@@ -2327,25 +2327,109 @@ class ComunidadeViewSet(viewsets.ModelViewSet):
         if BanimentoComunidade.objects.filter(comunidade=community, usuario=target_user).exists():
             return Response({'error': _('Usuário está banido desta comunidade')}, status=status.HTTP_400_BAD_REQUEST)
         
-        # If already a member, promote to moderator
+        # If already a moderator/admin
         membership = MembroComunidade.objects.filter(comunidade=community, usuario=target_user).first()
+        if membership and membership.role in ['moderator', 'admin']:
+            return Response({'error': _('Usuário já é moderador/admin')}, status=status.HTTP_400_BAD_REQUEST)
+            
+        # Check if an invite is already pending
+        pending_invite = ConviteModerador.objects.filter(
+            comunidade=community,
+            usuario_convidado=target_user,
+            status='pending'
+        ).first()
+        if pending_invite:
+            return Response({'error': _('Já existe um convite pendente para este usuário')}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Create invite
+        convite = ConviteModerador.objects.create(
+            comunidade=community,
+            usuario_convidado=target_user,
+            admin_convidador=request.user,
+            status='pending'
+        )
+
+        # Triggers a Community Invite notification
+        Notificacao.objects.create(
+            usuario_destino=target_user,
+            usuario_origem=request.user,
+            tipo_notificacao=6,  # 6 = Convite de Moderação
+            id_referencia=f"{community.id_comunidade}::{convite.id_convite}",
+            conteudo=community.nome
+        )
+        
+        return Response({
+            'message': _('Convite enviado para %(username)s') % {'username': target_user.nome_usuario},
+            'user_id': target_user_id,
+            'invite_id': convite.id_convite
+        }, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'], url_path='accept-invite')
+    def accept_invite(self, request, pk=None):
+        """Accept a community moderator info"""
+        community = self.get_object()
+        invite_id = request.data.get('invite_id')
+        
+        if not invite_id:
+            return Response({'error': _('ID do convite obrigatório')}, status=status.HTTP_400_BAD_REQUEST)
+
+        convite = ConviteModerador.objects.filter(id_convite=invite_id, comunidade=community, usuario_convidado=request.user).first()
+        
+        if not convite:
+            return Response({'error': _('Convite não encontrado')}, status=status.HTTP_404_NOT_FOUND)
+            
+        if convite.status != 'pending':
+            return Response({'error': _('Convite já resolvido')}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Process acceptance
+        convite.status = 'accepted'
+        convite.save()
+
+        # Add or promote
+        membership = MembroComunidade.objects.filter(comunidade=community, usuario=request.user).first()
         if membership:
-            if membership.role in ['moderator', 'admin']:
-                return Response({'error': _('Usuário já é moderador/admin')}, status=status.HTTP_400_BAD_REQUEST)
             membership.role = 'moderator'
             membership.save()
         else:
-            # Add as moderator directly
             MembroComunidade.objects.create(
                 comunidade=community,
-                usuario=target_user,
+                usuario=request.user,
                 role='moderator'
             )
-        
+            
+        # Clean up related notification manually so it doesn't linger visually if requested
+        Notificacao.objects.filter(id_referencia=f"{community.id_comunidade}::{invite_id}", usuario_destino=request.user).delete()
+
         return Response({
-            'message': _('%(username)s agora é moderador da comunidade') % {'username': target_user.nome_usuario},
-            'user_id': target_user_id,
-            'role': 'moderator'
+            'message': _('Você agora é moderador de %(community_name)s') % {'community_name': community.nome},
+            'community_id': community.id_comunidade
+        }, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'], url_path='reject-invite')
+    def reject_invite(self, request, pk=None):
+        """Reject a community moderator info"""
+        community = self.get_object()
+        invite_id = request.data.get('invite_id')
+        
+        if not invite_id:
+            return Response({'error': _('ID do convite obrigatório')}, status=status.HTTP_400_BAD_REQUEST)
+
+        convite = ConviteModerador.objects.filter(id_convite=invite_id, comunidade=community, usuario_convidado=request.user).first()
+        
+        if not convite:
+            return Response({'error': _('Convite não encontrado')}, status=status.HTTP_404_NOT_FOUND)
+
+        if convite.status != 'pending':
+            return Response({'error': _('Convite já resolvido')}, status=status.HTTP_400_BAD_REQUEST)
+
+        convite.status = 'rejected'
+        convite.save()
+        
+        # Remove original notification 
+        Notificacao.objects.filter(id_referencia=f"{community.id_comunidade}::{invite_id}", usuario_destino=request.user).delete()
+
+        return Response({
+            'message': _('Convite recusado')
         }, status=status.HTTP_200_OK)
 
 

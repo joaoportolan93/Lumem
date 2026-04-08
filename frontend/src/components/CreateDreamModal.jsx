@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FaTimes, FaMoon, FaImage, FaVideo, FaSmile, FaGlobeAmericas, FaUserFriends } from 'react-icons/fa';
 import { useTranslation } from 'react-i18next';
 import { createDream, updateDream, getProfile, createDraft } from '../services/api';
+import DraftsModal from './DraftsModal';
 
 const CreateDreamModal = ({ isOpen, onClose, onSuccess, editingDream = null, communityId = null }) => {
     const { t } = useTranslation();
@@ -21,6 +22,7 @@ const CreateDreamModal = ({ isOpen, onClose, onSuccess, editingDream = null, com
     const [videoPreview, setVideoPreview] = useState(null);
     const [showDraftPrompt, setShowDraftPrompt] = useState(false);
     const [savingDraft, setSavingDraft] = useState(false);
+    const [isDraftsModalOpen, setIsDraftsModalOpen] = useState(false);
 
     const dreamTypes = [
         { value: t('createDream.typeLucid'), icon: '✨', color: 'text-purple-400' },
@@ -228,7 +230,10 @@ const CreateDreamModal = ({ isOpen, onClose, onSuccess, editingDream = null, com
                         >
                             <FaTimes className="text-white text-lg" />
                         </button>
-                        <button className="text-primary text-sm font-medium hover:underline">
+                        <button 
+                            onClick={() => setIsDraftsModalOpen(true)}
+                            className="text-primary text-sm font-medium hover:underline"
+                        >
                             {t('createDream.drafts')}
                         </button>
                     </div>
@@ -485,6 +490,17 @@ const CreateDreamModal = ({ isOpen, onClose, onSuccess, editingDream = null, com
                         </div>
                     )}
                 </AnimatePresence>
+
+                <DraftsModal 
+                    isOpen={isDraftsModalOpen}
+                    onClose={() => setIsDraftsModalOpen(false)}
+                    onSelectDraft={(draft) => {
+                        setContent(draft.conteudo_texto || '');
+                        if (draft.imagem) setImagePreview(draft.imagem);
+                        // The draft backend doesn't store dreamType or emotions right now for Rascunhos
+                        // We do our best to map what we can
+                    }}
+                />
 
             </motion.div>
         </AnimatePresence>
