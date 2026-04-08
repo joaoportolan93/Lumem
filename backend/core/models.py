@@ -281,7 +281,7 @@ class Notificacao(models.Model):
         (6, _('Convite de Moderação')),
     )
     tipo_notificacao = models.SmallIntegerField(choices=TIPO_NOTIFICACAO_CHOICES)
-    id_referencia = models.CharField(max_length=36, null=True, blank=True)
+    id_referencia = models.CharField(max_length=100, null=True, blank=True)
     conteudo = models.TextField(null=True, blank=True)
     lida = models.BooleanField(default=False)
     data_criacao = models.DateTimeField(default=timezone.now)
@@ -531,6 +531,13 @@ class ConviteModerador(models.Model):
 
     class Meta:
         db_table = 'convites_moderador'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['comunidade', 'usuario_convidado'],
+                condition=models.Q(status='pending'),
+                name='unique_pending_invite_per_user_community'
+            )
+        ]
 
 
 class BanimentoComunidade(models.Model):

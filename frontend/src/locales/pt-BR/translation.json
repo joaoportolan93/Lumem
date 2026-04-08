@@ -718,7 +718,9 @@
             "relevance": "Mais Relevantes",
             "recent": "Mais Recentes",
             "likes": "Mais Curtidos"
-        }
+        },
+        "privateAccount": "Conta Privada",
+        "postedInCommunity": "Post feito na comunidade"
     },
     "suggestions": {
         "title": "Sugestões para seguir",

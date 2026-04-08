@@ -2381,15 +2381,21 @@ class ComunidadeViewSet(viewsets.ModelViewSet):
         if convite.status != 'pending':
             return Response({'error': _('Convite já resolvido')}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Check if user is banned from this community
+        if BanimentoComunidade.objects.filter(comunidade=community, usuario=request.user).exists():
+            return Response({'error': _('Você está banido desta comunidade')}, status=status.HTTP_403_FORBIDDEN)
+
         # Process acceptance
         convite.status = 'accepted'
         convite.save()
 
-        # Add or promote
+        # Add or promote — never downgrade an admin
         membership = MembroComunidade.objects.filter(comunidade=community, usuario=request.user).first()
         if membership:
-            membership.role = 'moderator'
-            membership.save()
+            if membership.role == 'member':
+                membership.role = 'moderator'
+                membership.save()
+            # If already admin or moderator, keep current role
         else:
             MembroComunidade.objects.create(
                 comunidade=community,

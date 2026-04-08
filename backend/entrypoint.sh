@@ -35,7 +35,8 @@ fi
 # -----------------------------------------------
 # 3. Migrações
 # -----------------------------------------------
-echo "🔄 Aplicando migrações..."
+echo "🔄 Criando e aplicando migrações..."
+python manage.py makemigrations
 python manage.py migrate --noinput
 
 # -----------------------------------------------

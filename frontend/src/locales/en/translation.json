@@ -718,7 +718,9 @@
             "relevance": "Most Relevant",
             "recent": "Most Recent",
             "likes": "Most Liked"
-        }
+        },
+        "privateAccount": "Private Account",
+        "postedInCommunity": "Posted in the community"
     },
     "suggestions": {
         "title": "Suggestions for you",
