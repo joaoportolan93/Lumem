@@ -8,7 +8,7 @@ const content = `# Termos de Uso — Lumem
 
 Bem-vindo(a) ao **Lumem**, uma plataforma projetada para o compartilhamento, a discussão sobre sonhos e o autoconhecimento coletivo.
 
-Ao se cadastrar, acessar ou usar o aplicativo/site Lumem, você concorda integralmente e legalmente com estes Termos de Uso, com a nossa Política de Privacidade, e com a legislação brasileira vigente, em especial a **[Lei Geral de Proteção de Dados (LGPD — Lei nº 13.709/2018)](https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/l13709.htm)** e o **[Marco Civil da Internet (Lei nº 12.965/2014)](https://www.planalto.gov.br/ccivil_03/_ato2011-2014/2014/lei/l12965.htm)**. Se você descordar de algum ponto aqui descrito, você não possui autorização para utilizar o nosso serviço.
+Ao se cadastrar, acessar ou usar o aplicativo/site Lumem, você concorda integralmente e legalmente com estes Termos de Uso, com a nossa Política de Privacidade, e com a legislação brasileira vigente, em especial a **[Lei Geral de Proteção de Dados (LGPD — Lei nº 13.709/2018)](https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/l13709.htm)** e o **[Marco Civil da Internet (Lei nº 12.965/2014)](https://www.planalto.gov.br/ccivil_03/_ato2011-2014/2014/lei/l12965.htm)**. Se você discordar de algum ponto aqui descrito, você não possui autorização para utilizar o nosso serviço.
 
 ---
 
