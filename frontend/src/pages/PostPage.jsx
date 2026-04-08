@@ -344,12 +344,12 @@ const PostPage = () => {
                                 <p className="text-gray-500 dark:text-gray-400 text-sm">
                                     @{post.usuario?.nome_usuario}
                                     {post.usuario?.privacidade_padrao === 2 && (
-                                        <FaLock className="inline ml-1 text-gray-400" size={10} title="Conta Privada" />
+                                        <FaLock className="inline ml-1 text-gray-400" size={10} title={t('post.privateAccount', 'Conta Privada')} />
                                     )}
                                 </p>
                                 {post.comunidade_id && (
                                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                                        Post feito na comunidade{' '}
+                                        {t('post.postedInCommunity', 'Post feito na comunidade')}{' '}
                                         <Link
                                             to={`/community/${post.comunidade_id}`}
                                             className="text-purple-500 hover:text-purple-400 font-semibold hover:underline"

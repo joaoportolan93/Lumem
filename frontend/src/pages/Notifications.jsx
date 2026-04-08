@@ -65,6 +65,12 @@ const Notifications = () => {
     const handleCommunityInvite = async (e, idReferencia, action) => {
         e.preventDefault();
         e.stopPropagation();
+
+        if (typeof idReferencia !== 'string' || !idReferencia.includes('::')) {
+            setError(t('notifications.errorInviteAction') || 'Dados do convite inválidos');
+            return;
+        }
+
         try {
             const [communityId, inviteId] = idReferencia.split('::');
             if (action === 'accept') {
