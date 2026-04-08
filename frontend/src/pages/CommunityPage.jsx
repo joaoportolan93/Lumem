@@ -519,10 +519,10 @@ const CommunityPage = () => {
                                         {mod.avatar ? (
                                             <img src={mod.avatar} alt={mod.username} className="w-full h-full object-cover" />
                                         ) : (
-                                            <span className="text-white font-bold text-xs">u/</span>
+                                            <span className="text-white font-bold text-xs">{mod.username?.charAt(0).toUpperCase()}</span>
                                         )}
                                     </div>
-                                    <span>u/{mod.username}</span>
+                                    <span>{mod.username}</span>
                                     {mod.role === 'admin' && (
                                         <span className="text-[10px] bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded font-bold">{t('communityPage.roleAdmin')}</span>
                                     )}

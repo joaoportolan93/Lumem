@@ -329,7 +329,7 @@ const ExplorePage = () => {
                         <button onClick={() => navigate('/privacy')} className="hover:text-text-main dark:hover:text-white/50 transition-colors">{t('explore.footerPrivacy')}</button>
                         <button onClick={() => navigate('/terms')} className="hover:text-text-main dark:hover:text-white/50 transition-colors">{t('explore.footerTerms')}</button>
                         <button onClick={() => navigate('/help')} className="hover:text-text-main dark:hover:text-white/50 transition-colors">{t('explore.footerHelp')}</button>
-                        <span>© 2025 Lumem</span>
+                        <span>© {new Date().getFullYear()} Lumem</span>
                     </div>
 
                 </div>
