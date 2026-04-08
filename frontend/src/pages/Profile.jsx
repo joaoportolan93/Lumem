@@ -50,7 +50,7 @@ const Profile = () => {
                 setCommunityLoading(true);
                 try {
                     const res = await getMyCommunityPosts();
-                    setCommunityPosts(res.data);
+                    setCommunityPosts(res.data.results || res.data);
                 } catch (error) {
                     console.error('Error fetching community posts:', error);
                 } finally {
@@ -64,7 +64,7 @@ const Profile = () => {
                 setMemberCommLoading(true);
                 try {
                     const res = await getUserCommunities();
-                    setMemberCommunities(res.data);
+                    setMemberCommunities(res.data.results || res.data);
                 } catch (error) {
                     console.error('Error fetching member communities:', error);
                 } finally {
@@ -78,7 +78,7 @@ const Profile = () => {
                 setAdminCommLoading(true);
                 try {
                     const res = await getMyAdminCommunities();
-                    setAdminCommunities(res.data);
+                    setAdminCommunities(res.data.results || res.data);
                 } catch (error) {
                     console.error('Error fetching admin communities:', error);
                 } finally {

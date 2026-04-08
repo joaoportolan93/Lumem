@@ -2,15 +2,15 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import DreamCard from '../components/DreamCard';
-import { getCommunity, joinCommunity, leaveCommunity, deleteCommunity, getDreams, uploadCommunityIcon, uploadCommunityBanner, updateCommunity, inviteModerator, search } from '../services/api';
-import { FaBirthdayCake, FaEllipsisH, FaChevronDown, FaChevronUp, FaPlus, FaPen, FaEnvelope, FaUserPlus, FaTrash, FaCamera, FaTimes, FaSearch, FaSpinner } from 'react-icons/fa';
+import { getCommunity, joinCommunity, leaveCommunity, deleteCommunity, getDreams, uploadCommunityIcon, uploadCommunityBanner, updateCommunity, inviteModerator, search, getProfile } from '../services/api';
+import { FaBirthdayCake, FaEllipsisH, FaChevronDown, FaChevronUp, FaPlus, FaPen, FaUserPlus, FaTrash, FaCamera, FaTimes, FaSearch, FaSpinner, FaUserFriends } from 'react-icons/fa';
 
 const CommunityPage = () => {
     const { t } = useTranslation();
     const { id } = useParams();
     const navigate = useNavigate();
-    const currentUserId = JSON.parse(localStorage.getItem('user'))?.id_usuario;
-
+    
+    const [currentUserId, setCurrentUserId] = useState(null);
     const [community, setCommunity] = useState(null);
     const [posts, setPosts] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -46,6 +46,15 @@ const CommunityPage = () => {
         const loadData = async () => {
             try {
                 setLoading(true);
+                
+                // Fetch profile to get current user ID
+                try {
+                    const profileRes = await getProfile();
+                    setCurrentUserId(profileRes.data.id_usuario);
+                } catch (err) {
+                    console.error('Error fetching profile:', err);
+                }
+
                 const commResponse = await getCommunity(id);
                 setCommunity(commResponse.data);
 
@@ -273,155 +282,261 @@ const CommunityPage = () => {
 
 
     return (
-        <div className="flex flex-col min-h-screen">
+        <div className="flex flex-col min-h-screen bg-transparent">
             {/* Hidden file inputs */}
             <input type="file" ref={bannerInputRef} accept="image/*" className="hidden" onChange={handleBannerUpload} />
             <input type="file" ref={iconInputRef} accept="image/*" className="hidden" onChange={handleIconUpload} />
 
-            {/* 1. Reddit-style Banner */}
-            <div className="h-48 w-full bg-gray-700 relative group">
-                {community.banner ? (
-                    <img
-                        src={community.banner}
-                        alt="Banner"
-                        className="w-full h-full object-cover"
-                    />
-                ) : (
-                    <div className="w-full h-full bg-gradient-to-r from-blue-900 to-purple-900"></div>
-                )}
+            {/* Main Content Grid */}
+            <div className="max-w-6xl mx-auto px-4 w-full flex flex-col lg:flex-row gap-6 mt-6">
+                
+                {/* Left Sidebar (Now on the left) */}
+                <div className="w-full lg:w-80 shrink-0 flex flex-col gap-4">
 
-                {community.is_moderator && (
-                    <button
-                        onClick={() => bannerInputRef.current?.click()}
-                        disabled={uploadingBanner}
-                        className="absolute right-4 top-4 bg-blue-500 hover:bg-blue-600 text-white p-2.5 rounded-full opacity-0 group-hover:opacity-100 transition-all"
-                        title={t('communityPage.changeBanner')}
-                    >
-                        {uploadingBanner ? (
-                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        ) : (
-                            <FaCamera />
-                        )}
-                    </button>
-                )}
-            </div>
+                    {/* Integrated Sidebar Card with Banner */}
+                    <div className="bg-white dark:bg-[#1a1a1b] rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden text-gray-700 dark:text-gray-300 shadow-sm relative">
+                        
+                        {/* Ellipsis Menu Button (absolute top right, over banner) */}
+                        <div className="absolute top-2 right-2 z-20">
+                            <button
+                                onClick={() => setShowMenu(!showMenu)}
+                                className="w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 flex items-center justify-center text-white transition-colors"
+                            >
+                                <FaEllipsisH size={14} />
+                            </button>
 
-            {/* 2. Title Bar / Header Info */}
-            <div className="bg-white dark:bg-[#1a1a1b] border-b border-gray-200 dark:border-gray-700 mb-6">
-                <div className="max-w-6xl mx-auto px-4 pb-4">
-                    <div className="flex items-end -mt-8 mb-2">
-                        {/* Community Icon */}
-                        <div className="w-20 h-20 rounded-full border-4 border-white dark:border-[#1a1a1b] bg-gray-200 overflow-hidden relative z-10 group">
-                            {community.imagem ? (
-                                <img src={community.imagem} alt="Icon" className="w-full h-full object-cover" />
-                            ) : (
-                                <div className="w-full h-full flex items-center justify-center bg-primary text-white text-2xl font-bold">
-                                    {community.nome.charAt(0).toUpperCase()}
+                            {/* Dropdown Menu */}
+                            {showMenu && (
+                                <div className="absolute top-10 right-0 bg-white dark:bg-[#202024] border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-2 w-48 z-50">
+                                    <button
+                                        onClick={() => {
+                                            handleJoinLeave();
+                                            setShowMenu(false);
+                                        }}
+                                        className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-white/10 text-gray-700 dark:text-gray-200 text-sm"
+                                    >
+                                        {community.is_member ? t('communityPage.menuLeave') : t('communityPage.menuJoin')}
+                                    </button>
+                                    {community.is_member && (
+                                        <>
+                                            <button className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-white/10 text-gray-700 dark:text-gray-200 text-sm">
+                                                {t('communityPage.menuMute')}
+                                            </button>
+                                            <button className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-white/10 text-gray-700 dark:text-gray-200 text-sm">
+                                                {t('communityPage.menuFavorite')}
+                                            </button>
+                                            <button className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-white/10 text-red-500 text-sm">
+                                                {t('communityPage.menuReport')}
+                                            </button>
+                                            {(community.is_moderator || community.is_admin) && (
+                                                <button
+                                                    onClick={() => navigate(`/community/${id}/mod-dashboard`)}
+                                                    className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-white/10 text-blue-500 font-bold text-sm"
+                                                >
+                                                    {t('communityPage.menuModTools')}
+                                                </button>
+                                            )}
+                                            {community.is_admin && (
+                                                <button
+                                                    onClick={() => {
+                                                        handleDelete();
+                                                        setShowMenu(false);
+                                                    }}
+                                                    className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-white/10 text-red-600 font-bold text-sm flex items-center gap-2"
+                                                >
+                                                    <FaTrash size={12} />
+                                                    {t('communityPage.menuDelete')}
+                                                </button>
+                                            )}
+                                        </>
+                                    )}
                                 </div>
                             )}
+                        </div>
+
+                        {/* Banner Area */}
+                        <div className="h-32 w-full relative group bg-gray-700">
+                            {community.banner ? (
+                                <img
+                                    src={community.banner}
+                                    alt="Banner"
+                                    className="w-full h-full object-cover"
+                                />
+                            ) : (
+                                <div className="w-full h-full bg-gradient-to-r from-blue-900 to-purple-900"></div>
+                            )}
+
                             {community.is_moderator && (
                                 <button
-                                    onClick={() => iconInputRef.current?.click()}
-                                    disabled={uploadingIcon}
-                                    className="absolute inset-0 bg-black/50 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity rounded-full"
+                                    onClick={() => bannerInputRef.current?.click()}
+                                    disabled={uploadingBanner}
+                                    className="absolute right-12 top-2 bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-all"
+                                    title={t('communityPage.changeBanner')}
                                 >
-                                    {uploadingIcon ? (
-                                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                    {uploadingBanner ? (
+                                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                                     ) : (
-                                        <FaCamera size={18} className="text-blue-400" />
+                                        <FaCamera size={12} />
                                     )}
                                 </button>
                             )}
-                        </div>
 
-                        {/* Title & Actions */}
-                        <div className="flex-1 ml-4 block sm:flex justify-between items-start pt-2 pb-1 gap-4">
-                            <div className="min-w-0 pr-4">
-                                <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2 truncate">
-                                    {community.nome}
-                                </h1>
-                                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">
-                                    {community.descricao}
-                                </p>
-                            </div>
-
-                            <div className="flex gap-2 items-center relative flex-shrink-0 mt-3 sm:mt-0">
-                                {/* Create Post Button */}
-                                <button
-                                    onClick={() => navigate(`/community/${id}/submit`)}
-                                    className="px-4 py-2 rounded-full font-bold bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-900 dark:text-white transition-colors flex items-center gap-2"
-                                >
-                                    <FaPlus />
-                                    <span>{t('communityPage.btnCreatePost')}</span>
-                                </button>
-
-                                {/* More Options Button (...) */}
-                                <button
-                                    onClick={() => setShowMenu(!showMenu)}
-                                    className="w-10 h-10 rounded-full border border-gray-300 dark:border-gray-600 flex items-center justify-center text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
-                                >
-                                    <FaEllipsisH />
-                                </button>
-
-                                {/* Dropdown Menu */}
-                                {showMenu && (
-                                    <div className="absolute top-12 right-0 bg-white dark:bg-[#1a1a1b] border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-2 w-48 z-50">
-                                        <button
-                                            onClick={() => {
-                                                handleJoinLeave();
-                                                setShowMenu(false);
-                                            }}
-                                            className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-white/10 text-gray-700 dark:text-gray-200 text-sm"
-                                        >
-                                            {community.is_member ? t('communityPage.menuLeave') : t('communityPage.menuJoin')}
-                                        </button>
-                                        {community.is_member && (
-                                            <>
-                                                <button className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-white/10 text-gray-700 dark:text-gray-200 text-sm">
-                                                    {t('communityPage.menuMute')}
-                                                </button>
-                                                <button className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-white/10 text-gray-700 dark:text-gray-200 text-sm">
-                                                    {t('communityPage.menuFavorite')}
-                                                </button>
-                                                <button className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-white/10 text-red-500 text-sm">
-                                                    {t('communityPage.menuReport')}
-                                                </button>
-                                                {(community.is_moderator || community.is_admin) && (
-                                                    <button
-                                                        onClick={() => navigate(`/community/${id}/mod-dashboard`)}
-                                                        className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-white/10 text-blue-500 font-bold text-sm"
-                                                    >
-                                                        {t('communityPage.menuModTools')}
-                                                    </button>
-                                                )}
-                                                {community.is_admin && (
-                                                    <button
-                                                        onClick={() => {
-                                                            handleDelete();
-                                                            setShowMenu(false);
-                                                        }}
-                                                        className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-white/10 text-red-600 font-bold text-sm flex items-center gap-2"
-                                                    >
-                                                        <FaTrash size={12} />
-                                                        {t('communityPage.menuDelete')}
-                                                    </button>
-                                                )}
-                                            </>
-                                        )}
+                            {/* Overlapping Icon */}
+                            <div className="absolute left-1/2 -translate-x-1/2 -bottom-10 w-20 h-20 rounded-full border-4 border-white dark:border-[#1a1a1b] bg-gray-200 overflow-hidden z-10 group/icon">
+                                {community.imagem ? (
+                                    <img src={community.imagem} alt="Icon" className="w-full h-full object-cover" />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center bg-primary text-white text-2xl font-bold">
+                                        {community.nome.charAt(0).toUpperCase()}
                                     </div>
+                                )}
+                                {community.is_moderator && (
+                                    <button
+                                        onClick={() => iconInputRef.current?.click()}
+                                        disabled={uploadingIcon}
+                                        className="absolute inset-0 bg-black/50 flex items-center justify-center text-white opacity-0 group-hover/icon:opacity-100 transition-opacity"
+                                    >
+                                        {uploadingIcon ? (
+                                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                        ) : (
+                                            <FaCamera size={18} className="text-blue-400" />
+                                        )}
+                                    </button>
                                 )}
                             </div>
                         </div>
+
+                        {/* Info & Stats Below Banner */}
+                        <div className="pt-12 px-4 pb-4 flex flex-col items-center text-center">
+                            <h1 className="text-xl font-bold text-gray-900 dark:text-white flex items-center justify-center gap-2 w-full truncate">
+                                {community.nome}
+                                {community.is_moderator && (
+                                    <FaPen className="cursor-pointer text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors flex-shrink-0" onClick={openEditModal} size={12} />
+                                )}
+                            </h1>
+                            
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 line-clamp-3">
+                                {community.descricao}
+                            </p>
+
+                            {/* Stats Box */}
+                            <div className="w-full bg-gray-100 dark:bg-white/5 rounded-xl p-3 mt-4 mb-4">
+                                <div className="flex justify-around text-center mb-2">
+                                    <div>
+                                        <div className="font-bold flex items-center justify-center gap-1 text-gray-900 dark:text-white text-lg">
+                                            <FaUserFriends size={14}/> {community.membros_count}
+                                        </div>
+                                        <div className="text-xs text-gray-500">{t('communityPage.statVisitors', { defaultValue: 'Visitantes' })}</div>
+                                    </div>
+                                    <div>
+                                        <div className="font-bold flex items-center justify-center gap-1 text-gray-900 dark:text-white text-lg">
+                                            <FaPen size={12}/> 12
+                                        </div>
+                                        <div className="text-xs text-gray-500">{t('communityPage.statContribution', { defaultValue: 'Contribuições' })}</div>
+                                    </div>
+                                </div>
+                                <div className="text-center text-xs text-gray-500 border-t border-gray-300 dark:border-gray-600 pt-2 flex items-center justify-center gap-1">
+                                    {t('communityPage.createdOn', { date: new Date(community.data_criacao).toLocaleDateString() })}
+                                </div>
+                            </div>
+
+                            {/* Action Buttons */}
+                            <button className="w-full py-2 bg-[#81D8D0] hover:bg-[#6ec2ba] text-[#1a1a1b] rounded-full font-bold text-sm transition-colors mb-2 flex items-center justify-center gap-2">
+                                <FaBirthdayCake size={14} />
+                                {t('communityPage.btnGuide')}
+                            </button>
+
+                            <button
+                                onClick={() => navigate(`/community/${id}/submit`)}
+                                className="w-full py-2 bg-white hover:bg-gray-100 dark:bg-white dark:hover:bg-gray-200 text-[#1a1a1b] rounded-full font-bold text-sm transition-colors border border-gray-200 flex items-center justify-center gap-2"
+                            >
+                                <FaPlus size={14} />
+                                {t('communityPage.btnCreatePost')}
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Rules Card */}
+                    <div className="bg-white dark:bg-[#1a1a1b] rounded-xl border border-gray-200 dark:border-gray-700 p-4 text-gray-700 dark:text-gray-300 shadow-sm">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="font-bold text-gray-500 text-xs uppercase">{t('communityPage.rulesTitle', { name: community.nome })}</h3>
+                            {community.is_moderator && <FaPen className="cursor-pointer text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors" onClick={openRulesModal} size={12} />}
+                        </div>
+
+                        {community.regras && community.regras.length > 0 ? (
+                            <div className="space-y-1">
+                                {community.regras.map((rule, idx) => (
+                                    <div key={idx} className="group border-b border-gray-200 dark:border-gray-800 last:border-0">
+                                        <div
+                                            className="py-2 flex justify-between items-center cursor-pointer hover:bg-gray-100 dark:hover:bg-white/5 transition-colors px-1 rounded"
+                                            onClick={() => setExpandedRule(expandedRule === idx ? null : idx)}
+                                        >
+                                            <div className="flex gap-2 text-sm text-gray-700 dark:text-gray-300">
+                                                <span className="font-bold min-w-[15px]">{idx + 1}</span>
+                                                <span className="font-medium group-hover:text-gray-900 dark:group-hover:text-white transition-colors">{rule.title}</span>
+                                            </div>
+                                            {expandedRule === idx ? (
+                                                <FaChevronUp size={10} className="text-gray-500" />
+                                            ) : (
+                                                <FaChevronDown size={10} className="text-gray-500" />
+                                            )}
+                                        </div>
+                                        {expandedRule === idx && rule.description && (
+                                            <div className="px-1 pb-3 text-xs text-gray-500 dark:text-gray-400 ml-6 leading-relaxed">
+                                                {rule.description}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-sm text-gray-500 italic py-2 text-center border border-dashed border-gray-300 dark:border-gray-700 rounded">
+                                {t('communityPage.emptyRules')}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Moderators Card */}
+                    <div className="bg-white dark:bg-[#1a1a1b] rounded-xl border border-gray-200 dark:border-gray-700 p-4 text-gray-700 dark:text-gray-300 shadow-sm">
+                        <h3 className="font-bold text-gray-500 text-xs uppercase mb-4">{t('communityPage.modsTitle')}</h3>
+                        
+                        {community.is_admin && (
+                            <button
+                                onClick={() => setShowInviteModal(true)}
+                                className="flex items-center gap-2 text-sm text-indigo-400 hover:text-indigo-300 transition-colors mb-4"
+                            >
+                                <div className="p-1 rounded bg-indigo-500/10">
+                                    <FaUserPlus size={10} />
+                                </div>
+                                {t('communityPage.btnInviteMod')}
+                            </button>
+                        )}
+
+                        <div className="space-y-3">
+                            {community.moderators && community.moderators.map((mod) => (
+                                <Link key={mod.id} to={`/user/${mod.id}`} className="flex items-center gap-2 text-sm text-indigo-400 hover:underline">
+                                    <div className="w-6 h-6 rounded bg-indigo-500 overflow-hidden flex items-center justify-center">
+                                        {mod.avatar ? (
+                                            <img src={mod.avatar} alt={mod.username} className="w-full h-full object-cover" />
+                                        ) : (
+                                            <span className="text-white font-bold text-xs">u/</span>
+                                        )}
+                                    </div>
+                                    <span>u/{mod.username}</span>
+                                    {mod.role === 'admin' && (
+                                        <span className="text-[10px] bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded font-bold">{t('communityPage.roleAdmin')}</span>
+                                    )}
+                                </Link>
+                            ))}
+                            {!community.moderators && (
+                                <div className="text-xs text-gray-500 italic">{t('communityPage.emptyMods')}</div>
+                            )}
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            {/* 3. Main Content Grid */}
-            <div className="max-w-6xl mx-auto px-4 w-full flex flex-col lg:flex-row gap-6">
-
-                {/* Left Content: Feed (2/3) */}
+                {/* Right Content: Feed (Now on the right) */}
                 <div className="flex-1 min-w-0 flex flex-col gap-6">
-
                     {/* Posts Feed */}
                     <div className="flex flex-col gap-4">
                         {posts.length > 0 ? (
@@ -433,7 +548,7 @@ const CommunityPage = () => {
                                 />
                             ))
                         ) : (
-                            <div className="bg-white dark:bg-[#1a1a1b] rounded border border-gray-200 dark:border-gray-700 p-12 text-center">
+                            <div className="p-12 text-center">
                                 <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">{t('communityPage.emptyPostsTitle')}</h3>
                                 <p className="text-gray-500 dark:text-gray-400">{t('communityPage.emptyPostsDesc')}</p>
                             </div>
@@ -441,150 +556,6 @@ const CommunityPage = () => {
                     </div>
                 </div>
 
-                {/* Right Sidebar (1/3) */}
-                <div className="w-full lg:w-80 shrink-0 flex flex-col gap-4">
-
-                    {/* Integrated Sidebar Card */}
-                    <div className="bg-white dark:bg-[#1a1a1b] rounded-md border border-gray-200 dark:border-gray-700 overflow-hidden text-gray-700 dark:text-gray-300">
-
-                        {/* 1. Header Area */}
-                        <div className="p-4 pb-0">
-                            <div className="flex justify-between items-start mb-2">
-                                <h2 className="text-base font-bold text-gray-900 dark:text-gray-200">{community.nome}</h2>
-                                {community.is_moderator && (
-                                    <FaPen className="cursor-pointer text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors" onClick={openEditModal} size={12} />
-                                )}
-                            </div>
-                            <p className="text-sm mb-4 leading-relaxed text-gray-500 dark:text-gray-400">
-                                {community.descricao}
-                            </p>
-
-                            <div className="flex items-center gap-2 text-xs text-gray-500 mb-2">
-                                <FaBirthdayCake />
-                                {t('communityPage.createdOn', { date: new Date(community.data_criacao).toLocaleDateString() })}
-                            </div>
-                            <div className="flex items-center gap-2 text-xs text-gray-500 mb-4">
-                                <span className="flex items-center gap-1"><div className="w-3 h-3 rounded-full border border-gray-500"></div> {t('communityPage.statusPublic')}</span>
-                            </div>
-
-                            <button className="w-full py-2 bg-indigo-700 hover:bg-indigo-600 text-white rounded-full font-bold text-sm transition-colors mb-6 shadow-md shadow-indigo-900/20 flex items-center justify-center gap-2">
-                                <FaBirthdayCake size={14} />
-                                {t('communityPage.btnGuide')}
-                            </button>
-
-                            {/* Stats */}
-                            <div className="border-t border-gray-200 dark:border-gray-700/50 pt-4 pb-4">
-                                <div className="flex justify-between items-center mb-2">
-                                    <h3 className="text-xs font-bold text-gray-500 uppercase">{t('communityPage.statsTitle')}</h3>
-                                    <span className="text-xs text-gray-500 cursor-pointer hover:text-gray-700 dark:hover:text-gray-300">{t('communityPage.statsLastWeek')}</span>
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <div className="text-xl font-medium text-gray-900 dark:text-white">
-                                            {community.membros_count}
-                                        </div>
-                                        <div className="text-xs text-gray-500">{t('communityPage.statVisitors')}</div>
-                                    </div>
-                                    <div>
-                                        <div className="text-xl font-medium text-gray-900 dark:text-white flex items-center gap-1">
-                                            12
-                                        </div>
-                                        <div className="text-xs text-gray-500">{t('communityPage.statContribution')}</div>
-                                    </div>
-                                </div>
-                            </div>
-
-                        </div>
-
-                        {/* Separator */}
-                        <div className="h-px bg-gray-200 dark:bg-gray-700/50 w-full"></div>
-
-                        {/* Rules Section */}
-                        <div className="p-4">
-                            <div className="flex justify-between items-center mb-4">
-                                <h3 className="font-bold text-gray-500 text-xs uppercase">{t('communityPage.rulesTitle', { name: community.nome })}</h3>
-                                {community.is_moderator && <FaPen className="cursor-pointer text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors" onClick={openRulesModal} size={12} />}
-                            </div>
-
-                            {community.regras && community.regras.length > 0 ? (
-                                <div className="space-y-1">
-                                    {community.regras.map((rule, idx) => (
-                                        <div key={idx} className="group border-b border-gray-200 dark:border-gray-800 last:border-0">
-                                            <div
-                                                className="py-2 flex justify-between items-center cursor-pointer hover:bg-gray-100 dark:hover:bg-white/5 transition-colors px-1 rounded"
-                                                onClick={() => setExpandedRule(expandedRule === idx ? null : idx)}
-                                            >
-                                                <div className="flex gap-2 text-sm text-gray-700 dark:text-gray-300">
-                                                    <span className="font-bold min-w-[15px]">{idx + 1}</span>
-                                                    <span className="font-medium group-hover:text-gray-900 dark:group-hover:text-white transition-colors">{rule.title}</span>
-                                                </div>
-                                                {expandedRule === idx ? (
-                                                    <FaChevronUp size={10} className="text-gray-500" />
-                                                ) : (
-                                                    <FaChevronDown size={10} className="text-gray-500" />
-                                                )}
-                                            </div>
-                                            {expandedRule === idx && rule.description && (
-                                                <div className="px-1 pb-3 text-xs text-gray-500 dark:text-gray-400 ml-6 leading-relaxed">
-                                                    {rule.description}
-                                                </div>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="text-sm text-gray-500 italic py-2 text-center border border-dashed border-gray-300 dark:border-gray-700 rounded">
-                                    {t('communityPage.emptyRules')}
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Separator */}
-                        <div className="h-px bg-gray-200 dark:bg-gray-700/50 w-full"></div>
-
-                        {/* Moderators Section */}
-                        <div className="p-4">
-                            <h3 className="font-bold text-gray-500 text-xs uppercase mb-4">{t('communityPage.modsTitle')}</h3>
-                            <button className="w-full py-2 mb-4 bg-indigo-700 hover:bg-indigo-600 text-white rounded-full font-bold text-sm transition-colors flex items-center justify-center gap-2 shadow-md shadow-indigo-900/20">
-                                <FaEnvelope />
-                                {t('communityPage.btnContactMods')}
-                            </button>
-
-                            {community.is_admin && (
-                                <button
-                                    onClick={() => setShowInviteModal(true)}
-                                    className="flex items-center gap-2 text-sm text-indigo-400 hover:text-indigo-300 transition-colors mb-4 ml-1"
-                                >
-                                    <div className="p-1 rounded bg-indigo-500/10">
-                                        <FaUserPlus size={10} />
-                                    </div>
-                                    {t('communityPage.btnInviteMod')}
-                                </button>
-                            )}
-
-                            <div className="space-y-3">
-                                {community.moderators && community.moderators.map((mod) => (
-                                    <Link key={mod.id} to={`/user/${mod.id}`} className="flex items-center gap-2 text-sm text-indigo-400 hover:underline">
-                                        <div className="w-6 h-6 rounded bg-indigo-500 overflow-hidden flex items-center justify-center">
-                                            {mod.avatar ? (
-                                                <img src={mod.avatar} alt={mod.username} className="w-full h-full object-cover" />
-                                            ) : (
-                                                <span className="text-white font-bold text-xs">u/</span>
-                                            )}
-                                        </div>
-                                        <span>u/{mod.username}</span>
-                                        {mod.role === 'admin' && (
-                                            <span className="text-[10px] bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded font-bold">{t('communityPage.roleAdmin')}</span>
-                                        )}
-                                    </Link>
-                                ))}
-                                {!community.moderators && (
-                                    <div className="text-xs text-gray-500 italic">{t('communityPage.emptyMods')}</div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </div>
 
             {/* ===== MODALS ===== */}

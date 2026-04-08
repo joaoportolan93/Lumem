@@ -273,6 +273,8 @@
         "likedDream": "curtiu seu sonho \"{{content}}\"",
         "yourDream": "seu sonho",
         "commented": "comentou: \"{{content}}\"",
+        "communityInvite": "convidou você para moderar a comunidade \"{{community}}\"",
+        "errorInviteAction": "Erro ao processar o convite.",
         "interacted": "interagiu com você",
         "timeNow": "agora",
         "timeMins": "{{min}} min atrás",

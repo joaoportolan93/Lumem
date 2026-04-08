@@ -1,10 +1,12 @@
 import React from 'react';
 import { FaCloud, FaFeather } from 'react-icons/fa';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import SuggestionsCard from './SuggestionsCard';
 
 const SidebarRight = () => {
     const { t } = useTranslation();
+    const navigate = useNavigate();
     const insights = [
         { title: t('sidebarRight.flyTitle'), desc: t('sidebarRight.flyDesc'), icon: FaCloud },
         { title: t('sidebarRight.fallTitle'), desc: t('sidebarRight.fallDesc'), icon: FaFeather },
@@ -33,6 +35,15 @@ const SidebarRight = () => {
                         </div>
                     ))}
                 </div>
+            </div>
+
+            {/* Small Footer Links */}
+            <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-text-secondary/50 dark:text-white/20 px-2 mt-6 text-center justify-center">
+                <button onClick={() => navigate('/about')} className="hover:text-text-main dark:hover:text-white/50 transition-colors">{t('explore.footerAbout', 'Sobre')}</button>
+                <button onClick={() => navigate('/privacy')} className="hover:text-text-main dark:hover:text-white/50 transition-colors">{t('explore.footerPrivacy', 'Privacidade')}</button>
+                <button onClick={() => navigate('/terms')} className="hover:text-text-main dark:hover:text-white/50 transition-colors">{t('explore.footerTerms', 'Termos')}</button>
+                <button onClick={() => navigate('/help')} className="hover:text-text-main dark:hover:text-white/50 transition-colors">{t('explore.footerHelp', 'Ajuda')}</button>
+                <span>© {new Date().getFullYear()} Lumem</span>
             </div>
         </aside>
     );

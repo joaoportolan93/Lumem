@@ -34,6 +34,12 @@ import UserManagement from './pages/admin/UserManagement';
 import AdminNotifications from './pages/admin/AdminNotifications';
 import AdminChatAudit from './pages/admin/AdminChatAudit';
 
+// Legal Pages
+import TermosDeUso from './pages/legal/TermosDeUso';
+import PoliticaPrivacidade from './pages/legal/PoliticaPrivacidade';
+import Ajuda from './pages/legal/Ajuda';
+import Sobre from './pages/legal/Sobre';
+
 // Components
 import PrivateRoute from './components/PrivateRoute';
 import { SuggestionsProvider } from './contexts/SuggestionsContext';
@@ -302,6 +308,16 @@ function App() {
                                 </PrivateRoute>
                             }
                         />
+
+                        {/* Legal Routes */}
+                        <Route path="/termos" element={<TermosDeUso />} />
+                        <Route path="/terms" element={<TermosDeUso />} />
+                        <Route path="/privacidade" element={<PoliticaPrivacidade />} />
+                        <Route path="/privacy" element={<PoliticaPrivacidade />} />
+                        <Route path="/ajuda" element={<Ajuda />} />
+                        <Route path="/help" element={<Ajuda />} />
+                        <Route path="/sobre" element={<Sobre />} />
+                        <Route path="/about" element={<Sobre />} />
 
                         {/* 404 Not Found */}
                         <Route path="*" element={<NotFound />} />

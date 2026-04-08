@@ -198,6 +198,8 @@ export const banCommunityMember = (id, userId, motivo = '') => api.post(`/api/co
 export const unbanCommunityMember = (id, userId) => api.post(`/api/communities/${id}/unban-member/`, { user_id: userId });
 export const getBannedMembers = (id) => api.get(`/api/communities/${id}/banned-members/`);
 export const inviteModerator = (id, userId) => api.post(`/api/communities/${id}/invite-moderator/`, { user_id: userId });
+export const acceptCommunityInvite = (id, inviteId) => api.post(`/api/communities/${id}/accept-invite/`, { invite_id: inviteId });
+export const rejectCommunityInvite = (id, inviteId) => api.post(`/api/communities/${id}/reject-invite/`, { invite_id: inviteId });
 
 export const uploadCommunityIcon = (id, file) => {
     const formData = new FormData();

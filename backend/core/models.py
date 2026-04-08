@@ -278,6 +278,7 @@ class Notificacao(models.Model):
         (3, _('Curtida')),
         (4, _('Seguidor Novo')),
         (5, _('Solicitação de Seguidor')),
+        (6, _('Convite de Moderação')),
     )
     tipo_notificacao = models.SmallIntegerField(choices=TIPO_NOTIFICACAO_CHOICES)
     id_referencia = models.CharField(max_length=36, null=True, blank=True)
@@ -513,6 +514,23 @@ class MembroComunidade(models.Model):
         else:
             self.is_moderator = False
         super().save(*args, **kwargs)
+
+class ConviteModerador(models.Model):
+    id_convite = models.UUIDField(primary_key=True, default=uuid6.uuid7, editable=False)
+    comunidade = models.ForeignKey(Comunidade, on_delete=models.CASCADE, db_column='id_comunidade')
+    usuario_convidado = models.ForeignKey(Usuario, on_delete=models.CASCADE, related_name='convites_recebidos', db_column='id_usuario_convidado')
+    admin_convidador = models.ForeignKey(Usuario, on_delete=models.CASCADE, related_name='convites_enviados', db_column='id_admin_convidador')
+    
+    STATUS_CHOICES = (
+        ('pending', _('Pendente')),
+        ('accepted', _('Aceito')),
+        ('rejected', _('Recusado')),
+    )
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    data_criacao = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        db_table = 'convites_moderador'
 
 
 class BanimentoComunidade(models.Model):

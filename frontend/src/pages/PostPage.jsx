@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { FaArrowLeft, FaHeart, FaRegHeart, FaComment, FaShare, FaEllipsisH, FaEdit, FaTrash, FaFlag, FaBookmark, FaRegBookmark, FaUserFriends, FaChevronDown, FaRobot } from 'react-icons/fa';
+import { FaArrowLeft, FaHeart, FaRegHeart, FaComment, FaShare, FaEllipsisH, FaEdit, FaTrash, FaFlag, FaBookmark, FaRegBookmark, FaUserFriends, FaChevronDown, FaRobot, FaLock } from 'react-icons/fa';
 import { getDream, deleteDream, likeDream, saveDream, getComments, createComment, getProfile } from '../services/api';
 import { useTranslation } from 'react-i18next';
 import ReplyComposer from '../components/ReplyComposer';
@@ -343,7 +343,22 @@ const PostPage = () => {
                                 </div>
                                 <p className="text-gray-500 dark:text-gray-400 text-sm">
                                     @{post.usuario?.nome_usuario}
+                                    {post.usuario?.privacidade_padrao === 2 && (
+                                        <FaLock className="inline ml-1 text-gray-400" size={10} title="Conta Privada" />
+                                    )}
                                 </p>
+                                {post.comunidade_id && (
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                        Post feito na comunidade{' '}
+                                        <Link
+                                            to={`/community/${post.comunidade_id}`}
+                                            className="text-purple-500 hover:text-purple-400 font-semibold hover:underline"
+                                            onClick={(e) => e.stopPropagation()}
+                                        >
+                                            {post.comunidade_nome}
+                                        </Link>
+                                    </p>
+                                )}
                             </div>
                         </div>
 
@@ -457,9 +472,6 @@ const PostPage = () => {
                             className="flex items-center gap-2 p-2 text-gray-500 hover:text-primary transition-colors"
                         >
                             <FaComment size={20} />
-                        </button>
-                        <button className="flex items-center gap-2 p-2 text-gray-500 hover:text-primary transition-colors">
-                            <FaShare size={20} />
                         </button>
                         <button
                             onClick={handleSave}
