@@ -99,3 +99,83 @@ class TestCommunityFeatures:
         
         assert response.data['total_members'] == 2
         assert response.data['new_members_last_7_days'] == 2
+
+    def test_delete_account_precheck_lists_pending_communities(self, auth_client):
+        client, user = auth_client
+
+        community_transfer = Comunidade.objects.create(nome='Transfer Community', descricao='Needs transfer')
+        MembroComunidade.objects.create(comunidade=community_transfer, usuario=user, role='admin')
+        moderator = UsuarioFactory()
+        MembroComunidade.objects.create(comunidade=community_transfer, usuario=moderator, role='moderator')
+
+        community_delete = Comunidade.objects.create(nome='Delete Community', descricao='Will be deleted')
+        MembroComunidade.objects.create(comunidade=community_delete, usuario=user, role='admin')
+        member = UsuarioFactory()
+        MembroComunidade.objects.create(comunidade=community_delete, usuario=member, role='member')
+
+        community_safe = Comunidade.objects.create(nome='Shared Admin Community', descricao='Another admin exists')
+        MembroComunidade.objects.create(comunidade=community_safe, usuario=user, role='admin')
+        other_admin = UsuarioFactory()
+        MembroComunidade.objects.create(comunidade=community_safe, usuario=other_admin, role='admin')
+
+        url = reverse('delete_account_precheck')
+        response = client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['can_proceed'] is False
+
+        transfer_ids = {item['id_comunidade'] for item in response.data['comunidades_para_transferir']}
+        delete_ids = {item['id_comunidade'] for item in response.data['comunidades_para_deletar']}
+
+        assert str(community_transfer.id_comunidade) in transfer_ids
+        assert str(community_delete.id_comunidade) in delete_ids
+        assert str(community_safe.id_comunidade) not in transfer_ids
+        assert str(community_safe.id_comunidade) not in delete_ids
+
+    def test_transfer_ownership_promotes_moderator(self, auth_client):
+        client, user = auth_client
+        community = Comunidade.objects.create(nome='Ownership Community', descricao='Transfer test')
+        MembroComunidade.objects.create(comunidade=community, usuario=user, role='admin')
+        moderator = UsuarioFactory()
+        MembroComunidade.objects.create(comunidade=community, usuario=moderator, role='moderator')
+
+        url = reverse('communities-transfer-ownership', args=[community.id_comunidade])
+        response = client.post(url, {'user_id': str(moderator.id_usuario)}, format='json')
+
+        assert response.status_code == status.HTTP_200_OK
+        assert MembroComunidade.objects.get(comunidade=community, usuario=moderator).role == 'admin'
+        assert MembroComunidade.objects.get(comunidade=community, usuario=user).role == 'member'
+
+    def test_delete_account_blocks_when_transfer_is_required(self, auth_client):
+        client, user = auth_client
+        user.set_password('password123')
+        user.save(update_fields=['password'])
+
+        community = Comunidade.objects.create(nome='Blocked Delete Community', descricao='Must transfer first')
+        MembroComunidade.objects.create(comunidade=community, usuario=user, role='admin')
+        moderator = UsuarioFactory()
+        MembroComunidade.objects.create(comunidade=community, usuario=moderator, role='moderator')
+
+        url = reverse('delete_account')
+        response = client.delete(url, {'senha': 'password123'}, format='json')
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.data['requires_transfer'] is True
+        assert len(response.data['comunidades_para_transferir']) == 1
+        assert Usuario.objects.filter(id_usuario=user.id_usuario).exists()
+        assert Comunidade.objects.filter(id_comunidade=community.id_comunidade).exists()
+
+    def test_delete_account_deletes_orphan_community(self, auth_client):
+        client, user = auth_client
+        user.set_password('password123')
+        user.save(update_fields=['password'])
+
+        community = Comunidade.objects.create(nome='Orphan Community', descricao='Will be deleted with account')
+        MembroComunidade.objects.create(comunidade=community, usuario=user, role='admin')
+
+        url = reverse('delete_account')
+        response = client.delete(url, {'senha': 'password123'}, format='json')
+
+        assert response.status_code == status.HTTP_200_OK
+        assert not Usuario.objects.filter(id_usuario=user.id_usuario).exists()
+        assert not Comunidade.objects.filter(id_comunidade=community.id_comunidade).exists()

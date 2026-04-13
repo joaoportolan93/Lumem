@@ -3,7 +3,7 @@ from rest_framework.test import APIClient
 from rest_framework import status
 from django.urls import reverse
 from .factories import UsuarioFactory, PublicacaoFactory, ComentarioFactory
-from .models import Usuario, Publicacao, Seguidor, Notificacao
+from .models import Usuario, Publicacao, Seguidor, Notificacao, PublicacaoMencao
 
 @pytest.fixture
 def api_client():
@@ -310,6 +310,90 @@ class TestFollowersList:
         response = auth_client.get(url)
         assert response.status_code == status.HTTP_200_OK
         assert len(response.data) == 1
+
+
+@pytest.mark.django_db
+class TestPostMentions:
+    def test_create_post_with_mentions_creates_notification(self, auth_client, user):
+        mentioned_user = UsuarioFactory(nome_usuario='alice_mention')
+        url = reverse('dreams-list')
+
+        response = auth_client.post(url, {
+            'titulo': 'Post com mencao',
+            'conteudo_texto': 'Oi @alice_mention, veja este sonho!'
+        }, format='json')
+
+        assert response.status_code == status.HTTP_201_CREATED
+        post_id = response.data['id_publicacao']
+
+        assert PublicacaoMencao.objects.filter(
+            publicacao_id=post_id,
+            usuario_mencionado=mentioned_user,
+            usuario_mencionador=user,
+        ).exists()
+
+        notification = Notificacao.objects.filter(
+            usuario_destino=mentioned_user,
+            usuario_origem=user,
+            tipo_notificacao=7,
+            id_referencia=str(post_id),
+        ).first()
+        assert notification is not None
+
+    def test_create_post_with_duplicate_or_self_mentions(self, auth_client, user):
+        mentioned_user = UsuarioFactory(nome_usuario='dupe_user')
+        url = reverse('dreams-list')
+
+        response = auth_client.post(url, {
+            'conteudo_texto': 'Teste @dupe_user @DUPE_USER e @%s' % user.nome_usuario
+        }, format='json')
+
+        assert response.status_code == status.HTTP_201_CREATED
+        post_id = response.data['id_publicacao']
+
+        assert PublicacaoMencao.objects.filter(publicacao_id=post_id).count() == 1
+        assert PublicacaoMencao.objects.filter(publicacao_id=post_id, usuario_mencionado=mentioned_user).exists()
+        assert not PublicacaoMencao.objects.filter(publicacao_id=post_id, usuario_mencionado=user).exists()
+
+        assert Notificacao.objects.filter(
+            usuario_destino=mentioned_user,
+            tipo_notificacao=7,
+            id_referencia=str(post_id),
+        ).count() == 1
+
+    def test_update_post_mentions_syncs_records_and_notifications(self, auth_client, user):
+        first_user = UsuarioFactory(nome_usuario='first_mention')
+        second_user = UsuarioFactory(nome_usuario='second_mention')
+
+        create_response = auth_client.post(reverse('dreams-list'), {
+            'conteudo_texto': 'Primeira versao com @first_mention'
+        }, format='json')
+        assert create_response.status_code == status.HTTP_201_CREATED
+
+        post_id = create_response.data['id_publicacao']
+
+        patch_response = auth_client.patch(
+            reverse('dreams-detail', args=[post_id]),
+            {'conteudo_texto': 'Versao nova com @second_mention'},
+            format='json'
+        )
+        assert patch_response.status_code == status.HTTP_200_OK
+
+        assert not PublicacaoMencao.objects.filter(publicacao_id=post_id, usuario_mencionado=first_user).exists()
+        assert PublicacaoMencao.objects.filter(publicacao_id=post_id, usuario_mencionado=second_user).exists()
+
+        assert not Notificacao.objects.filter(
+            usuario_destino=first_user,
+            usuario_origem=user,
+            tipo_notificacao=7,
+            id_referencia=str(post_id),
+        ).exists()
+        assert Notificacao.objects.filter(
+            usuario_destino=second_user,
+            usuario_origem=user,
+            tipo_notificacao=7,
+            id_referencia=str(post_id),
+        ).exists()
 
 
 @pytest.mark.django_db

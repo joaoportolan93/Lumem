@@ -11,6 +11,7 @@ import os
 import uuid
 import random
 import string
+import re
 from django.core.mail import send_mail
 from .serializers import RegisterSerializer, UserSerializer, UserUpdateSerializer, LogoutSerializer, RequestPasswordResetCodeSerializer, VerifyAndResetPasswordSerializer, ChangePasswordSerializer
 from .models import PasswordResetCode
@@ -195,6 +196,72 @@ class GoogleLoginView(APIView):
         })
 
 
+class DeleteAccountPreCheckView(APIView):
+    """Verifica a situação das comunidades do usuário antes da exclusão da conta.
+    Retorna quais comunidades precisam de transferência de admin e quais serão deletadas."""
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def get(self, request):
+        from .models import MembroComunidade
+
+        user = request.user
+
+        # Comunidades onde o usuário é o único admin
+        admin_memberships = MembroComunidade.objects.filter(
+            usuario=user, role='admin'
+        ).select_related('comunidade')
+
+        comunidades_para_transferir = []
+        comunidades_para_deletar = []
+
+        for membership in admin_memberships:
+            community = membership.comunidade
+
+            # Verificar se existe outro admin
+            other_admins = MembroComunidade.objects.filter(
+                comunidade=community, role='admin'
+            ).exclude(usuario=user).exists()
+
+            if other_admins:
+                # Outro admin assume — sem problema
+                continue
+
+            # Verificar se existem moderadores
+            moderadores = MembroComunidade.objects.filter(
+                comunidade=community, role='moderator'
+            ).select_related('usuario')
+
+            if moderadores.exists():
+                # Há moderadores — usuário precisa transferir antes
+                comunidades_para_transferir.append({
+                    'id_comunidade': str(community.id_comunidade),
+                    'nome': community.nome,
+                    'moderadores': [
+                        {
+                            'id_usuario': str(m.usuario.id_usuario),
+                            'nome_usuario': m.usuario.nome_usuario,
+                            'nome_completo': m.usuario.nome_completo,
+                            'avatar_url': m.usuario.avatar_url,
+                        }
+                        for m in moderadores
+                    ]
+                })
+            else:
+                # Sem moderadores — comunidade será deletada
+                total_membros = community.membros.count()
+                comunidades_para_deletar.append({
+                    'id_comunidade': str(community.id_comunidade),
+                    'nome': community.nome,
+                    'total_membros': total_membros,
+                })
+
+        return Response({
+            'can_proceed': len(comunidades_para_transferir) == 0,
+            'comunidades_para_transferir': comunidades_para_transferir,
+            'comunidades_para_deletar': comunidades_para_deletar,
+        })
+
+
 class DeleteAccountView(APIView):
     """Permite que o próprio usuário exclua sua conta de forma permanente.
     Exigido pela LGPD, Art. 18, VI — direito à eliminação dos dados pessoais.
@@ -203,6 +270,7 @@ class DeleteAccountView(APIView):
 
     def delete(self, request):
         from django.contrib.auth.hashers import check_password
+        from .models import MembroComunidade
 
         # Exige confirmação da senha atual (ou flag 'confirmar' para contas Google sem senha)
         senha_confirmacao = request.data.get('senha')
@@ -230,17 +298,72 @@ class DeleteAccountView(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-        # Invalidar tokens ativos
-        try:
-            refresh_token = request.data.get('refresh')
-            if refresh_token:
-                from rest_framework_simplejwt.tokens import RefreshToken as RT
-                RT(refresh_token).blacklist()
-        except Exception:
-            pass  # Não bloquear a exclusão se o token já for inválido
+        with transaction.atomic():
+            # ── Tratamento de comunidades ──────────────────────────────
+            admin_memberships = MembroComunidade.objects.filter(
+                usuario=user, role='admin'
+            ).select_related('comunidade')
 
-        email = user.email
-        user.delete()  # CASCADE elimina posts, comentários, mensagens, etc.
+            comunidades_para_deletar = []
+            comunidades_para_transferir = []
+
+            for membership in admin_memberships:
+                community = membership.comunidade
+
+                other_admins = MembroComunidade.objects.filter(
+                    comunidade=community, role='admin'
+                ).exclude(usuario=user).exists()
+
+                if other_admins:
+                    continue
+
+                moderadores = MembroComunidade.objects.filter(
+                    comunidade=community, role='moderator'
+                ).select_related('usuario')
+
+                if moderadores.exists():
+                    comunidades_para_transferir.append({
+                        'id_comunidade': str(community.id_comunidade),
+                        'nome': community.nome,
+                        'moderadores': [
+                            {
+                                'id_usuario': str(m.usuario.id_usuario),
+                                'nome_usuario': m.usuario.nome_usuario,
+                                'nome_completo': m.usuario.nome_completo,
+                                'avatar_url': m.usuario.avatar_url,
+                            }
+                            for m in moderadores
+                        ]
+                    })
+                    continue
+
+                comunidades_para_deletar.append(community)
+
+            if comunidades_para_transferir:
+                return Response(
+                    {
+                        'error': _('Você ainda é o único administrador de comunidades que possuem moderadores. '
+                                    'Transfira a administração antes de excluir sua conta.'),
+                        'requires_transfer': True,
+                        'comunidades_para_transferir': comunidades_para_transferir,
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Deletar comunidades órfãs (sem moderadores)
+            for community in comunidades_para_deletar:
+                community.delete()
+
+            # Invalidar tokens ativos
+            try:
+                refresh_token = request.data.get('refresh')
+                if refresh_token:
+                    from rest_framework_simplejwt.tokens import RefreshToken as RT
+                    RT(refresh_token).blacklist()
+            except Exception:
+                pass  # Não bloquear a exclusão se o token já for inválido
+
+            user.delete()  # CASCADE elimina posts, comentários, mensagens, etc.
 
         return Response(
             {'message': _('Sua conta e todos os seus dados foram excluídos permanentemente.')},
@@ -555,7 +678,7 @@ class SuggestedUsersView(APIView):
 # Dream (Publicacao) Views
 from rest_framework import viewsets
 from rest_framework.decorators import action
-from .models import Publicacao, Seguidor, ReacaoPublicacao, Comentario, Hashtag, PublicacaoHashtag, PublicacaoSalva
+from .models import Publicacao, Seguidor, ReacaoPublicacao, Comentario, Hashtag, PublicacaoHashtag, PublicacaoSalva, PublicacaoMencao
 from .serializers import PublicacaoSerializer, PublicacaoCreateSerializer, SeguidorSerializer, HashtagSerializer, SearchSerializer, NotificacaoSerializer
 from django.utils import timezone
 from django.db.models import Count, Q
@@ -563,6 +686,97 @@ from django.db.models import Count, Q
 class PublicacaoViewSet(viewsets.ModelViewSet):
     """ViewSet for dream posts CRUD operations"""
     permission_classes = (permissions.IsAuthenticated,)
+    MENTION_PATTERN = re.compile(r'(?<![\w@])@([A-Za-z0-9_]{1,50})\b')
+
+    def _extract_mentioned_usernames(self, post):
+        raw_text = f"{post.titulo or ''}\n{post.conteudo_texto or ''}"
+        usernames = {
+            match.group(1).lower()
+            for match in self.MENTION_PATTERN.finditer(raw_text)
+        }
+        return list(usernames)[:20]
+
+    def _sync_post_mentions(self, post):
+        """Sync mention relationships for a post and notify newly mentioned users."""
+        from .models import Bloqueio, Notificacao
+
+        usernames = self._extract_mentioned_usernames(post)
+        if not usernames:
+            PublicacaoMencao.objects.filter(publicacao=post).delete()
+            Notificacao.objects.filter(
+                tipo_notificacao=7,
+                id_referencia=str(post.id_publicacao),
+                usuario_origem=post.usuario,
+            ).delete()
+            return
+
+        mentioned_users = []
+        for username in usernames:
+            user = User.objects.filter(nome_usuario__iexact=username, status=1).first()
+            if user and user.id_usuario != post.usuario.id_usuario:
+                mentioned_users.append(user)
+
+        if not mentioned_users:
+            PublicacaoMencao.objects.filter(publicacao=post).delete()
+            Notificacao.objects.filter(
+                tipo_notificacao=7,
+                id_referencia=str(post.id_publicacao),
+                usuario_origem=post.usuario,
+            ).delete()
+            return
+
+        candidate_ids = {u.id_usuario for u in mentioned_users}
+        block_rows = Bloqueio.objects.filter(
+            Q(usuario=post.usuario, usuario_bloqueado_id__in=candidate_ids)
+            | Q(usuario_id__in=candidate_ids, usuario_bloqueado=post.usuario)
+        ).values_list('usuario_id', 'usuario_bloqueado_id')
+
+        blocked_ids = set()
+        for usuario_id, bloqueado_id in block_rows:
+            if usuario_id == post.usuario.id_usuario:
+                blocked_ids.add(bloqueado_id)
+            else:
+                blocked_ids.add(usuario_id)
+
+        final_users = [u for u in mentioned_users if u.id_usuario not in blocked_ids]
+        new_ids = {u.id_usuario for u in final_users}
+
+        existing_mentions = PublicacaoMencao.objects.filter(publicacao=post)
+        existing_ids = set(existing_mentions.values_list('usuario_mencionado_id', flat=True))
+
+        ids_to_remove = existing_ids - new_ids
+        ids_to_add = new_ids - existing_ids
+
+        if ids_to_remove:
+            PublicacaoMencao.objects.filter(
+                publicacao=post,
+                usuario_mencionado_id__in=ids_to_remove,
+            ).delete()
+            Notificacao.objects.filter(
+                tipo_notificacao=7,
+                id_referencia=str(post.id_publicacao),
+                usuario_origem=post.usuario,
+                usuario_destino_id__in=ids_to_remove,
+            ).delete()
+
+        users_by_id = {u.id_usuario: u for u in final_users}
+        for user_id in ids_to_add:
+            mentioned_user = users_by_id.get(user_id)
+            if not mentioned_user:
+                continue
+
+            PublicacaoMencao.objects.create(
+                publicacao=post,
+                usuario_mencionado=mentioned_user,
+                usuario_mencionador=post.usuario,
+            )
+            create_notification(
+                usuario_destino=mentioned_user,
+                usuario_origem=post.usuario,
+                tipo=7,
+                id_referencia=post.id_publicacao,
+                conteudo=post.titulo or post.conteudo_texto[:80],
+            )
     
     def get_serializer_class(self):
         if self.action in ['create', 'update', 'partial_update']:
@@ -781,7 +995,6 @@ class PublicacaoViewSet(viewsets.ModelViewSet):
         post = serializer.save(usuario=self.request.user)
         
         # Extract hashtags
-        import re
         hashtags = re.findall(r'#(\w+)', post.conteudo_texto)
         
         for tag_text in set(hashtags):
@@ -795,9 +1008,12 @@ class PublicacaoViewSet(viewsets.ModelViewSet):
                 publicacao=post,
                 hashtag=hashtag
             )
+
+        self._sync_post_mentions(post)
     
     def perform_update(self, serializer):
-        serializer.save(editado=True, data_edicao=timezone.now())
+        post = serializer.save(editado=True, data_edicao=timezone.now())
+        self._sync_post_mentions(post)
     
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -1489,12 +1705,13 @@ def create_notification(usuario_destino, usuario_origem, tipo, id_referencia=Non
             settings = ConfiguracaoUsuario.objects.get(usuario=usuario_destino)
             
             # Map notification types to settings fields
-            # tipo: 1=Nova Publicação, 2=Comentário, 3=Curtida, 4=Seguidor Novo
+            # tipo: 1=Nova Publicação, 2=Comentário, 3=Curtida, 4=Seguidor Novo, 7=Menção
             notification_settings = {
                 1: settings.notificacoes_novas_publicacoes,
                 2: settings.notificacoes_comentarios,
                 3: settings.notificacoes_reacoes,
                 4: settings.notificacoes_seguidor_novo,
+                7: settings.notificacoes_comentarios,
             }
             
             # Check if this notification type is enabled
@@ -2438,8 +2655,78 @@ class ComunidadeViewSet(viewsets.ModelViewSet):
             'message': _('Convite recusado')
         }, status=status.HTTP_200_OK)
 
+    @action(detail=True, methods=['post'], url_path='transfer-ownership')
+    def transfer_ownership(self, request, pk=None):
+        """Transfere a administração da comunidade para um moderador.
+        Usado antes da exclusão de conta para resolver comunidades pendentes."""
+        community = self.get_object()
+        user = request.user
 
-# Rascunho (Draft) ViewSet
+        # Verificar se o usuário atual é admin
+        is_admin = MembroComunidade.objects.filter(
+            comunidade=community,
+            usuario=user,
+            role='admin'
+        ).exists()
+
+        if not is_admin:
+            return Response(
+                {'error': _('Apenas administradores podem transferir a administração')},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        target_user_id = request.data.get('user_id')
+        if not target_user_id:
+            return Response(
+                {'error': _('Campo obrigatório: user_id')},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Buscar o membro alvo
+        target_membership = MembroComunidade.objects.filter(
+            comunidade=community,
+            usuario_id=target_user_id
+        ).first()
+
+        if not target_membership:
+            return Response(
+                {'error': _('Usuário não é membro desta comunidade')},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        if target_membership.role not in ['moderator', 'admin']:
+            return Response(
+                {'error': _('Apenas moderadores podem receber a administração')},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if target_membership.role == 'admin':
+            return Response(
+                {'error': _('Usuário já é administrador')},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        with transaction.atomic():
+            # Promover moderador a admin
+            target_membership.role = 'admin'
+            target_membership.save()
+
+            # Rebaixar o admin atual a membro
+            current_membership = MembroComunidade.objects.filter(
+                comunidade=community,
+                usuario=user,
+                role='admin'
+            ).first()
+            if current_membership:
+                current_membership.role = 'member'
+                current_membership.save()
+
+        return Response({
+            'message': _('Administração transferida para %(username)s') % {
+                'username': target_membership.usuario.nome_usuario
+            },
+            'new_admin_id': str(target_user_id),
+        }, status=status.HTTP_200_OK)
 from .models import Rascunho
 from .serializers import RascunhoSerializer
 

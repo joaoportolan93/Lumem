@@ -229,7 +229,9 @@ export const getTrends = () => api.get('/api/trends/');
 export const getTopCommunityPosts = () => api.get('/api/communities/top-posts/');
 
 // Account deletion (LGPD Art. 18, VI)
+export const deleteAccountPreCheck = () => api.get('/api/profile/delete/pre-check/');
 export const deleteAccount = (data) => api.delete('/api/profile/delete/', { data });
+export const transferCommunityOwnership = (id, userId) => api.post(`/api/communities/${id}/transfer-ownership/`, { user_id: userId });
 
 export default api;
 
