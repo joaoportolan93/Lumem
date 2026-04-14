@@ -5,8 +5,9 @@ from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django.shortcuts import get_object_or_404
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.db import models, transaction
+from django.db import models, transaction, IntegrityError
 from django.utils.translation import gettext as _
+from django.db.models.functions import Lower
 import os
 import uuid
 import random
@@ -21,6 +22,77 @@ from rest_framework_simplejwt.tokens import RefreshToken
 import requests
 
 User = get_user_model()
+
+
+def _get_delete_account_community_scan(user):
+    """Scan communities where the user is admin without N+1 queries.
+    Returns (comunidades_para_transferir, comunidades_para_deletar_instances, comunidades_para_deletar_payload)."""
+    from .models import MembroComunidade
+
+    admin_memberships = list(
+        MembroComunidade.objects.filter(usuario=user, role='admin').select_related('comunidade')
+    )
+    if not admin_memberships:
+        return [], [], []
+
+    community_map = {m.comunidade_id: m.comunidade for m in admin_memberships}
+    community_ids = list(community_map.keys())
+
+    all_members = list(
+        MembroComunidade.objects.filter(comunidade_id__in=community_ids)
+        .exclude(usuario=user)
+        .select_related('usuario')
+    )
+
+    totals_map = {
+        row['comunidade_id']: row['total_membros']
+        for row in MembroComunidade.objects.filter(comunidade_id__in=community_ids)
+        .values('comunidade_id')
+        .annotate(total_membros=models.Count('id_membro'))
+    }
+
+    grouped = {}
+    for membership in all_members:
+        grouped.setdefault(membership.comunidade_id, []).append(membership)
+
+    comunidades_para_transferir = []
+    comunidades_para_deletar_instances = []
+    comunidades_para_deletar_payload = []
+
+    for community_id in community_ids:
+        community = community_map[community_id]
+        members = grouped.get(community_id, [])
+
+        has_other_admin = any(m.role == 'admin' for m in members)
+        if has_other_admin:
+            continue
+
+        moderators = [m for m in members if m.role == 'moderator']
+        if moderators:
+            comunidades_para_transferir.append({
+                'id_comunidade': str(community.id_comunidade),
+                'nome': community.nome,
+                'moderadores': [
+                    {
+                        'id_usuario': str(m.usuario.id_usuario),
+                        'nome_usuario': m.usuario.nome_usuario,
+                        'nome_completo': m.usuario.nome_completo,
+                        'avatar_url': m.usuario.avatar_url,
+                    }
+                    for m in moderators
+                ]
+            })
+            continue
+
+        total_membros = totals_map.get(community_id, 0)
+        comunidades_para_deletar_instances.append(community)
+        comunidades_para_deletar_payload.append({
+            'id_comunidade': str(community.id_comunidade),
+            'nome': community.nome,
+            'total_membros': total_membros,
+        })
+
+    return comunidades_para_transferir, comunidades_para_deletar_instances, comunidades_para_deletar_payload
 
 class SearchView(APIView):
     """Unified search endpoint for posts, users, and hashtags"""
@@ -202,58 +274,7 @@ class DeleteAccountPreCheckView(APIView):
     permission_classes = (permissions.IsAuthenticated,)
 
     def get(self, request):
-        from .models import MembroComunidade
-
-        user = request.user
-
-        # Comunidades onde o usuário é o único admin
-        admin_memberships = MembroComunidade.objects.filter(
-            usuario=user, role='admin'
-        ).select_related('comunidade')
-
-        comunidades_para_transferir = []
-        comunidades_para_deletar = []
-
-        for membership in admin_memberships:
-            community = membership.comunidade
-
-            # Verificar se existe outro admin
-            other_admins = MembroComunidade.objects.filter(
-                comunidade=community, role='admin'
-            ).exclude(usuario=user).exists()
-
-            if other_admins:
-                # Outro admin assume — sem problema
-                continue
-
-            # Verificar se existem moderadores
-            moderadores = MembroComunidade.objects.filter(
-                comunidade=community, role='moderator'
-            ).select_related('usuario')
-
-            if moderadores.exists():
-                # Há moderadores — usuário precisa transferir antes
-                comunidades_para_transferir.append({
-                    'id_comunidade': str(community.id_comunidade),
-                    'nome': community.nome,
-                    'moderadores': [
-                        {
-                            'id_usuario': str(m.usuario.id_usuario),
-                            'nome_usuario': m.usuario.nome_usuario,
-                            'nome_completo': m.usuario.nome_completo,
-                            'avatar_url': m.usuario.avatar_url,
-                        }
-                        for m in moderadores
-                    ]
-                })
-            else:
-                # Sem moderadores — comunidade será deletada
-                total_membros = community.membros.count()
-                comunidades_para_deletar.append({
-                    'id_comunidade': str(community.id_comunidade),
-                    'nome': community.nome,
-                    'total_membros': total_membros,
-                })
+        comunidades_para_transferir, _, comunidades_para_deletar = _get_delete_account_community_scan(request.user)
 
         return Response({
             'can_proceed': len(comunidades_para_transferir) == 0,
@@ -270,7 +291,6 @@ class DeleteAccountView(APIView):
 
     def delete(self, request):
         from django.contrib.auth.hashers import check_password
-        from .models import MembroComunidade
 
         # Exige confirmação da senha atual (ou flag 'confirmar' para contas Google sem senha)
         senha_confirmacao = request.data.get('senha')
@@ -299,45 +319,7 @@ class DeleteAccountView(APIView):
                 )
 
         with transaction.atomic():
-            # ── Tratamento de comunidades ──────────────────────────────
-            admin_memberships = MembroComunidade.objects.filter(
-                usuario=user, role='admin'
-            ).select_related('comunidade')
-
-            comunidades_para_deletar = []
-            comunidades_para_transferir = []
-
-            for membership in admin_memberships:
-                community = membership.comunidade
-
-                other_admins = MembroComunidade.objects.filter(
-                    comunidade=community, role='admin'
-                ).exclude(usuario=user).exists()
-
-                if other_admins:
-                    continue
-
-                moderadores = MembroComunidade.objects.filter(
-                    comunidade=community, role='moderator'
-                ).select_related('usuario')
-
-                if moderadores.exists():
-                    comunidades_para_transferir.append({
-                        'id_comunidade': str(community.id_comunidade),
-                        'nome': community.nome,
-                        'moderadores': [
-                            {
-                                'id_usuario': str(m.usuario.id_usuario),
-                                'nome_usuario': m.usuario.nome_usuario,
-                                'nome_completo': m.usuario.nome_completo,
-                                'avatar_url': m.usuario.avatar_url,
-                            }
-                            for m in moderadores
-                        ]
-                    })
-                    continue
-
-                comunidades_para_deletar.append(community)
+            comunidades_para_transferir, comunidades_para_deletar, _ = _get_delete_account_community_scan(user)
 
             if comunidades_para_transferir:
                 return Response(
@@ -678,7 +660,7 @@ class SuggestedUsersView(APIView):
 # Dream (Publicacao) Views
 from rest_framework import viewsets
 from rest_framework.decorators import action
-from .models import Publicacao, Seguidor, ReacaoPublicacao, Comentario, Hashtag, PublicacaoHashtag, PublicacaoSalva, PublicacaoMencao
+from .models import Publicacao, Seguidor, ReacaoPublicacao, Comentario, Hashtag, PublicacaoHashtag, PublicacaoSalva, PublicacaoMencao, ComentarioMencao
 from .serializers import PublicacaoSerializer, PublicacaoCreateSerializer, SeguidorSerializer, HashtagSerializer, SearchSerializer, NotificacaoSerializer
 from django.utils import timezone
 from django.db.models import Count, Q
@@ -696,6 +678,17 @@ class PublicacaoViewSet(viewsets.ModelViewSet):
         }
         return list(usernames)[:20]
 
+    def _resolve_mentioned_users(self, usernames):
+        normalized = {u.lower() for u in usernames}
+        if not normalized:
+            return {}
+
+        users = User.objects.filter(status=1).annotate(
+            username_lower=Lower('nome_usuario')
+        ).filter(username_lower__in=normalized)
+
+        return {u.username_lower: u for u in users}
+
     def _sync_post_mentions(self, post):
         """Sync mention relationships for a post and notify newly mentioned users."""
         from .models import Bloqueio, Notificacao
@@ -710,11 +703,11 @@ class PublicacaoViewSet(viewsets.ModelViewSet):
             ).delete()
             return
 
-        mentioned_users = []
-        for username in usernames:
-            user = User.objects.filter(nome_usuario__iexact=username, status=1).first()
-            if user and user.id_usuario != post.usuario.id_usuario:
-                mentioned_users.append(user)
+        users_map = self._resolve_mentioned_users(usernames)
+        mentioned_users = [
+            user for user in users_map.values()
+            if user.id_usuario != post.usuario.id_usuario
+        ]
 
         if not mentioned_users:
             PublicacaoMencao.objects.filter(publicacao=post).delete()
@@ -765,11 +758,17 @@ class PublicacaoViewSet(viewsets.ModelViewSet):
             if not mentioned_user:
                 continue
 
-            PublicacaoMencao.objects.create(
-                publicacao=post,
-                usuario_mencionado=mentioned_user,
-                usuario_mencionador=post.usuario,
-            )
+            try:
+                _, created = PublicacaoMencao.objects.get_or_create(
+                    publicacao=post,
+                    usuario_mencionado=mentioned_user,
+                    defaults={'usuario_mencionador': post.usuario},
+                )
+            except IntegrityError:
+                created = False
+
+            if not created:
+                continue
             create_notification(
                 usuario_destino=mentioned_user,
                 usuario_origem=post.usuario,
@@ -1491,6 +1490,119 @@ class ComentarioViewSet(viewsets.ModelViewSet):
     """ViewSet for comments on dream posts - Twitter-like"""
     permission_classes = (permissions.IsAuthenticated,)
     parser_classes = (MultiPartParser, FormParser,)
+    MENTION_PATTERN = re.compile(r'(?<![\w@])@([A-Za-z0-9_]{1,50})\b')
+
+    def _extract_mentioned_usernames(self, comment):
+        raw_text = comment.conteudo_texto or ''
+        usernames = {
+            match.group(1).lower()
+            for match in self.MENTION_PATTERN.finditer(raw_text)
+        }
+        return list(usernames)[:20]
+
+    def _resolve_mentioned_users(self, usernames):
+        normalized = {u.lower() for u in usernames}
+        if not normalized:
+            return {}
+
+        users = User.objects.filter(status=1).annotate(
+            username_lower=Lower('nome_usuario')
+        ).filter(username_lower__in=normalized)
+
+        return {u.username_lower: u for u in users}
+
+    def _comment_reference(self, comment):
+        return f"{comment.publicacao_id}::{comment.id_comentario}"
+
+    def _sync_comment_mentions(self, comment):
+        from .models import Bloqueio, Notificacao
+
+        usernames = self._extract_mentioned_usernames(comment)
+        reference = self._comment_reference(comment)
+
+        if not usernames:
+            ComentarioMencao.objects.filter(comentario=comment).delete()
+            Notificacao.objects.filter(
+                tipo_notificacao=7,
+                id_referencia=reference,
+                usuario_origem=comment.usuario,
+            ).delete()
+            return
+
+        users_map = self._resolve_mentioned_users(usernames)
+        mentioned_users = [
+            user for user in users_map.values()
+            if user.id_usuario != comment.usuario.id_usuario
+        ]
+
+        if not mentioned_users:
+            ComentarioMencao.objects.filter(comentario=comment).delete()
+            Notificacao.objects.filter(
+                tipo_notificacao=7,
+                id_referencia=reference,
+                usuario_origem=comment.usuario,
+            ).delete()
+            return
+
+        candidate_ids = {u.id_usuario for u in mentioned_users}
+        block_rows = Bloqueio.objects.filter(
+            Q(usuario=comment.usuario, usuario_bloqueado_id__in=candidate_ids)
+            | Q(usuario_id__in=candidate_ids, usuario_bloqueado=comment.usuario)
+        ).values_list('usuario_id', 'usuario_bloqueado_id')
+
+        blocked_ids = set()
+        for usuario_id, bloqueado_id in block_rows:
+            if usuario_id == comment.usuario.id_usuario:
+                blocked_ids.add(bloqueado_id)
+            else:
+                blocked_ids.add(usuario_id)
+
+        final_users = [u for u in mentioned_users if u.id_usuario not in blocked_ids]
+        new_ids = {u.id_usuario for u in final_users}
+
+        existing_mentions = ComentarioMencao.objects.filter(comentario=comment)
+        existing_ids = set(existing_mentions.values_list('usuario_mencionado_id', flat=True))
+
+        ids_to_remove = existing_ids - new_ids
+        ids_to_add = new_ids - existing_ids
+
+        if ids_to_remove:
+            ComentarioMencao.objects.filter(
+                comentario=comment,
+                usuario_mencionado_id__in=ids_to_remove,
+            ).delete()
+            Notificacao.objects.filter(
+                tipo_notificacao=7,
+                id_referencia=reference,
+                usuario_origem=comment.usuario,
+                usuario_destino_id__in=ids_to_remove,
+            ).delete()
+
+        users_by_id = {u.id_usuario: u for u in final_users}
+        for user_id in ids_to_add:
+            mentioned_user = users_by_id.get(user_id)
+            if not mentioned_user:
+                continue
+
+            try:
+                _, created = ComentarioMencao.objects.get_or_create(
+                    comentario=comment,
+                    usuario_mencionado=mentioned_user,
+                    defaults={'usuario_mencionador': comment.usuario},
+                )
+            except IntegrityError:
+                created = False
+
+            if not created:
+                continue
+
+            create_notification(
+                usuario_destino=mentioned_user,
+                usuario_origem=comment.usuario,
+                tipo=7,
+                id_referencia=reference,
+                conteudo=comment.conteudo_texto[:80] if comment.conteudo_texto else _('comentou e mencionou você'),
+            )
     
     def get_serializer_class(self):
         if self.action in ['create', 'update', 'partial_update']:
@@ -1568,6 +1680,12 @@ class ComentarioViewSet(viewsets.ModelViewSet):
                     id_referencia=dream.id_publicacao,
                     conteudo=content
                 )
+
+        self._sync_comment_mentions(comment)
+
+    def perform_update(self, serializer):
+        comment = serializer.save(editado=True, data_edicao=timezone.now())
+        self._sync_comment_mentions(comment)
     
     def create(self, request, *args, **kwargs):
         """Override create to return full serialized comment"""

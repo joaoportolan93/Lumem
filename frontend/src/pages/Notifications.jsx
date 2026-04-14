@@ -110,6 +110,10 @@ const Notifications = () => {
             }
             return '#';
         }
+        if (notification.tipo_notificacao_display === 'mention' && notification.id_referencia?.includes('::')) {
+            const [postId] = notification.id_referencia.split('::');
+            return `/post/${postId}`;
+        }
         return notification.id_referencia ? `/post/${notification.id_referencia}` : `/user/${notification.usuario_origem?.id_usuario}`;
     };
 
