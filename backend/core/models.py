@@ -181,6 +181,30 @@ class PublicacaoHashtag(models.Model):
         db_table = 'publicacao_hashtags'
         unique_together = ('publicacao', 'hashtag')
 
+
+class PublicacaoMencao(models.Model):
+    id_mencao = models.UUIDField(primary_key=True, default=uuid6.uuid7, editable=False)
+    publicacao = models.ForeignKey(Publicacao, on_delete=models.CASCADE, related_name='mencoes', db_column='id_publicacao')
+    usuario_mencionado = models.ForeignKey(Usuario, on_delete=models.CASCADE, related_name='mencoes_recebidas', db_column='id_usuario_mencionado')
+    usuario_mencionador = models.ForeignKey(Usuario, on_delete=models.SET_NULL, null=True, blank=True, related_name='mencoes_feitas', db_column='id_usuario_mencionador')
+    data_criacao = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        db_table = 'publicacao_mencoes'
+        unique_together = ('publicacao', 'usuario_mencionado')
+
+
+class ComentarioMencao(models.Model):
+    id_mencao = models.UUIDField(primary_key=True, default=uuid6.uuid7, editable=False)
+    comentario = models.ForeignKey(Comentario, on_delete=models.CASCADE, related_name='mencoes', db_column='id_comentario')
+    usuario_mencionado = models.ForeignKey(Usuario, on_delete=models.CASCADE, related_name='mencoes_comentario_recebidas', db_column='id_usuario_mencionado')
+    usuario_mencionador = models.ForeignKey(Usuario, on_delete=models.SET_NULL, null=True, blank=True, related_name='mencoes_comentario_feitas', db_column='id_usuario_mencionador')
+    data_criacao = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        db_table = 'comentario_mencoes'
+        unique_together = ('comentario', 'usuario_mencionado')
+
 class Comentario(models.Model):
     id_comentario = models.UUIDField(primary_key=True, default=uuid6.uuid7, editable=False)
     publicacao = models.ForeignKey(Publicacao, on_delete=models.CASCADE, db_column='id_publicacao')
@@ -279,6 +303,7 @@ class Notificacao(models.Model):
         (4, _('Seguidor Novo')),
         (5, _('Solicitação de Seguidor')),
         (6, _('Convite de Moderação')),
+        (7, _('Menção em Publicação')),
     )
     tipo_notificacao = models.SmallIntegerField(choices=TIPO_NOTIFICACAO_CHOICES)
     id_referencia = models.CharField(max_length=100, null=True, blank=True)

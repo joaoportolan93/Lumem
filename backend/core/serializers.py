@@ -489,7 +489,7 @@ class NotificacaoSerializer(serializers.ModelSerializer):
                            'conteudo', 'data_criacao')
 
     def get_tipo_notificacao_display(self, obj):
-        tipos = {1: 'post', 2: 'comment', 3: 'like', 4: 'follower', 6: 'community_invite'}
+        tipos = {1: 'post', 2: 'comment', 3: 'like', 4: 'follower', 6: 'community_invite', 7: 'mention'}
         return tipos.get(obj.tipo_notificacao, 'other')
 
 

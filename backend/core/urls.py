@@ -24,7 +24,7 @@ from .views import (
     AdminChatConversationsView, AdminChatMessagesView,
     AdminChatModerateView, AdminChatAuditLogView, AdminChatStatsView,
     # Conformidade Legal — LGPD
-    DeleteAccountView, DataExportView,
+    DeleteAccountPreCheckView, DeleteAccountView, DataExportView,
 )
 
 
@@ -57,6 +57,7 @@ urlpatterns = [
     path('auth/change-password/', ChangePasswordView.as_view(), name='change_password'),
 
     # Conformidade Legal — LGPD
+    path('profile/delete/pre-check/', DeleteAccountPreCheckView.as_view(), name='delete_account_precheck'),
     path('profile/delete/', DeleteAccountView.as_view(), name='delete_account'),
     path('profile/export/', DataExportView.as_view(), name='data_export'),
 

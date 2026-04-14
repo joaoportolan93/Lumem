@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { FaCog, FaBell, FaLock, FaPalette, FaUser, FaSave, FaArrowLeft, FaShieldAlt, FaStar, FaSearch, FaUserFriends, FaFire, FaTrash, FaExclamationTriangle } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { getProfile, getUserSettings, updateUserSettings, getCloseFriendsManage, toggleCloseFriend, patchUser, deleteAccount } from '../services/api';
+import { getProfile, getUserSettings, updateUserSettings, getCloseFriendsManage, toggleCloseFriend, patchUser, deleteAccount, deleteAccountPreCheck, transferCommunityOwnership } from '../services/api';
 
 const Settings = () => {
     const navigate = useNavigate();
@@ -20,11 +20,20 @@ const Settings = () => {
     const [loadingFollowers, setLoadingFollowers] = useState(false);
 
     // Delete account state
+    const [showDeletePreCheckModal, setShowDeletePreCheckModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [preCheckLoading, setPreCheckLoading] = useState(false);
     const [deletePassword, setDeletePassword] = useState('');
     const [deleteConfirmText, setDeleteConfirmText] = useState('');
     const [deleting, setDeleting] = useState(false);
+    const [transferringCommunityId, setTransferringCommunityId] = useState(null);
     const [deleteError, setDeleteError] = useState('');
+    const [deletePreCheck, setDeletePreCheck] = useState({
+        can_proceed: true,
+        comunidades_para_transferir: [],
+        comunidades_para_deletar: [],
+    });
+    const [selectedTransferTargets, setSelectedTransferTargets] = useState({});
 
     // Settings state - mapped from backend ConfiguracaoUsuario
     const [settings, setSettings] = useState({
@@ -200,6 +209,106 @@ const Settings = () => {
         f.nome_completo.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
+    const normalizeDeletePreCheck = (payload = {}) => ({
+        can_proceed: Boolean(payload.can_proceed),
+        comunidades_para_transferir: Array.isArray(payload.comunidades_para_transferir)
+            ? payload.comunidades_para_transferir
+            : [],
+        comunidades_para_deletar: Array.isArray(payload.comunidades_para_deletar)
+            ? payload.comunidades_para_deletar
+            : [],
+    });
+
+    const buildDefaultTransferTargets = (communities = []) => {
+        const defaultTargets = {};
+        communities.forEach((community) => {
+            const firstModerator = community?.moderadores?.[0];
+            if (firstModerator) {
+                defaultTargets[community.id_comunidade] = firstModerator.id_usuario;
+            }
+        });
+        return defaultTargets;
+    };
+
+    const applyDeletePreCheck = (payload) => {
+        const normalized = normalizeDeletePreCheck(payload);
+        setDeletePreCheck(normalized);
+        setSelectedTransferTargets(buildDefaultTransferTargets(normalized.comunidades_para_transferir));
+        return normalized;
+    };
+
+    const handleCloseDeleteFlow = () => {
+        setShowDeletePreCheckModal(false);
+        setShowDeleteModal(false);
+        setDeleteError('');
+        setDeletePassword('');
+        setDeleteConfirmText('');
+        setDeletePreCheck({
+            can_proceed: true,
+            comunidades_para_transferir: [],
+            comunidades_para_deletar: [],
+        });
+        setSelectedTransferTargets({});
+    };
+
+    const handleStartDeleteFlow = async () => {
+        setDeleteError('');
+        setDeletePassword('');
+        setDeleteConfirmText('');
+        setPreCheckLoading(true);
+
+        try {
+            const response = await deleteAccountPreCheck();
+            const normalized = applyDeletePreCheck(response.data || {});
+
+            if (normalized.can_proceed) {
+                setShowDeletePreCheckModal(false);
+                setShowDeleteModal(true);
+            } else {
+                setShowDeleteModal(false);
+                setShowDeletePreCheckModal(true);
+            }
+        } catch (err) {
+            console.error('Error running delete pre-check:', err);
+            const errorMessage = t('settings.deletePreCheckError');
+            setDeleteError(errorMessage);
+            setError(errorMessage);
+            setTimeout(() => setError(''), 3000);
+        } finally {
+            setPreCheckLoading(false);
+        }
+    };
+
+    const handleTransferOwnership = async (communityId) => {
+        const targetUserId = selectedTransferTargets[communityId];
+        if (!targetUserId) {
+            setDeleteError(t('settings.deleteCommunityTransferError'));
+            return;
+        }
+
+        setDeleteError('');
+        setTransferringCommunityId(communityId);
+
+        try {
+            await transferCommunityOwnership(communityId, targetUserId);
+            setSuccess(t('settings.deleteCommunityTransferSuccess'));
+            setTimeout(() => setSuccess(''), 3000);
+
+            const response = await deleteAccountPreCheck();
+            const normalized = applyDeletePreCheck(response.data || {});
+
+            if (normalized.can_proceed) {
+                setShowDeletePreCheckModal(false);
+                setShowDeleteModal(true);
+            }
+        } catch (err) {
+            console.error('Error transferring ownership:', err);
+            setDeleteError(err.response?.data?.error || t('settings.deleteCommunityTransferError'));
+        } finally {
+            setTransferringCommunityId(null);
+        }
+    };
+
     // Handle account deletion
     const handleDeleteAccount = async () => {
         setDeleteError('');
@@ -236,6 +345,13 @@ const Settings = () => {
             window.location.href = '/login';
         } catch (err) {
             console.error('Error deleting account:', err);
+            if (err.response?.data?.requires_transfer) {
+                applyDeletePreCheck(err.response?.data || {});
+                setShowDeleteModal(false);
+                setShowDeletePreCheckModal(true);
+                return;
+            }
+
             setDeleteError(err.response?.data?.error || t('settings.deleteGenericError'));
         } finally {
             setDeleting(false);
@@ -473,11 +589,21 @@ const Settings = () => {
                             {t('settings.deleteAccountDesc')}
                         </p>
                         <button
-                            onClick={() => { setShowDeleteModal(true); setDeleteError(''); setDeletePassword(''); setDeleteConfirmText(''); }}
+                            onClick={handleStartDeleteFlow}
+                            disabled={preCheckLoading}
                             className="w-full flex items-center justify-center gap-2 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition-all"
                         >
-                            <FaTrash />
-                            {t('settings.btnDeleteAccount')}
+                            {preCheckLoading ? (
+                                <>
+                                    <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div>
+                                    {t('settings.deletePreCheckLoading')}
+                                </>
+                            ) : (
+                                <>
+                                    <FaTrash />
+                                    {t('settings.btnDeleteAccount')}
+                                </>
+                            )}
                         </button>
                     </div>
                 </>
@@ -584,10 +710,110 @@ const Settings = () => {
                     )}
                 </div>
             )}
-        {/* Delete Account Confirmation Modal comes after all content pages */}
-            {/* Delete Account Confirmation Modal */}
+            {/* Community pre-check modal */}
+            {showDeletePreCheckModal && (
+                <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={handleCloseDeleteFlow}>
+                    <div className="bg-white dark:bg-[#1a1a1b] rounded-2xl w-full max-w-2xl shadow-2xl border border-red-500/30 max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                        <div className="p-6">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center">
+                                    <FaExclamationTriangle className="text-red-500 text-xl" />
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-lg text-gray-900 dark:text-white">{t('settings.deleteCommunityBlockTitle')}</h3>
+                                    <p className="text-sm text-gray-500 dark:text-gray-300">{t('settings.deleteCommunityBlockDesc')}</p>
+                                </div>
+                            </div>
+
+                            {deletePreCheck.comunidades_para_transferir.length > 0 && (
+                                <div className="space-y-4 mb-5">
+                                    {deletePreCheck.comunidades_para_transferir.map((community) => (
+                                        <div key={community.id_comunidade} className="rounded-xl border border-white/10 bg-gray-100/70 dark:bg-white/5 p-4">
+                                            <p className="font-semibold text-gray-900 dark:text-white mb-3">{community.nome}</p>
+                                            <div className="flex flex-col sm:flex-row gap-3">
+                                                <select
+                                                    value={selectedTransferTargets[community.id_comunidade] || ''}
+                                                    onChange={(e) => setSelectedTransferTargets(prev => ({
+                                                        ...prev,
+                                                        [community.id_comunidade]: e.target.value,
+                                                    }))}
+                                                    className="flex-1 bg-white dark:bg-[#272729] border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary"
+                                                >
+                                                    {(community.moderadores || []).map((moderator) => (
+                                                        <option key={moderator.id_usuario} value={moderator.id_usuario}>
+                                                            @{moderator.nome_usuario}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                                <button
+                                                    onClick={() => handleTransferOwnership(community.id_comunidade)}
+                                                    disabled={transferringCommunityId === community.id_comunidade || !selectedTransferTargets[community.id_comunidade]}
+                                                    className="bg-primary hover:opacity-90 text-white font-semibold rounded-lg px-4 py-2 disabled:opacity-50"
+                                                >
+                                                    {transferringCommunityId === community.id_comunidade
+                                                        ? t('settings.deleteCommunityTransferring')
+                                                        : t('settings.deleteCommunityTransferBtn')}
+                                                </button>
+                                            </div>
+                                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">{t('settings.deleteCommunityTransferLabel')}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {deletePreCheck.comunidades_para_deletar.length > 0 && (
+                                <div className="mb-5 rounded-xl border border-red-500/20 bg-red-500/10 p-4">
+                                    <p className="font-semibold text-red-400 mb-1">{t('settings.deleteCommunityWillDelete')}</p>
+                                    <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">{t('settings.deleteCommunityWillDeleteDesc')}</p>
+                                    <div className="space-y-2">
+                                        {deletePreCheck.comunidades_para_deletar.map((community) => (
+                                            <div key={community.id_comunidade} className="text-sm text-gray-700 dark:text-gray-300 flex justify-between">
+                                                <span>{community.nome}</span>
+                                                <span>{t('settings.deleteCommunityMembers', { count: community.total_membros })}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {deletePreCheck.comunidades_para_transferir.length === 0 && (
+                                <div className="mb-5 p-3 rounded-lg border border-green-500/30 bg-green-900/20 text-green-300 text-sm">
+                                    {t('settings.deleteCommunityResolved')}
+                                </div>
+                            )}
+
+                            {deleteError && (
+                                <div className="mb-4 p-3 bg-red-900/20 text-red-400 rounded-lg text-sm border border-red-500/20">
+                                    {deleteError}
+                                </div>
+                            )}
+
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={handleCloseDeleteFlow}
+                                    className="flex-1 py-3 bg-gray-200 dark:bg-white/10 text-gray-700 dark:text-gray-300 font-bold rounded-xl hover:bg-gray-300 dark:hover:bg-white/20 transition-all"
+                                >
+                                    {t('settings.deleteCancel')}
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setShowDeletePreCheckModal(false);
+                                        setShowDeleteModal(true);
+                                    }}
+                                    disabled={deletePreCheck.comunidades_para_transferir.length > 0}
+                                    className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {t('settings.deleteCommunityProceed')}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete account confirmation modal */}
             {showDeleteModal && (
-                <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={() => setShowDeleteModal(false)}>
+                <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={handleCloseDeleteFlow}>
                     <div className="bg-white dark:bg-[#1a1a1b] rounded-2xl w-full max-w-md shadow-2xl border border-red-500/30" onClick={e => e.stopPropagation()}>
                         <div className="p-6">
                             <div className="flex items-center gap-3 mb-4">
@@ -609,10 +835,10 @@ const Settings = () => {
                                     <li>• {t('settings.deleteItem2')}</li>
                                     <li>• {t('settings.deleteItem3')}</li>
                                     <li>• {t('settings.deleteItem4')}</li>
+                                    <li>• {t('settings.deleteItem5')}</li>
                                 </ul>
                             </div>
 
-                            {/* Password confirmation */}
                             <div className="mb-4">
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                     {t('settings.deletePasswordLabel')}
@@ -626,7 +852,6 @@ const Settings = () => {
                                 />
                             </div>
 
-                            {/* Type confirmation word */}
                             <div className="mb-4">
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                     {t('settings.deleteConfirmLabel', { word: t('settings.deleteConfirmWord') })}
@@ -648,7 +873,7 @@ const Settings = () => {
 
                             <div className="flex gap-3">
                                 <button
-                                    onClick={() => setShowDeleteModal(false)}
+                                    onClick={handleCloseDeleteFlow}
                                     className="flex-1 py-3 bg-gray-200 dark:bg-white/10 text-gray-700 dark:text-gray-300 font-bold rounded-xl hover:bg-gray-300 dark:hover:bg-white/20 transition-all"
                                 >
                                     {t('settings.deleteCancel')}

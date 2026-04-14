@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaBell, FaHeart, FaComment, FaUserPlus, FaCheck, FaArrowLeft, FaShieldAlt } from 'react-icons/fa';
+import { FaBell, FaHeart, FaComment, FaUserPlus, FaCheck, FaArrowLeft, FaShieldAlt, FaAt } from 'react-icons/fa';
 import { Link, useNavigate } from 'react-router-dom';
 import { acceptFollowRequest, getFollowRequests, getNotifications, markAllNotificationsRead, rejectFollowRequest, acceptCommunityInvite, rejectCommunityInvite } from '../services/api';
 import { useTranslation } from 'react-i18next';
@@ -95,6 +95,8 @@ const Notifications = () => {
                 return <FaComment className="text-green-400" />;
             case 'community_invite':
                 return <FaShieldAlt className="text-blue-500" />;
+            case 'mention':
+                return <FaAt className="text-indigo-400" />;
             default:
                 return <FaBell className="text-primary" />;
         }
@@ -107,6 +109,10 @@ const Notifications = () => {
                 return `/community/${communityId}`;
             }
             return '#';
+        }
+        if (notification.tipo_notificacao_display === 'mention' && notification.id_referencia?.includes('::')) {
+            const [postId] = notification.id_referencia.split('::');
+            return `/post/${postId}`;
         }
         return notification.id_referencia ? `/post/${notification.id_referencia}` : `/user/${notification.usuario_origem?.id_usuario}`;
     };
@@ -121,6 +127,8 @@ const Notifications = () => {
                 return t('notifications.commented', { content: notification.conteudo || '' });
             case 'community_invite':
                 return t('notifications.communityInvite', { community: notification.conteudo || '' });
+            case 'mention':
+                return t('notifications.mentionedYou', { content: notification.conteudo || t('notifications.yourDream') });
             default:
                 return notification.conteudo || t('notifications.interacted');
         }
