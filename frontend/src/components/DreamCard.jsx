@@ -1,8 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FaHeart, FaRegHeart, FaEllipsisH, FaEdit, FaTrash, FaUserFriends, FaFlag, FaBookmark, FaRegBookmark, FaUserPlus, FaUserCheck, FaBan, FaVolumeMute, FaLock } from 'react-icons/fa';
 import { FaRegComment, FaRetweet } from 'react-icons/fa6';
-import { deleteDream, likeDream, saveDream, followUser, unfollowUser, blockUser, unblockUser, muteUser, unmuteUser } from '../services/api';
+import { deleteDream, likeDream, saveDream, followUser, unfollowUser, blockUser, unblockUser, muteUser, unmuteUser, viewDream } from '../services/api';
 import { AnimatePresence } from 'framer-motion';
 import CommentSection from './CommentSection';
 import ReportModal from './ReportModal';
@@ -28,6 +28,22 @@ const DreamCard = ({ dream, onDelete, onEdit, currentUserId }) => {
     const [isBlocked, setIsBlocked] = useState(dream.usuario?.is_blocked || false);
     const [isMuted, setIsMuted] = useState(dream.usuario?.is_muted || false);
 
+    const cardRef = useRef(null);
+
+    // Registrar view quando o post fica 50% visível na tela
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (entry.isIntersecting) {
+                    viewDream(dream.id_publicacao).catch(() => {});
+                    observer.disconnect();
+                }
+            },
+            { threshold: 0.5 }
+        );
+        if (cardRef.current) observer.observe(cardRef.current);
+        return () => observer.disconnect();
+    }, [dream.id_publicacao]);
 
     const isOwner = dream.usuario?.id_usuario === currentUserId;
 
@@ -198,7 +214,7 @@ const DreamCard = ({ dream, onDelete, onEdit, currentUserId }) => {
     }), []);
 
     return (
-        <div className={`
+        <div ref={cardRef} className={`
             relative group
             bg-white dark:bg-[#1a163a]/95 backdrop-blur-xl
             rounded-2xl p-6

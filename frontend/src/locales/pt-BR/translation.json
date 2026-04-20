@@ -133,7 +133,8 @@
         "emptyFollowing": "Nenhum sonho de quem você segue ainda",
         "emptyFollowingDesc": "Siga outros sonhadores para ver seus sonhos aqui!",
         "emptyForYou": "Nenhum sonho em alta no momento",
-        "emptyForYouDesc": "Volte mais tarde para ver os sonhos mais populares."
+        "emptyForYouDesc": "Volte mais tarde para ver os sonhos mais populares.",
+        "feedEnd": "Você viu todos os sonhos disponíveis ✨"
     },
     "createDream": {
         "typeLucid": "Lúcido",

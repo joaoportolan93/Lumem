@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { FaMoon, FaPlus, FaUserFriends, FaFire } from 'react-icons/fa';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -17,6 +17,12 @@ const Home = () => {
     const [activeTab, setActiveTab] = useState('following');
     const [showAlgorithmicFeed, setShowAlgorithmicFeed] = useState(true);
 
+    // Pagination state
+    const [page, setPage] = useState(1);
+    const [hasMore, setHasMore] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const sentinelaRef = useRef(null);
+
     const location = useLocation();
     const navigate = useNavigate();
 
@@ -29,20 +35,48 @@ const Home = () => {
         }
     }, [location.state]);
 
-    const fetchDreams = async (tab = activeTab) => {
-        setLoading(true);
+    const fetchDreams = useCallback(async (tab = activeTab, pageNum = 1, append = false) => {
+        if (pageNum === 1) {
+            setLoading(true);
+        } else {
+            setLoadingMore(true);
+        }
         setError('');
+
         try {
-            const response = await getDreams(tab);
-            // Agora a API usando paginação global retorna um objeto { count, next, previous, results }
-            setDreams(response.data.results ? response.data.results : response.data);
+            const response = await getDreams(tab, null, pageNum);
+            const data = response.data;
+
+            // Suporta tanto resposta paginada do DRF quanto a do algoritmo customizado
+            let newDreams = [];
+            let moreAvailable = false;
+
+            if (data.results) {
+                newDreams = data.results;
+                // Paginação do DRF (next != null) ou do algoritmo (has_more)
+                moreAvailable = data.has_more !== undefined ? data.has_more : !!data.next;
+            } else if (Array.isArray(data)) {
+                newDreams = data;
+                moreAvailable = false;
+            }
+
+            if (append) {
+                setDreams(prev => [...prev, ...newDreams]);
+            } else {
+                setDreams(newDreams);
+            }
+            setHasMore(moreAvailable);
+
         } catch (err) {
             console.error('Error fetching dreams:', err);
-            setError(t('home.errorLoading'));
+            if (pageNum === 1) {
+                setError(t('home.errorLoading'));
+            }
         } finally {
             setLoading(false);
+            setLoadingMore(false);
         }
-    };
+    }, [activeTab, t]);
 
     useEffect(() => {
         const fetchInitialData = async () => {
@@ -71,17 +105,45 @@ const Home = () => {
             }
         };
 
-        fetchDreams(activeTab);
+        fetchDreams(activeTab, 1, false);
         fetchInitialData();
     }, []); // eslint-disable-line
 
     // Fetch dreams when tab changes
     useEffect(() => {
-        fetchDreams(activeTab);
-    }, [activeTab]);
+        setPage(1);
+        setHasMore(true);
+        setDreams([]);
+        fetchDreams(activeTab, 1, false);
+    }, [activeTab]); // eslint-disable-line
+
+    // Infinite scroll via IntersectionObserver
+    useEffect(() => {
+        if (!hasMore || loadingMore || loading) return;
+
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (entry.isIntersecting && hasMore && !loadingMore) {
+                    const nextPage = page + 1;
+                    setPage(nextPage);
+                    fetchDreams(activeTab, nextPage, true);
+                }
+            },
+            { rootMargin: '200px' }
+        );
+
+        const currentRef = sentinelaRef.current;
+        if (currentRef) observer.observe(currentRef);
+
+        return () => {
+            if (currentRef) observer.unobserve(currentRef);
+        };
+    }, [hasMore, loadingMore, loading, page, activeTab, fetchDreams]);
 
     const handleDreamCreated = () => {
-        fetchDreams();
+        setPage(1);
+        setHasMore(true);
+        fetchDreams(activeTab, 1, false);
         setEditingDream(null);
     };
 
@@ -150,7 +212,7 @@ const Home = () => {
                 )}
             </div>
 
-            {/* Loading State */}
+            {/* Loading State (initial load) */}
             {loading && (
                 <div className="flex items-center justify-center min-h-[200px]">
                     <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
@@ -192,6 +254,22 @@ const Home = () => {
                             onEdit={handleEditDream}
                         />
                     ))}
+                </div>
+            )}
+
+            {/* Infinite scroll sentinel */}
+            {!loading && hasMore && (
+                <div ref={sentinelaRef} className="flex items-center justify-center py-8">
+                    {loadingMore && (
+                        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+                    )}
+                </div>
+            )}
+
+            {/* End of feed message */}
+            {!loading && !hasMore && dreams.length > 0 && (
+                <div className="text-center py-8 text-gray-400 dark:text-gray-500 text-sm">
+                    {t('home.feedEnd', 'Você viu todos os sonhos disponíveis ✨')}
                 </div>
             )}
 

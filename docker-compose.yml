@@ -30,6 +30,38 @@ services:
       timeout: 5s
       retries: 3
 
+  # ==========================================
+  # Celery Worker (Tarefas assíncronas: embeddings, notificações, etc.)
+  # ==========================================
+  celery-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    depends_on:
+      redis:
+        condition: service_healthy
+    env_file:
+      - .env
+    command: celery -A dreamshare_backend worker -l info --concurrency=2
+    volumes:
+      - backend_media:/app/media
+    restart: unless-stopped
+
+  # ==========================================
+  # Celery Beat (Tarefas periódicas: cleanup, vetores de interesse, etc.)
+  # ==========================================
+  celery-beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    depends_on:
+      redis:
+        condition: service_healthy
+    env_file:
+      - .env
+    command: celery -A dreamshare_backend beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    restart: unless-stopped
+
 volumes:
   backend_media:
   redis_data:

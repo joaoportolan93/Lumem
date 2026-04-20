@@ -784,6 +784,42 @@ class PublicacaoViewSet(viewsets.ModelViewSet):
     
     def get_serializer_context(self):
         return {'request': self.request}
+
+    def list(self, request, *args, **kwargs):
+        """
+        Override para interceptar tab=foryou e usar o algoritmo personalizado.
+        Para outras tabs, delega ao fluxo padrão do DRF.
+        """
+        tab = request.query_params.get('tab', 'following')
+
+        if tab == 'foryou' and request.user.is_authenticated:
+            from .feed_algorithm import get_foryou_feed
+
+            try:
+                page = int(request.query_params.get('page', 1))
+            except (ValueError, TypeError):
+                page = 1
+            post_ids, has_more = get_foryou_feed(request.user, page=page, page_size=15)
+
+            if not post_ids:
+                return Response({'results': [], 'page': page, 'has_more': False})
+
+            # Fix #1: Re-buscar pelo queryset anotado para preservar
+            # annotated_is_liked, annotated_is_saved, annotated_likes_count, etc.
+            qs = self.get_queryset().filter(id_publicacao__in=post_ids)
+
+            # Preservar a ordem definida pelo algoritmo (score DESC)
+            ordering = {pid: idx for idx, pid in enumerate(post_ids)}
+            posts = sorted(qs, key=lambda p: ordering.get(p.id_publicacao, 999))
+
+            serializer = self.get_serializer(posts, many=True)
+            return Response({
+                'results': serializer.data,
+                'page': page,
+                'has_more': has_more,
+            })
+
+        return super().list(request, *args, **kwargs)
     
     def get_queryset(self):
         """Return dreams based on tab parameter: following or foryou"""
@@ -887,11 +923,23 @@ class PublicacaoViewSet(viewsets.ModelViewSet):
                     qs = Publicacao.objects.filter(usuario=user).filter(media_filter).order_by('-data_publicacao')
 
             elif tab == 'foryou':
+                # Fix: excluir também usuários silenciados do feed
+                muted_ids = []
+                if user.is_authenticated:
+                    muted_ids = list(
+                        Silenciamento.objects.filter(
+                            usuario=user
+                        ).values_list('usuario_silenciado_id', flat=True)
+                    )
+
                 qs = Publicacao.objects.filter(
                     base_filter, visibilidade=1
+                ).exclude(
+                    usuario__in=muted_ids
                 ).annotate(
                     engagement=Count('reacaopublicacao', distinct=True) + Count('comentario', distinct=True)
                 ).order_by('-engagement', '-data_publicacao')
+
             
             else:
                 if user.is_authenticated:
@@ -1009,6 +1057,10 @@ class PublicacaoViewSet(viewsets.ModelViewSet):
             )
 
         self._sync_post_mentions(post)
+
+        # Computar embedding semântico via Celery (async, não bloqueia a resposta)
+        from .tasks import compute_post_embedding_task
+        compute_post_embedding_task.delay(str(post.id_publicacao))
     
     def perform_update(self, serializer):
         post = serializer.save(editado=True, data_edicao=timezone.now())
@@ -1107,6 +1159,31 @@ class PublicacaoViewSet(viewsets.ModelViewSet):
             'is_saved': is_saved,
             'message': message
         }, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'])
+    def view(self, request, pk=None):
+        """
+        Registra que o usuário viu este post no feed.
+        Incrementa views_count e cria registro de PostVisto para deduplicação.
+        URL: POST /api/dreams/{id}/view/
+        """
+        from .models import PostVisto
+
+        post = self.get_object()
+
+        # Incremento atômico do contador de views
+        Publicacao.objects.filter(pk=pk).update(views_count=F('views_count') + 1)
+
+        # Registrar visualização para deduplicação no feed
+        if request.user.is_authenticated:
+            PostVisto.objects.get_or_create(
+                usuario=request.user,
+                publicacao=post
+            )
+
+        # Retornar o valor atualizado do banco (Fix #5: sem valor stale)
+        post.refresh_from_db(fields=['views_count'])
+        return Response({'views_count': post.views_count}, status=status.HTTP_200_OK)
 
 
 class RascunhoViewSet(viewsets.ModelViewSet):

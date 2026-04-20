@@ -206,3 +206,82 @@ def send_realtime_notification(user_id, notification_data):
         )
     except Exception as e:
         logger.error(f"Erro ao enviar notificação via WS: {e}")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# FEED ALGORITHM TASKS
+# ══════════════════════════════════════════════════════════════════════════════
+
+@shared_task(bind=True, max_retries=2, default_retry_delay=30)
+def compute_post_embedding_task(self, post_id):
+    """
+    Computa embedding semântico de um post recém-criado.
+    Executada assincronamente via Celery ao criar publicação.
+    """
+    try:
+        from core.models import Publicacao, PostEmbedding
+        from core.feed_embeddings import compute_embedding
+
+        post = Publicacao.objects.get(id_publicacao=post_id)
+        text = f"{post.titulo or ''} {post.conteudo_texto or ''}"
+
+        if not text.strip():
+            logger.debug(f"Post {post_id} sem texto para embedding. Pulando.")
+            return
+
+        raw = compute_embedding(text)
+        PostEmbedding.objects.update_or_create(
+            publicacao=post,
+            defaults={'vetor': raw}
+        )
+        logger.info(f"Embedding computado para post {post_id}")
+
+    except Publicacao.DoesNotExist:
+        logger.warning(f"Post {post_id} não encontrado para embedding.")
+    except Exception as exc:
+        logger.error(f"Erro ao computar embedding do post {post_id}: {exc}")
+        self.retry(exc=exc)
+
+
+@shared_task
+def update_user_interest_vectors():
+    """
+    Atualiza vetores de interesse de usuários ativos (executada a cada hora).
+    O vetor é a média dos embeddings dos posts engajados nos últimos 30 dias.
+    Armazenado no Redis com TTL de 2 horas.
+    """
+    from core.models import Usuario
+    from core.feed_embeddings import compute_user_interest_vector
+    from django.core.cache import cache
+
+    ativos = Usuario.objects.filter(status=1, is_active=True)
+    count = 0
+    errors = 0
+
+    for user in ativos.iterator(chunk_size=100):
+        try:
+            vec_bytes = compute_user_interest_vector(user)
+            if vec_bytes:
+                cache.set(f'user_interest_vec:{user.id_usuario}', vec_bytes, 7200)
+                count += 1
+        except Exception as e:
+            errors += 1
+            logger.error(f"Erro ao computar vetor de interesse de {user.id_usuario}: {e}")
+
+    logger.info(f"Vetores de interesse atualizados: {count} usuários ({errors} erros)")
+
+
+@shared_task
+def cleanup_posts_vistos():
+    """
+    Remove registros de PostVisto com mais de 30 dias (executada diariamente às 4h).
+    Posts com mais de 30 dias não entram no pool de candidatos, então
+    manter esses registros é desperdício de espaço.
+    """
+    from core.models import PostVisto
+    from datetime import timedelta
+
+    cutoff = timezone.now() - timedelta(days=30)
+    deleted, _ = PostVisto.objects.filter(data_visto__lt=cutoff).delete()
+    logger.info(f"Limpeza de PostVisto: {deleted} registros removidos")
+
