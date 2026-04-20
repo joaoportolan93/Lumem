@@ -56,7 +56,36 @@ if [ "${RUN_SEED,,}" = "true" ]; then
 fi
 
 # -----------------------------------------------
-# 6. Iniciar Celery Worker em background
+# 6. Backfill de embeddings (posts sem vetor semântico)
+# -----------------------------------------------
+echo "🧠 Verificando posts sem embedding..."
+python manage.py shell -c "
+from core.models import Publicacao, PostEmbedding
+
+total_posts = Publicacao.objects.count()
+total_embeddings = PostEmbedding.objects.count()
+sem_embedding = total_posts - total_embeddings
+
+if sem_embedding > 0:
+    print(f'   Encontrados {sem_embedding} posts sem embedding.')
+    print(f'   O Celery Worker vai processar em background.')
+    
+    from core.tasks import compute_post_embedding_task
+    
+    ids_sem_embedding = Publicacao.objects.exclude(
+        id_publicacao__in=PostEmbedding.objects.values_list('publicacao_id', flat=True)
+    ).values_list('id_publicacao', flat=True)[:500]
+    
+    for pid in ids_sem_embedding:
+        compute_post_embedding_task.delay(str(pid))
+    
+    print(f'   ✅ {len(ids_sem_embedding)} tasks de embedding enfileiradas no Celery.')
+else:
+    print(f'   ✅ Todos os {total_posts} posts já possuem embeddings.')
+" || echo "⚠️  Backfill de embeddings falhou (não-crítico, será processado depois)"
+
+# -----------------------------------------------
+# 7. Iniciar Celery Worker em background
 # -----------------------------------------------
 echo "🔧 Iniciando Celery Worker..."
 celery -A dreamshare_backend worker --loglevel=info --concurrency=2 &
@@ -64,7 +93,7 @@ CELERY_PID=$!
 echo "✅ Celery Worker iniciado (PID: $CELERY_PID)"
 
 # -----------------------------------------------
-# 7. Iniciar Daphne (ASGI - suporta HTTP + WebSocket)
+# 8. Iniciar Daphne (ASGI - suporta HTTP + WebSocket)
 # -----------------------------------------------
 BACKEND_PORT="${BACKEND_PORT:-8000}"
 echo "🚀 Iniciando Daphne (ASGI) na porta ${BACKEND_PORT}..."

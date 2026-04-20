@@ -61,6 +61,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
     'drf_spectacular',
+    'django_celery_beat',
 
     # Local apps
     'core',
@@ -268,6 +269,41 @@ CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 minutos
+
+# Celery Beat - Tarefas periódicas
+from celery.schedules import crontab
+
+CELERY_BEAT_SCHEDULE = {
+    'update-user-interest-vectors': {
+        'task': 'core.tasks.update_user_interest_vectors',
+        'schedule': crontab(minute=0),  # A cada hora
+    },
+    'cleanup-posts-vistos': {
+        'task': 'core.tasks.cleanup_posts_vistos',
+        'schedule': crontab(hour=4, minute=0),  # 4h da manhã
+    },
+    'cleanup-old-notifications': {
+        'task': 'core.tasks.cleanup_old_notifications',
+        'schedule': crontab(hour=3, minute=0),  # 3h da manhã
+    },
+}
+
+# ==========================================
+# Cache (Redis DB 1 — separado de Channels/Celery que usam DB 0)
+# ==========================================
+_redis_base = config('REDIS_URL', default='redis://localhost:6379/0')
+_cache_url = _redis_base.rsplit('/', 1)[0] + '/1'  # Troca DB 0 → DB 1
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': _cache_url,
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+        },
+        'TIMEOUT': 300,  # 5 minutos padrão
+    }
+}
 
 # ==========================================
 # Firebase (Push Notifications)

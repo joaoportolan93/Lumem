@@ -8,10 +8,24 @@ env/
 venv/
 .venv/
 .env
+*.env
 db.sqlite3
 
 # User uploaded media (don't commit!)
 backend/media/
+
+# Firebase / Google Cloud credentials (NUNCA commitar!)
+firebase-credentials.json
+**/firebase-credentials.json
+**/serviceAccount*.json
+**/google-credentials*.json
+*.pem
+*.key
+*.p12
+
+# ML Model cache (baixado automaticamente)
+.cache/
+huggingface/
 
 # Node
 node_modules/
@@ -23,3 +37,12 @@ dist/
 # OS
 .DS_Store
 Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Test / Coverage
+.pytest_cache/
+htmlcov/
+.coverage

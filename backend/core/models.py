@@ -828,3 +828,59 @@ class AuditLogChat(models.Model):
 
     def __str__(self):
         return f"[{self.acao.upper()}] Conversa {self.conversa_id} por {self.admin} em {self.data_acao:%d/%m/%Y %H:%M}"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ALGORITMO DE FEED
+# ══════════════════════════════════════════════════════════════════════════════
+
+class PostVisto(models.Model):
+    """
+    Registra quando um usuário viu um post no feed.
+    Usado para deduplicação (não mostrar posts repetidos) e como sinal de engajamento.
+    """
+    usuario = models.ForeignKey(
+        Usuario, on_delete=models.CASCADE,
+        related_name='posts_vistos', db_column='id_usuario'
+    )
+    publicacao = models.ForeignKey(
+        Publicacao, on_delete=models.CASCADE,
+        related_name='vistos_por', db_column='id_publicacao'
+    )
+    data_visto = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        db_table = 'posts_vistos'
+        unique_together = ('usuario', 'publicacao')
+        indexes = [
+            models.Index(fields=['usuario', '-data_visto']),
+        ]
+
+    def __str__(self):
+        return f"{self.usuario} viu {self.publicacao_id} em {self.data_visto:%d/%m/%Y %H:%M}"
+
+
+class PostEmbedding(models.Model):
+    """
+    Armazena o vetor de embedding semântico de um post.
+    Separado da tabela Publicacao para não inflar queries comuns.
+    Computado assincronamente via Celery ao criar um post.
+    """
+    publicacao = models.OneToOneField(
+        Publicacao, on_delete=models.CASCADE,
+        primary_key=True, related_name='embedding',
+        db_column='id_publicacao'
+    )
+    vetor = models.BinaryField(help_text='Vetor numpy serializado (float32)')
+    modelo = models.CharField(
+        max_length=100,
+        default='paraphrase-multilingual-MiniLM-L12-v2',
+        help_text='Nome do modelo usado para gerar o embedding'
+    )
+    data_calculo = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        db_table = 'post_embeddings'
+
+    def __str__(self):
+        return f"Embedding de {self.publicacao_id} ({self.modelo})"

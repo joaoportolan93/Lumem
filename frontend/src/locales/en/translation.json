@@ -133,7 +133,8 @@
         "emptyFollowing": "No dreams from people you follow yet",
         "emptyFollowingDesc": "Follow other dreamers to see their dreams here!",
         "emptyForYou": "No trending dreams right now",
-        "emptyForYouDesc": "Come back later to see the most popular dreams."
+        "emptyForYouDesc": "Come back later to see the most popular dreams.",
+        "feedEnd": "You've seen all available dreams ✨"
     },
     "createDream": {
         "typeLucid": "Lucid",

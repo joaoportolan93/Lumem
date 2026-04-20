@@ -28,3 +28,13 @@ redis>=5.0
 
 # Firebase (Push Notifications)
 firebase-admin>=6.0
+
+# Feed Algorithm - Cache
+django-redis>=5.4
+
+# Feed Algorithm - ML Embeddings
+sentence-transformers>=3.0
+numpy>=1.26
+
+# Celery Beat - Periodic Tasks
+django-celery-beat>=2.6

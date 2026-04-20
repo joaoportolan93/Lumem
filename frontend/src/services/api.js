@@ -83,13 +83,16 @@ export const uploadAvatar = (file) => {
 };
 
 // Dreams (Publicacao) endpoints
-export const getDreams = (tab = 'following', communityId = null) => {
-    let url = `/api/dreams/?tab=${tab}`;
+export const getDreams = (tab = 'following', communityId = null, page = 1) => {
+    let url = `/api/dreams/?tab=${tab}&page=${page}`;
     if (communityId) {
         url += `&community_id=${communityId}`;
     }
     return api.get(url);
 };
+
+export const viewDream = (id) => api.post(`/api/dreams/${id}/view/`);
+
 
 export const getMyDreams = () => api.get('/api/dreams/?tab=mine');
 
