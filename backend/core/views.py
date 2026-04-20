@@ -795,7 +795,10 @@ class PublicacaoViewSet(viewsets.ModelViewSet):
         if tab == 'foryou' and request.user.is_authenticated:
             from .feed_algorithm import get_foryou_feed
 
-            page = int(request.query_params.get('page', 1))
+            try:
+                page = int(request.query_params.get('page', 1))
+            except (ValueError, TypeError):
+                page = 1
             post_ids, has_more = get_foryou_feed(request.user, page=page, page_size=15)
 
             if not post_ids:

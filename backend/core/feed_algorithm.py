@@ -237,10 +237,14 @@ def _get_candidates(user, context, pool_size=POOL_SIZE):
 # SCORE DE CADA POST
 # ══════════════════════════════════════════════════════════════════════════════
 
-def _score_post(post, context, user_embedding=None):
+def _score_post(post, context, user_embedding=None, post_hashtags_map=None):
     """
     Calcula score final de um post para o feed do usuário.
     Score = (engagement_score + afinidade_score + ml_score) × recência
+
+    Args:
+        post_hashtags_map: dict {post_id: set(hashtag_ids)} pré-computado
+                           para evitar N+1 queries.
     """
     # ── 1. Engagement (dados das anotações do queryset) ──
     engagement = (
@@ -265,13 +269,9 @@ def _score_post(post, context, user_embedding=None):
     if post.tipo_sonho and post.tipo_sonho in context['tipos_preferidos']:
         afinidade += BONUS_TIPO_SONHO
 
-    # Hashtags em comum com posts engajados?
-    if context['hashtag_ids']:
-        post_hashtags = set(
-            PublicacaoHashtag.objects.filter(
-                publicacao=post
-            ).values_list('hashtag_id', flat=True)
-        )
+    # Hashtags em comum com posts engajados? (usa mapa pré-computado)
+    if context['hashtag_ids'] and post_hashtags_map:
+        post_hashtags = post_hashtags_map.get(post.id_publicacao, set())
         if post_hashtags & context['hashtag_ids']:
             afinidade += BONUS_HASHTAG
 
@@ -357,10 +357,22 @@ def get_foryou_feed(user, page=1, page_size=15):
         from .feed_embeddings import load_embedding
         user_embedding = load_embedding(raw_vec)
 
+    # Pré-carregar hashtags de todos os candidatos (evita N+1 queries)
+    candidate_ids = [p.id_publicacao for p in candidatos]
+    post_hashtags_map = {}
+    if context['hashtag_ids']:
+        from collections import defaultdict
+        post_hashtags_map = defaultdict(set)
+        qs_tags = PublicacaoHashtag.objects.filter(
+            publicacao_id__in=candidate_ids
+        ).values_list('publicacao_id', 'hashtag_id')
+        for pid, hid in qs_tags:
+            post_hashtags_map[pid].add(hid)
+
     # Calcular score de cada candidato
     scored = []
     for post in candidatos:
-        score = _score_post(post, context, user_embedding)
+        score = _score_post(post, context, user_embedding, post_hashtags_map)
         scored.append((post.id_publicacao, score))
 
     # Ordenar por score decrescente

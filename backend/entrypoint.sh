@@ -85,15 +85,7 @@ else:
 " || echo "⚠️  Backfill de embeddings falhou (não-crítico, será processado depois)"
 
 # -----------------------------------------------
-# 7. Iniciar Celery Worker em background
-# -----------------------------------------------
-echo "🔧 Iniciando Celery Worker..."
-celery -A dreamshare_backend worker --loglevel=info --concurrency=2 &
-CELERY_PID=$!
-echo "✅ Celery Worker iniciado (PID: $CELERY_PID)"
-
-# -----------------------------------------------
-# 8. Iniciar Daphne (ASGI - suporta HTTP + WebSocket)
+# 7. Iniciar Daphne (ASGI - suporta HTTP + WebSocket)
 # -----------------------------------------------
 BACKEND_PORT="${BACKEND_PORT:-8000}"
 echo "🚀 Iniciando Daphne (ASGI) na porta ${BACKEND_PORT}..."
