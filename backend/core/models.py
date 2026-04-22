@@ -196,7 +196,7 @@ class PublicacaoMencao(models.Model):
 
 class ComentarioMencao(models.Model):
     id_mencao = models.UUIDField(primary_key=True, default=uuid6.uuid7, editable=False)
-    comentario = models.ForeignKey(Comentario, on_delete=models.CASCADE, related_name='mencoes', db_column='id_comentario')
+    comentario = models.ForeignKey('Comentario', on_delete=models.CASCADE, related_name='mencoes', db_column='id_comentario')
     usuario_mencionado = models.ForeignKey(Usuario, on_delete=models.CASCADE, related_name='mencoes_comentario_recebidas', db_column='id_usuario_mencionado')
     usuario_mencionador = models.ForeignKey(Usuario, on_delete=models.SET_NULL, null=True, blank=True, related_name='mencoes_comentario_feitas', db_column='id_usuario_mencionador')
     data_criacao = models.DateTimeField(default=timezone.now)
