@@ -65,7 +65,7 @@ class Migration(migrations.Migration):
                 'db_table': 'posts_vistos',
                 'unique_together': {('usuario', 'publicacao')},
                 'indexes': [
-                    models.Index(fields=['usuario', '-data_visto'], name='posts_visto_id_usua_idx'),
+                    models.Index(fields=['usuario', '-data_visto'], name='posts_visto_id_usua_96c785_idx'),
                 ],
             },
         ),
