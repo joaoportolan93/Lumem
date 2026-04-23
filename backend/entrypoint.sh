@@ -84,8 +84,13 @@ else:
 " || echo "⚠️  Backfill de embeddings falhou (não-crítico, será processado depois)"
 
 # -----------------------------------------------
-# 7. Iniciar Daphne (ASGI - suporta HTTP + WebSocket)
+# 7. Iniciar serviço (backend ou worker)
 # -----------------------------------------------
-BACKEND_PORT="${BACKEND_PORT:-8000}"
-echo "🚀 Iniciando Daphne (ASGI) na porta ${BACKEND_PORT}..."
-exec daphne -b 0.0.0.0 -p "${BACKEND_PORT}" dreamshare_backend.asgi:application
+if [ $# -eq 0 ]; then
+    BACKEND_PORT="${BACKEND_PORT:-8000}"
+    echo "🚀 Iniciando Daphne (ASGI) na porta ${BACKEND_PORT}..."
+    exec daphne -b 0.0.0.0 -p "${BACKEND_PORT}" dreamshare_backend.asgi:application
+else
+    echo "🚀 Executando: $*"
+    exec "$@"
+fi
