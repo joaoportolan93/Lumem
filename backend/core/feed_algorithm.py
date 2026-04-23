@@ -19,7 +19,7 @@ Design decisions:
   - Retorna IDs (não instâncias) para permitir re-busca via get_queryset() anotado
   - Cache Redis separado (DB 1) para não interferir com Channels/Celery
   - Janela dinâmica: se poucos candidatos, expande de 7 → 14 → 30 dias
-  - Cold-start: usuários sem histórico recebem fallback por popularidade
+  - Cold-start: usuários sem histórico recebem fallback por popularidade (janela 30 dias)
 """
 
 import math
@@ -166,6 +166,14 @@ def _get_user_context(user):
         .values_list('tipo_sonho', flat=True)
     ) if engaged_ids else set()
 
+    # Adicionar interesses do onboarding (ConfiguracaoUsuario.interesses)
+    try:
+        config = user.configuracaousuario
+        if config.interesses:
+            tipos_preferidos |= set(config.interesses)
+    except Exception:
+        pass
+
     # Fix #4: Posts já vistos (apenas últimos 7 dias — janela de candidatos)
     seen_post_ids = set(
         PostVisto.objects.filter(
@@ -289,8 +297,9 @@ def _score_post(post, context, user_embedding=None, post_hashtags_map=None):
                 sim = cosine_similarity(user_embedding, post_vec)
                 # Similaridade vai de -1 a 1, convertemos para 0-1
                 ml_score = max(0.0, sim) * BONUS_EMBEDDING
-        except Exception:
-            pass  # Silencia erros de embedding — feed não deve quebrar por isso
+        except Exception as exc:  # noqa: BLE001
+            # Feed não deve quebrar por erros de embedding, mas registramos para debug
+            logger.warning('Erro ao calcular ML score para post %s: %s', post.id_publicacao, exc)
 
     # ── 4. Recência ──
     recencia = _recencia_score(post.data_publicacao)
@@ -333,7 +342,7 @@ def get_foryou_feed(user, page=1, page_size=15):
                 .filter(
                     usuario__status=1,
                     visibilidade=1,
-                    data_publicacao__gte=timezone.now() - timedelta(hours=48),
+                    data_publicacao__gte=timezone.now() - timedelta(days=30),
                 )
                 .exclude(usuario=user)
                 .annotate(

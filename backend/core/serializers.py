@@ -531,9 +531,25 @@ class UserSettingsSerializer(serializers.ModelSerializer):
             'idioma',
             'mostrar_visualizacoes',
             'mostrar_feed_algoritmico',
+            'interesses',
             'ultima_atualizacao'
         )
         read_only_fields = ('ultima_atualizacao',)
+
+    def validate_interesses(self, value):
+        """Garante que interesses é uma lista de strings válidas."""
+        if not isinstance(value, list):
+            raise serializers.ValidationError("interesses deve ser uma lista.")
+        if len(value) > 20:
+            raise serializers.ValidationError("Máximo de 20 interesses permitidos.")
+        for item in value:
+            if not isinstance(item, str):
+                raise serializers.ValidationError("Cada interesse deve ser uma string.")
+            if len(item) > 50:
+                raise serializers.ValidationError(
+                    f"Interesse '{item[:20]}...' excede 50 caracteres."
+                )
+        return value
 
 
 class CloseFriendSerializer(serializers.ModelSerializer):

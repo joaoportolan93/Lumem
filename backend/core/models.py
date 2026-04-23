@@ -493,6 +493,8 @@ class ConfiguracaoUsuario(models.Model):
     idioma = models.CharField(max_length=10, default='pt-BR')
     mostrar_visualizacoes = models.BooleanField(default=True)
     mostrar_feed_algoritmico = models.BooleanField(default=True)
+    # Interesses selecionados no onboarding (lista de tipos de sonho preferidos)
+    interesses = models.JSONField(default=list, blank=True)
     ultima_atualizacao = models.DateTimeField(default=timezone.now)
 
     class Meta:

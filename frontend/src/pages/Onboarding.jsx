@@ -1,10 +1,29 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaUser, FaEye, FaLock } from 'react-icons/fa';
-import { getProfile, updateUser, uploadAvatar } from '../services/api';
+import { FaUser, FaEye, FaLock, FaCheck } from 'react-icons/fa';
+import { getProfile, updateUser, uploadAvatar, updateUserSettings } from '../services/api';
 import { useTranslation } from 'react-i18next';
 import '../styles/Auth.css';
+
+// Os IDs devem ser os valores EXATOS usados no campo tipo_sonho do backend
+// para que o algoritmo de feed faça o match corretamente.
+const CATEGORIAS_SONHO = [
+    { id: 'Lúcido',       emoji: '🌙', label: 'Sonhos Lúcidos',      desc: 'Controle o seu sonho' },
+    { id: 'Pesadelo',     emoji: '😱', label: 'Pesadelos',            desc: 'Medos e tensões noturnas' },
+    { id: 'Recorrente',   emoji: '🔄', label: 'Sonhos Recorrentes',   desc: 'Padrões que se repetem' },
+    { id: 'Normal',       emoji: '💭', label: 'Sonhos Comuns',        desc: 'Reflexos do dia a dia' },
+    { id: 'Profético',    emoji: '✨', label: 'Sonhos Proféticos',    desc: 'Visões do futuro' },
+    { id: 'Astral',       emoji: '🌊', label: 'Viagens Astrais',      desc: 'Projeção e OBE' },
+    { id: 'Criativo',     emoji: '🎨', label: 'Criatividade e Arte',  desc: 'Sonhos simbólicos e artísticos' },
+    { id: 'Aventura',     emoji: '✈️', label: 'Aventura e Viagens',   desc: 'Exploração e descoberta' },
+    { id: 'Relacionamento', emoji: '❤️', label: 'Relacionamentos',    desc: 'Família, amor e amizade' },
+    { id: 'Fantasia',     emoji: '🎮', label: 'Fantasia e Ficção',    desc: 'Mundos imaginários' },
+    { id: 'Natureza',     emoji: '🌿', label: 'Natureza e Animais',   desc: 'Terra, mar e céu' },
+    { id: 'Espiritual',   emoji: '🕊️', label: 'Espiritual',           desc: 'Fé, paz e transcendência' },
+];
+
+const TOTAL_STEPS = 3;
 
 const Onboarding = () => {
     const { t } = useTranslation();
@@ -14,72 +33,78 @@ const Onboarding = () => {
     const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [direction, setDirection] = useState(0);
 
-    // Step 1: Profile data
+    // Step 1: Perfil
     const [avatar, setAvatar] = useState(null);
     const [avatarPreview, setAvatarPreview] = useState(null);
     const [displayName, setDisplayName] = useState('');
     const [bio, setBio] = useState('');
 
-    // Step 2: Privacy setting
+    // Step 2: Privacidade
     const [privacy, setPrivacy] = useState('public');
 
-    const handleAvatarClick = () => {
-        fileInputRef.current?.click();
-    };
+    // Step 3: Interesses
+    const [selectedInterests, setSelectedInterests] = useState([]);
+
+    const handleAvatarClick = () => fileInputRef.current?.click();
 
     const handleAvatarChange = (e) => {
         const file = e.target.files?.[0];
         if (file) {
             setAvatar(file);
             const reader = new FileReader();
-            reader.onloadend = () => {
-                setAvatarPreview(reader.result);
-            };
+            reader.onloadend = () => setAvatarPreview(reader.result);
             reader.readAsDataURL(file);
         }
     };
 
+    const toggleInterest = (id) => {
+        setSelectedInterests(prev =>
+            prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+        );
+    };
+
     const handleNext = () => {
-        if (step === 1) {
-            if (!displayName.trim()) {
-                setError(t('onboarding.errEmptyDisplayName'));
-                return;
-            }
-            setError('');
-            setStep(2);
+        if (step === 1 && !displayName.trim()) {
+            setError(t('onboarding.errEmptyDisplayName'));
+            return;
         }
+        setError('');
+        setDirection(1);
+        setStep(s => Math.min(s + 1, TOTAL_STEPS));
     };
 
     const handleBack = () => {
-        if (step > 1) {
-            setStep(step - 1);
-            setError('');
-        }
+        setDirection(-1);
+        setStep(s => Math.max(s - 1, 1));
+        setError('');
     };
 
     const handleFinish = async () => {
         setLoading(true);
         setError('');
-
         try {
-            // Get current user profile to get user ID
             const profileResponse = await getProfile();
             const userId = profileResponse.data.id_usuario;
 
-            // Upload avatar if selected
-            if (avatar) {
-                await uploadAvatar(avatar);
-            }
+            if (avatar) await uploadAvatar(avatar);
 
-            // Update profile data
             await updateUser(userId, {
                 nome_completo: displayName,
                 bio: bio,
                 privacidade_padrao: privacy === 'private' ? 2 : 1,
             });
 
-            // Redirect to home/feed
+            // Salvar interesses nas configurações do usuário
+            if (selectedInterests.length > 0) {
+                try {
+                    await updateUserSettings({ interesses: selectedInterests });
+                } catch (_) {
+                    // não-crítico, continua
+                }
+            }
+
             navigate('/');
         } catch (err) {
             console.error('Onboarding error:', err);
@@ -90,48 +115,40 @@ const Onboarding = () => {
     };
 
     const slideVariants = {
-        enter: (direction) => ({
-            x: direction > 0 ? 300 : -300,
-            opacity: 0,
-        }),
-        center: {
-            x: 0,
-            opacity: 1,
-        },
-        exit: (direction) => ({
-            x: direction > 0 ? -300 : 300,
-            opacity: 0,
-        }),
+        enter: (dir) => ({ x: dir > 0 ? 300 : -300, opacity: 0 }),
+        center: { x: 0, opacity: 1 },
+        exit: (dir) => ({ x: dir > 0 ? -300 : 300, opacity: 0 }),
     };
 
-    const [[page, direction], setPage] = useState([1, 0]);
-
-    const paginate = (newDirection) => {
-        setPage([step + newDirection, newDirection]);
-    };
+    const stepTitles = [
+        t('onboarding.step1Title'),
+        t('onboarding.step2Title'),
+        'Seus interesses',
+    ];
+    const stepSubtitles = [
+        t('onboarding.step1Subtitle'),
+        t('onboarding.step2Subtitle'),
+        'Escolha os tipos de sonho que mais combinam com você',
+    ];
 
     return (
         <div className="auth-bg">
             <motion.div
                 className="glass-card onboarding-container"
+                style={{ maxWidth: step === 3 ? 560 : undefined }}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
             >
                 {/* Progress Bar */}
                 <div className="progress-bar">
-                    <div className={`progress-step ${step >= 1 ? 'active' : ''}`}></div>
-                    <div className={`progress-step ${step >= 2 ? 'active' : ''}`}></div>
+                    {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
+                        <div key={i} className={`progress-step ${step >= i + 1 ? 'active' : ''}`} />
+                    ))}
                 </div>
 
-                <h1 className="auth-title">
-                    {step === 1 ? t('onboarding.step1Title') : t('onboarding.step2Title')}
-                </h1>
-                <p className="auth-subtitle">
-                    {step === 1
-                        ? t('onboarding.step1Subtitle')
-                        : t('onboarding.step2Subtitle')}
-                </p>
+                <h1 className="auth-title">{stepTitles[step - 1]}</h1>
+                <p className="auth-subtitle">{stepSubtitles[step - 1]}</p>
 
                 {error && (
                     <motion.div
@@ -144,6 +161,7 @@ const Onboarding = () => {
                 )}
 
                 <AnimatePresence mode="wait" custom={direction}>
+                    {/* ── Step 1: Perfil ── */}
                     {step === 1 && (
                         <motion.div
                             key="step1"
@@ -154,16 +172,10 @@ const Onboarding = () => {
                             exit="exit"
                             transition={{ duration: 0.3 }}
                         >
-                            {/* Avatar Upload */}
-                            <div
-                                className="avatar-upload"
-                                onClick={handleAvatarClick}
-                            >
-                                {avatarPreview ? (
-                                    <img src={avatarPreview} alt="Avatar" />
-                                ) : (
-                                    <FaUser size={40} />
-                                )}
+                            <div className="avatar-upload" onClick={handleAvatarClick}>
+                                {avatarPreview
+                                    ? <img src={avatarPreview} alt="Avatar" />
+                                    : <FaUser size={40} />}
                             </div>
                             <input
                                 type="file"
@@ -172,8 +184,6 @@ const Onboarding = () => {
                                 accept="image/*"
                                 style={{ display: 'none' }}
                             />
-
-                            {/* Display Name */}
                             <input
                                 type="text"
                                 className="auth-input"
@@ -181,17 +191,16 @@ const Onboarding = () => {
                                 value={displayName}
                                 onChange={(e) => setDisplayName(e.target.value)}
                             />
-
-                            {/* Bio */}
                             <textarea
                                 className="auth-textarea"
                                 placeholder={t('onboarding.placeholderBio')}
                                 value={bio}
                                 onChange={(e) => setBio(e.target.value)}
-                            ></textarea>
+                            />
                         </motion.div>
                     )}
 
+                    {/* ── Step 2: Privacidade ── */}
                     {step === 2 && (
                         <motion.div
                             key="step2"
@@ -202,7 +211,6 @@ const Onboarding = () => {
                             exit="exit"
                             transition={{ duration: 0.3 }}
                         >
-                            {/* Privacy Selection Cards */}
                             <div className="privacy-cards">
                                 <div
                                     className={`privacy-card ${privacy === 'public' ? 'selected' : ''}`}
@@ -223,38 +231,112 @@ const Onboarding = () => {
                             </div>
                         </motion.div>
                     )}
+
+                    {/* ── Step 3: Interesses ── */}
+                    {step === 3 && (
+                        <motion.div
+                            key="step3"
+                            custom={direction}
+                            variants={slideVariants}
+                            initial="enter"
+                            animate="center"
+                            exit="exit"
+                            transition={{ duration: 0.3 }}
+                        >
+                            <div style={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
+                                gap: '10px',
+                                marginTop: '8px',
+                                maxHeight: '340px',
+                                overflowY: 'auto',
+                                paddingRight: '4px',
+                            }}>
+                                {CATEGORIAS_SONHO.map((cat) => {
+                                    const selected = selectedInterests.includes(cat.id);
+                                    return (
+                                        <motion.button
+                                            key={cat.id}
+                                            type="button"
+                                            aria-pressed={selected}
+                                            onClick={() => toggleInterest(cat.id)}
+                                            whileHover={{ scale: 1.03 }}
+                                            whileTap={{ scale: 0.97 }}
+                                            style={{
+                                                position: 'relative',
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                alignItems: 'center',
+                                                gap: '6px',
+                                                padding: '14px 10px',
+                                                borderRadius: '14px',
+                                                border: selected
+                                                    ? '2px solid var(--primary, #7c3aed)'
+                                                    : '2px solid rgba(255,255,255,0.12)',
+                                                background: selected
+                                                    ? 'rgba(124, 58, 237, 0.18)'
+                                                    : 'rgba(255,255,255,0.04)',
+                                                cursor: 'pointer',
+                                                transition: 'border 0.2s, background 0.2s',
+                                                color: 'var(--text-primary, #fff)',
+                                            }}
+                                        >
+                                            {selected && (
+                                                <span style={{
+                                                    position: 'absolute',
+                                                    top: '8px',
+                                                    right: '8px',
+                                                    width: '18px',
+                                                    height: '18px',
+                                                    borderRadius: '50%',
+                                                    background: 'var(--primary, #7c3aed)',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    fontSize: '9px',
+                                                }}>
+                                                    <FaCheck color="#fff" />
+                                                </span>
+                                            )}
+                                            <span style={{ fontSize: '28px' }}>{cat.emoji}</span>
+                                            <span style={{ fontSize: '12px', fontWeight: 600, textAlign: 'center', lineHeight: 1.2 }}>
+                                                {cat.label}
+                                            </span>
+                                            <span style={{ fontSize: '10px', opacity: 0.6, textAlign: 'center', lineHeight: 1.2 }}>
+                                                {cat.desc}
+                                            </span>
+                                        </motion.button>
+                                    );
+                                })}
+                            </div>
+                            {selectedInterests.length > 0 && (
+                                <p style={{ textAlign: 'center', marginTop: '12px', fontSize: '13px', opacity: 0.7 }}>
+                                    {t('onboarding.selectedCount', { count: selectedInterests.length })}
+                                </p>
+                            )}
+                        </motion.div>
+                    )}
                 </AnimatePresence>
 
                 {/* Navigation Buttons */}
                 <div className="onboarding-nav">
                     {step > 1 && (
-                        <button
-                            className="btn-secondary"
-                            onClick={() => {
-                                paginate(-1);
-                                handleBack();
-                            }}
-                        >
+                        <button type="button" className="btn-secondary" onClick={handleBack}>
                             {t('onboarding.btnBack')}
                         </button>
                     )}
-                    {step < 2 ? (
+                    {step < TOTAL_STEPS ? (
                         <button
+                            type="button"
                             className="btn-dream"
-                            onClick={() => {
-                                if (displayName.trim()) {
-                                    paginate(1);
-                                    handleNext();
-                                } else {
-                                    setError(t('onboarding.errEmptyDisplayName'));
-                                }
-                            }}
+                            onClick={handleNext}
                             style={{ flex: step > 1 ? 1 : 'none', width: step === 1 ? '100%' : 'auto' }}
                         >
                             {t('onboarding.btnNext')}
                         </button>
                     ) : (
                         <button
+                            type="button"
                             className="btn-dream"
                             onClick={handleFinish}
                             disabled={loading}
@@ -264,6 +346,25 @@ const Onboarding = () => {
                         </button>
                     )}
                 </div>
+
+                {/* Skip na última etapa */}
+                {step === TOTAL_STEPS && !loading && (
+                    <button
+                        type="button"
+                        onClick={handleFinish}
+                        style={{
+                            background: 'none',
+                            border: 'none',
+                            color: 'rgba(255,255,255,0.4)',
+                            fontSize: '12px',
+                            marginTop: '8px',
+                            cursor: 'pointer',
+                            textDecoration: 'underline',
+                        }}
+                    >
+                        {t('onboarding.btnSkip')}
+                    </button>
+                )}
             </motion.div>
         </div>
     );
