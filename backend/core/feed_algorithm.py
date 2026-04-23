@@ -166,6 +166,14 @@ def _get_user_context(user):
         .values_list('tipo_sonho', flat=True)
     ) if engaged_ids else set()
 
+    # Adicionar interesses do onboarding (ConfiguracaoUsuario.interesses)
+    try:
+        config = user.configuracaousuario
+        if config.interesses:
+            tipos_preferidos |= set(config.interesses)
+    except Exception:
+        pass
+
     # Fix #4: Posts já vistos (apenas últimos 7 dias — janela de candidatos)
     seen_post_ids = set(
         PostVisto.objects.filter(
@@ -333,7 +341,7 @@ def get_foryou_feed(user, page=1, page_size=15):
                 .filter(
                     usuario__status=1,
                     visibilidade=1,
-                    data_publicacao__gte=timezone.now() - timedelta(hours=48),
+                    data_publicacao__gte=timezone.now() - timedelta(days=30),
                 )
                 .exclude(usuario=user)
                 .annotate(

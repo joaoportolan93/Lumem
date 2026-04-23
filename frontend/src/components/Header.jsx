@@ -42,7 +42,10 @@ const Header = () => {
                 // Fetch unread notifications to implement red-dot
                 const { getNotifications } = await import('../services/api');
                 const notifRes = await getNotifications();
-                const unread = notifRes.data.filter(n => !n.lida).length;
+                const notifList = Array.isArray(notifRes.data)
+                    ? notifRes.data
+                    : (notifRes.data?.results ?? []);
+                const unread = notifList.filter(n => !n.lida).length;
                 setHasUnreadNotifs(unread > 0);
             } catch (error) {
                 console.error('Error fetching header data:', error);

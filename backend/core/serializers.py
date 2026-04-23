@@ -531,6 +531,7 @@ class UserSettingsSerializer(serializers.ModelSerializer):
             'idioma',
             'mostrar_visualizacoes',
             'mostrar_feed_algoritmico',
+            'interesses',
             'ultima_atualizacao'
         )
         read_only_fields = ('ultima_atualizacao',)
