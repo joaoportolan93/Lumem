@@ -6,19 +6,21 @@ import { getProfile, updateUser, uploadAvatar, updateUserSettings } from '../ser
 import { useTranslation } from 'react-i18next';
 import '../styles/Auth.css';
 
+// Os IDs devem ser os valores EXATOS usados no campo tipo_sonho do backend
+// para que o algoritmo de feed faça o match corretamente.
 const CATEGORIAS_SONHO = [
-    { id: 'lucido',       emoji: '🌙', label: 'Sonhos Lúcidos',       desc: 'Controle o seu sonho' },
-    { id: 'pesadelo',     emoji: '😱', label: 'Pesadelos',             desc: 'Medos e tensões noturnas' },
-    { id: 'profetico',    emoji: '✨', label: 'Sonhos Proféticos',     desc: 'Visões do futuro' },
-    { id: 'astral',       emoji: '🌊', label: 'Viagens Astrais',       desc: 'Projeção e OBE' },
-    { id: 'recorrente',   emoji: '🔄', label: 'Sonhos Recorrentes',    desc: 'Padrões que se repetem' },
-    { id: 'criativo',     emoji: '🎨', label: 'Criatividade e Arte',   desc: 'Sonhos simbólicos e artísticos' },
-    { id: 'aventura',     emoji: '✈️', label: 'Aventura e Viagens',    desc: 'Exploração e descoberta' },
-    { id: 'relacionamento', emoji: '❤️', label: 'Relacionamentos',     desc: 'Família, amor e amizade' },
-    { id: 'fantasia',     emoji: '🎮', label: 'Fantasia e Ficção',     desc: 'Mundos imaginários' },
-    { id: 'natureza',     emoji: '🌿', label: 'Natureza e Animais',    desc: 'Terra, mar e céu' },
-    { id: 'espiritual',   emoji: '🕊️', label: 'Espiritual',            desc: 'Fé, paz e transcendência' },
-    { id: 'cotidiano',    emoji: '🏙️', label: 'Cotidiano',             desc: 'Reflexos do dia a dia' },
+    { id: 'Lúcido',       emoji: '🌙', label: 'Sonhos Lúcidos',      desc: 'Controle o seu sonho' },
+    { id: 'Pesadelo',     emoji: '😱', label: 'Pesadelos',            desc: 'Medos e tensões noturnas' },
+    { id: 'Recorrente',   emoji: '🔄', label: 'Sonhos Recorrentes',   desc: 'Padrões que se repetem' },
+    { id: 'Normal',       emoji: '💭', label: 'Sonhos Comuns',        desc: 'Reflexos do dia a dia' },
+    { id: 'Profético',    emoji: '✨', label: 'Sonhos Proféticos',    desc: 'Visões do futuro' },
+    { id: 'Astral',       emoji: '🌊', label: 'Viagens Astrais',      desc: 'Projeção e OBE' },
+    { id: 'Criativo',     emoji: '🎨', label: 'Criatividade e Arte',  desc: 'Sonhos simbólicos e artísticos' },
+    { id: 'Aventura',     emoji: '✈️', label: 'Aventura e Viagens',   desc: 'Exploração e descoberta' },
+    { id: 'Relacionamento', emoji: '❤️', label: 'Relacionamentos',    desc: 'Família, amor e amizade' },
+    { id: 'Fantasia',     emoji: '🎮', label: 'Fantasia e Ficção',    desc: 'Mundos imaginários' },
+    { id: 'Natureza',     emoji: '🌿', label: 'Natureza e Animais',   desc: 'Terra, mar e céu' },
+    { id: 'Espiritual',   emoji: '🕊️', label: 'Espiritual',           desc: 'Fé, paz e transcendência' },
 ];
 
 const TOTAL_STEPS = 3;
@@ -31,6 +33,7 @@ const Onboarding = () => {
     const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [direction, setDirection] = useState(0);
 
     // Step 1: Perfil
     const [avatar, setAvatar] = useState(null);
@@ -43,12 +46,6 @@ const Onboarding = () => {
 
     // Step 3: Interesses
     const [selectedInterests, setSelectedInterests] = useState([]);
-
-    const [[, direction], setPage] = useState([1, 0]);
-
-    const paginate = (newDirection) => {
-        setPage(([prev]) => [prev + newDirection, newDirection]);
-    };
 
     const handleAvatarClick = () => fileInputRef.current?.click();
 
@@ -74,13 +71,13 @@ const Onboarding = () => {
             return;
         }
         setError('');
-        paginate(1);
-        setStep(s => s + 1);
+        setDirection(1);
+        setStep(s => Math.min(s + 1, TOTAL_STEPS));
     };
 
     const handleBack = () => {
-        paginate(-1);
-        setStep(s => s - 1);
+        setDirection(-1);
+        setStep(s => Math.max(s - 1, 1));
         setError('');
     };
 
@@ -260,6 +257,8 @@ const Onboarding = () => {
                                     return (
                                         <motion.button
                                             key={cat.id}
+                                            type="button"
+                                            aria-pressed={selected}
                                             onClick={() => toggleInterest(cat.id)}
                                             whileHover={{ scale: 1.03 }}
                                             whileTap={{ scale: 0.97 }}
@@ -312,7 +311,7 @@ const Onboarding = () => {
                             </div>
                             {selectedInterests.length > 0 && (
                                 <p style={{ textAlign: 'center', marginTop: '12px', fontSize: '13px', opacity: 0.7 }}>
-                                    {selectedInterests.length} selecionado{selectedInterests.length !== 1 ? 's' : ''}
+                                    {t('onboarding.selectedCount', { count: selectedInterests.length })}
                                 </p>
                             )}
                         </motion.div>
@@ -322,12 +321,13 @@ const Onboarding = () => {
                 {/* Navigation Buttons */}
                 <div className="onboarding-nav">
                     {step > 1 && (
-                        <button className="btn-secondary" onClick={handleBack}>
+                        <button type="button" className="btn-secondary" onClick={handleBack}>
                             {t('onboarding.btnBack')}
                         </button>
                     )}
                     {step < TOTAL_STEPS ? (
                         <button
+                            type="button"
                             className="btn-dream"
                             onClick={handleNext}
                             style={{ flex: step > 1 ? 1 : 'none', width: step === 1 ? '100%' : 'auto' }}
@@ -336,6 +336,7 @@ const Onboarding = () => {
                         </button>
                     ) : (
                         <button
+                            type="button"
                             className="btn-dream"
                             onClick={handleFinish}
                             disabled={loading}
@@ -349,6 +350,7 @@ const Onboarding = () => {
                 {/* Skip na última etapa */}
                 {step === TOTAL_STEPS && !loading && (
                     <button
+                        type="button"
                         onClick={handleFinish}
                         style={{
                             background: 'none',
@@ -360,7 +362,7 @@ const Onboarding = () => {
                             textDecoration: 'underline',
                         }}
                     >
-                        Pular esta etapa
+                        {t('onboarding.btnSkip')}
                     </button>
                 )}
             </motion.div>

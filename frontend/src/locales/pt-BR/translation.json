@@ -726,6 +726,8 @@
         "btnNext": "Próximo",
         "btnFinish": "Concluir",
         "btnSaving": "Salvando...",
+        "btnSkip": "Pular esta etapa",
+        "selectedCount": "{{count}} selecionado(s)",
         "errEmptyDisplayName": "Por favor, insira um nome de exibição.",
         "errSaveProfile": "Erro ao salvar perfil. Tente novamente."
     },
