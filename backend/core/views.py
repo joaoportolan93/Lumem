@@ -942,10 +942,11 @@ class PublicacaoViewSet(viewsets.ModelViewSet):
                 # O list() já ordena via algoritmo — não precisamos de
                 # engagement annotation aqui (evita conflito com
                 # annotated_likes_count que também usa Count('reacaopublicacao')).
+                from .models import Silenciamento as _Silenciamento  # evita UnboundLocalError
                 muted_ids = []
                 if user.is_authenticated:
                     muted_ids = list(
-                        Silenciamento.objects.filter(
+                        _Silenciamento.objects.filter(
                             usuario=user
                         ).values_list('usuario_silenciado_id', flat=True)
                     )
