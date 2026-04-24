@@ -321,7 +321,12 @@ const Onboarding = () => {
                 {/* Navigation Buttons */}
                 <div className="onboarding-nav">
                     {step > 1 && (
-                        <button type="button" className="btn-secondary" onClick={handleBack}>
+                        <button
+                            type="button"
+                            className="btn-secondary"
+                            onClick={handleBack}
+                            style={{ flex: 1 }}
+                        >
                             {t('onboarding.btnBack')}
                         </button>
                     )}
@@ -330,7 +335,7 @@ const Onboarding = () => {
                             type="button"
                             className="btn-dream"
                             onClick={handleNext}
-                            style={{ flex: step > 1 ? 1 : 'none', width: step === 1 ? '100%' : 'auto' }}
+                            style={{ flex: 1, width: step === 1 ? '100%' : 'auto' }}
                         >
                             {t('onboarding.btnNext')}
                         </button>
