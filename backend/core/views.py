@@ -794,30 +794,46 @@ class PublicacaoViewSet(viewsets.ModelViewSet):
 
         if tab == 'foryou' and request.user.is_authenticated:
             from .feed_algorithm import get_foryou_feed
+            import logging
+            _log = logging.getLogger(__name__)
 
             try:
                 page = int(request.query_params.get('page', 1))
             except (ValueError, TypeError):
                 page = 1
-            post_ids, has_more = get_foryou_feed(request.user, page=page, page_size=15)
+
+            try:
+                post_ids, has_more = get_foryou_feed(request.user, page=page, page_size=15)
+            except Exception as exc:
+                _log.error(
+                    'Erro ao gerar foryou feed para user %s: %s',
+                    request.user.id_usuario, exc, exc_info=True
+                )
+                return Response({'results': [], 'page': page, 'has_more': False})
 
             if not post_ids:
                 return Response({'results': [], 'page': page, 'has_more': False})
 
-            # Fix #1: Re-buscar pelo queryset anotado para preservar
-            # annotated_is_liked, annotated_is_saved, annotated_likes_count, etc.
-            qs = self.get_queryset().filter(id_publicacao__in=post_ids)
+            try:
+                # Re-buscar pelo queryset anotado para preservar is_liked, is_saved, etc.
+                qs = self.get_queryset().filter(id_publicacao__in=post_ids)
 
-            # Preservar a ordem definida pelo algoritmo (score DESC)
-            ordering = {pid: idx for idx, pid in enumerate(post_ids)}
-            posts = sorted(qs, key=lambda p: ordering.get(p.id_publicacao, 999))
+                # Preservar a ordem definida pelo algoritmo (score DESC)
+                ordering = {pid: idx for idx, pid in enumerate(post_ids)}
+                posts = sorted(qs, key=lambda p: ordering.get(p.id_publicacao, 999))
 
-            serializer = self.get_serializer(posts, many=True)
-            return Response({
-                'results': serializer.data,
-                'page': page,
-                'has_more': has_more,
-            })
+                serializer = self.get_serializer(posts, many=True)
+                return Response({
+                    'results': serializer.data,
+                    'page': page,
+                    'has_more': has_more,
+                })
+            except Exception as exc:
+                _log.error(
+                    'Erro ao serializar foryou feed para user %s: %s',
+                    request.user.id_usuario, exc, exc_info=True
+                )
+                return Response({'results': [], 'page': page, 'has_more': False})
 
         return super().list(request, *args, **kwargs)
     
@@ -923,7 +939,9 @@ class PublicacaoViewSet(viewsets.ModelViewSet):
                     qs = Publicacao.objects.filter(usuario=user).filter(media_filter).order_by('-data_publicacao')
 
             elif tab == 'foryou':
-                # Fix: excluir também usuários silenciados do feed
+                # O list() já ordena via algoritmo — não precisamos de
+                # engagement annotation aqui (evita conflito com
+                # annotated_likes_count que também usa Count('reacaopublicacao')).
                 muted_ids = []
                 if user.is_authenticated:
                     muted_ids = list(
@@ -936,9 +954,7 @@ class PublicacaoViewSet(viewsets.ModelViewSet):
                     base_filter, visibilidade=1
                 ).exclude(
                     usuario__in=muted_ids
-                ).annotate(
-                    engagement=Count('reacaopublicacao', distinct=True) + Count('comentario', distinct=True)
-                ).order_by('-engagement', '-data_publicacao')
+                )
 
             
             else:
