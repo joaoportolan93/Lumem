@@ -61,11 +61,15 @@ RECENCIA_MULTIPLICADOR_MIN = 0.3
 
 # Pool
 POOL_SIZE = 300
-POOL_MIN_SIZE = 30  # Fix #8: se pool < 30, expandir janela
+POOL_MIN_SIZE = 10  # mínimo aceitável antes de expandir janela
 
 # Cache
 CACHE_TTL_CONTEXT = 600   # 10 minutos
 CACHE_TTL_FEED = 300       # 5 minutos
+
+# Combinação final (score_qualidade × PESO_QUALIDADE + score_relevancia × PESO_RELEVANCIA)
+PESO_QUALIDADE = 0.45    # engajamento normalizado (log)
+PESO_RELEVANCIA = 0.55   # afinidade pessoal (preferências, seguidores, comunidades)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -171,8 +175,8 @@ def _get_user_context(user):
         config = user.configuracaousuario
         if config.interesses:
             tipos_preferidos |= set(config.interesses)
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.warning('Erro ao carregar interesses do onboarding para user %s: %s', user.id_usuario, exc)
 
     # Fix #4: Posts já vistos (apenas últimos 7 dias — janela de candidatos)
     seen_post_ids = set(
@@ -206,38 +210,44 @@ def _get_candidates(user, context, pool_size=POOL_SIZE):
     """
     Busca o pool de posts candidatos para o algoritmo.
     Fix #2: ORDER BY -data_publicacao antes do LIMIT.
-    Fix #8: Janela dinâmica — se poucos candidatos, expande.
+    Fix #8: Janela dinâmica — se poucos candidatos, expande (7→14→30→90→365→sem filtro).
     """
     exclude_ids = context['blocked_ids'] | context['muted_ids']
 
-    # Janela dinâmica: 7 → 14 → 30 dias
-    for dias in [7, 14, 30]:
-        janela = timezone.now() - timedelta(days=dias)
+    base_filters = dict(usuario__status=1, visibilidade=1)
+    base_excludes = [
+        dict(usuario=user),
+        dict(usuario__in=exclude_ids),
+        dict(id_publicacao__in=context['seen_post_ids']),
+    ]
 
-        candidatos = (
-            Publicacao.objects
-            .filter(
-                usuario__status=1,
-                visibilidade=1,
-                data_publicacao__gte=janela,
-            )
-            .exclude(usuario=user)
-            .exclude(usuario__in=exclude_ids)
-            .exclude(id_publicacao__in=context['seen_post_ids'])
-            .annotate(
+    def _query(extra_filter=None):
+        qs = Publicacao.objects.filter(**base_filters)
+        if extra_filter:
+            qs = qs.filter(**extra_filter)
+        for exc in base_excludes:
+            qs = qs.exclude(**exc)
+        return (
+            qs.annotate(
                 total_likes=Count('reacaopublicacao', distinct=True),
                 total_comments=Count('comentario', filter=Q(comentario__status=1), distinct=True),
                 total_saves=Count('publicacaosalva', distinct=True),
             )
             .select_related('usuario', 'comunidade')
-            .order_by('-data_publicacao')  # Fix #2: ordenação explícita
+            .order_by('-data_publicacao')
             [:pool_size]
         )
 
+    # Janela dinâmica: 7 → 14 → 30 → 90 → 365 dias
+    for dias in [7, 14, 30, 90, 365]:
+        janela = timezone.now() - timedelta(days=dias)
+        candidatos = _query(extra_filter=dict(data_publicacao__gte=janela))
         if len(candidatos) >= POOL_MIN_SIZE:
             return candidatos
 
-    # Se depois de 30 dias ainda tem poucos, retorna o que tiver
+    # Fallback absoluto: sem filtro de data (plataforma nova com poucos posts)
+    if len(candidatos) < POOL_MIN_SIZE:
+        candidatos = _query()
     return candidatos
 
 
@@ -248,43 +258,49 @@ def _get_candidates(user, context, pool_size=POOL_SIZE):
 def _score_post(post, context, user_embedding=None, post_hashtags_map=None):
     """
     Calcula score final de um post para o feed do usuário.
-    Score = (engagement_score + afinidade_score + ml_score) × recência
+    Fórmula:
+      score = (score_qualidade × PESO_QUALIDADE + score_relevancia × PESO_RELEVANCIA) × recência
+
+    score_qualidade usa log1p() para normalizar engajamento e evitar que posts
+    virais dominem o feed de todos os usuários (popularity bias).
 
     Args:
         post_hashtags_map: dict {post_id: set(hashtag_ids)} pré-computado
                            para evitar N+1 queries.
     """
-    # ── 1. Engagement (dados das anotações do queryset) ──
-    engagement = (
+    # ── 1. Score de qualidade (engajamento com teto logarítmico) ──
+    # log1p impede que posts virais dominem o feed de todos os usuários.
+    # Ex: 100 likes (raw=200) → log1p(200) ≈ 5.3, não 200.
+    engajamento_bruto = (
         (getattr(post, 'total_likes', 0) * PESO_LIKE)
         + (getattr(post, 'total_comments', 0) * PESO_COMMENT)
         + (getattr(post, 'total_saves', 0) * PESO_SAVE)
         + (getattr(post, 'views_count', 0) * PESO_VIEW)
     )
+    score_qualidade = math.log1p(engajamento_bruto)
 
-    # ── 2. Afinidade ──
-    afinidade = 0.0
+    # ── 2. Score de relevância pessoal ──
+    score_relevancia = 0.0
 
     # Segue o autor?
     if post.usuario_id in context['following_ids']:
-        afinidade += BONUS_SEGUINDO
+        score_relevancia += BONUS_SEGUINDO
 
     # Post é de uma comunidade que o usuário participa?
     if post.comunidade_id and post.comunidade_id in context['community_ids']:
-        afinidade += BONUS_COMUNIDADE
+        score_relevancia += BONUS_COMUNIDADE
 
     # Tipo de sonho que o usuário costuma engajar?
     if post.tipo_sonho and post.tipo_sonho in context['tipos_preferidos']:
-        afinidade += BONUS_TIPO_SONHO
+        score_relevancia += BONUS_TIPO_SONHO
 
     # Hashtags em comum com posts engajados? (usa mapa pré-computado)
     if context['hashtag_ids'] and post_hashtags_map:
         post_hashtags = post_hashtags_map.get(post.id_publicacao, set())
         if post_hashtags & context['hashtag_ids']:
-            afinidade += BONUS_HASHTAG
+            score_relevancia += BONUS_HASHTAG
 
-    # ── 3. Similaridade ML (embedding) ──
-    ml_score = 0.0
+    # ── 3. Similaridade ML (embedding) — contribui para relevância pessoal ──
     if user_embedding is not None:
         try:
             post_emb = PostEmbedding.objects.filter(
@@ -296,7 +312,7 @@ def _score_post(post, context, user_embedding=None, post_hashtags_map=None):
                 post_vec = load_embedding(post_emb)
                 sim = cosine_similarity(user_embedding, post_vec)
                 # Similaridade vai de -1 a 1, convertemos para 0-1
-                ml_score = max(0.0, sim) * BONUS_EMBEDDING
+                score_relevancia += max(0.0, sim) * BONUS_EMBEDDING
         except Exception as exc:  # noqa: BLE001
             # Feed não deve quebrar por erros de embedding, mas registramos para debug
             logger.warning('Erro ao calcular ML score para post %s: %s', post.id_publicacao, exc)
@@ -304,8 +320,11 @@ def _score_post(post, context, user_embedding=None, post_hashtags_map=None):
     # ── 4. Recência ──
     recencia = _recencia_score(post.data_publicacao)
 
-    # ── Score final ──
-    score = (engagement + afinidade + ml_score) * recencia
+    # ── Score final: qualidade normalizada + relevância pessoal ──
+    score = (
+        score_qualidade * PESO_QUALIDADE
+        + score_relevancia * PESO_RELEVANCIA
+    ) * recencia
 
     return score
 
