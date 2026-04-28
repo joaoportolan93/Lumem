@@ -9,6 +9,45 @@ from django.utils import timezone
 logger = logging.getLogger(__name__)
 
 
+@shared_task(bind=True, max_retries=3, default_retry_delay=60)
+def send_push_to_user(self, usuario_destino_id: str, title: str, body: str, data: dict = None):
+    """
+    Envia push para um único usuário via FCM HTTP v1 (push_service.py).
+
+    Chamada por create_notification() para eventos de interação
+    (curtidas, comentários, seguidores, menções).
+
+    Retries automáticos com backoff de 60s em caso de falha temporária.
+
+    Args:
+        usuario_destino_id: UUID do usuário destino (como string)
+        title:              título da notificação
+        body:               corpo da notificação
+        data:               payload extra para o app
+    """
+    from .models import Usuario
+    from .push_service import send_push
+
+    try:
+        user = Usuario.objects.get(id_usuario=usuario_destino_id, status=1)
+
+        # Sem token = usuário nunca instalou o app ou revogou permissão
+        if not user.fcm_token:
+            logger.debug(f'Usuário {usuario_destino_id} sem FCM token, push ignorado.')
+            return
+
+        success = send_push(user.fcm_token, title, body, data)
+
+        if not success:
+            # Re-tentar em caso de falha temporária (ex: timeout de rede)
+            raise self.retry(exc=Exception('FCM retornou erro temporário'))
+
+        logger.info(f'Push enviado para usuário {usuario_destino_id}: "{title}"')
+
+    except Usuario.DoesNotExist:
+        logger.warning(f'Usuário {usuario_destino_id} não encontrado, push cancelado.')
+
+
 @shared_task(bind=True, max_retries=3, default_retry_delay=10)
 def send_chat_push_notification(self, user_id, sender_name, message_preview, conversa_id):
     """

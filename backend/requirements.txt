@@ -28,6 +28,7 @@ redis>=5.0
 
 # Firebase (Push Notifications)
 firebase-admin>=6.0
+google-auth>=2.0.0
 
 # Feed Algorithm - Cache
 django-redis>=5.4
