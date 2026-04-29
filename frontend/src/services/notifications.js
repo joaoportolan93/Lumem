@@ -20,17 +20,29 @@ const firebaseConfig = {
     appId:             process.env.REACT_APP_FIREBASE_APP_ID,
 };
 
-// Inicializar Firebase apenas uma vez
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+// Validar se as configurações essenciais estão presentes
+const isFirebaseConfigValid = firebaseConfig.apiKey
+    && firebaseConfig.projectId
+    && firebaseConfig.messagingSenderId
+    && firebaseConfig.appId;
 
-// Messaging só funciona em browsers com suporte a Service Workers
+// Inicializar Firebase apenas uma vez (com proteção contra config ausente)
+let app = null;
 let messaging = null;
-if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+
+if (isFirebaseConfigValid) {
     try {
-        messaging = getMessaging(app);
+        app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+
+        // Messaging só funciona em browsers com suporte a Service Workers
+        if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+            messaging = getMessaging(app);
+        }
     } catch (err) {
-        console.warn('Firebase Messaging não disponível neste ambiente:', err);
+        console.warn('Firebase não pôde ser inicializado:', err);
     }
+} else {
+    console.warn('Configuração do Firebase incompleta. Push notifications desabilitadas.');
 }
 
 
@@ -57,8 +69,14 @@ export async function registerPushToken() {
             return;
         }
 
+        // Registrar o Service Worker explicitamente antes de pedir o token
+        const swRegistration = await navigator.serviceWorker.register(
+            '/firebase-messaging-sw.js'
+        );
+
         const token = await getToken(messaging, {
             vapidKey: process.env.REACT_APP_FIREBASE_VAPID_KEY,
+            serviceWorkerRegistration: swRegistration,
         });
 
         if (token) {

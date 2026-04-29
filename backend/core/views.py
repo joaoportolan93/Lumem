@@ -1917,12 +1917,13 @@ def create_notification(usuario_destino, usuario_origem, tipo, id_referencia=Non
             settings = ConfiguracaoUsuario.objects.get(usuario=usuario_destino)
             
             # Map notification types to settings fields
-            # tipo: 1=Nova Publicação, 2=Comentário, 3=Curtida, 4=Seguidor Novo, 7=Menção
+            # tipo: 1=Nova Publicação, 2=Comentário, 3=Curtida, 4=Seguidor Novo, 5=Solicitação de Seguir, 7=Menção
             notification_settings = {
                 1: settings.notificacoes_novas_publicacoes,
                 2: settings.notificacoes_comentarios,
                 3: settings.notificacoes_reacoes,
                 4: settings.notificacoes_seguidor_novo,
+                5: settings.notificacoes_seguidor_novo,  # Solicitação usa mesma preferência de seguidor
                 7: settings.notificacoes_comentarios,
             }
             
