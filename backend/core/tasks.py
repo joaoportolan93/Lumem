@@ -17,7 +17,8 @@ def send_push_to_user(self, usuario_destino_id: str, title: str, body: str, data
     Chamada por create_notification() para eventos de interação
     (curtidas, comentários, seguidores, menções).
 
-    Retries automáticos com backoff de 60s em caso de falha temporária.
+    Retries automáticos com backoff de 60s apenas para erros temporários.
+    Erros permanentes (token inválido, config ausente) não são retentados.
 
     Args:
         usuario_destino_id: UUID do usuário destino (como string)
@@ -26,7 +27,7 @@ def send_push_to_user(self, usuario_destino_id: str, title: str, body: str, data
         data:               payload extra para o app
     """
     from .models import Usuario
-    from .push_service import send_push
+    from .push_service import send_push, PushTemporaryError, PushPermanentError
 
     try:
         user = Usuario.objects.get(id_usuario=usuario_destino_id, status=1)
@@ -36,13 +37,17 @@ def send_push_to_user(self, usuario_destino_id: str, title: str, body: str, data
             logger.debug(f'Usuário {usuario_destino_id} sem FCM token, push ignorado.')
             return
 
-        success = send_push(user.fcm_token, title, body, data)
-
-        if not success:
-            # Re-tentar em caso de falha temporária (ex: timeout de rede)
-            raise self.retry(exc=Exception('FCM retornou erro temporário'))
-
+        send_push(user.fcm_token, title, body, data)
         logger.info(f'Push enviado para usuário {usuario_destino_id}: "{title}"')
+
+    except PushPermanentError as e:
+        # Token inválido, config ausente — não faz retry
+        logger.warning(f'Push permanente falhou para {usuario_destino_id}: {e}')
+
+    except PushTemporaryError as e:
+        # Timeout, rate limit, erro de rede — retry automático
+        logger.warning(f'Push temporário falhou para {usuario_destino_id}: {e}. Retentando...')
+        raise self.retry(exc=e)
 
     except Usuario.DoesNotExist:
         logger.warning(f'Usuário {usuario_destino_id} não encontrado, push cancelado.')

@@ -63,8 +63,12 @@ function App() {
     useEffect(() => {
         const unsubscribe = onForegroundMessage((payload) => {
             const { title, body } = payload.notification || {};
-            // Exibir notificação nativa do browser quando o app está em foreground
-            if (Notification.permission === 'granted' && title) {
+            // Proteger contra browsers sem suporte a Notification API
+            if (typeof window !== 'undefined'
+                && 'Notification' in window
+                && Notification.permission === 'granted'
+                && title
+            ) {
                 new Notification(title, {
                     body: body || 'Nova notificação',
                     icon: '/logo192.png',
