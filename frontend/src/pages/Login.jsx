@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { FaPlay, FaPause, FaGoogle } from 'react-icons/fa';
 import { useGoogleLogin } from '@react-oauth/google';
 import { login, googleLogin } from '../services/api';
+import { registerPushToken } from '../services/notifications';
 import '../styles/Auth.css';
 
 const Login = () => {
@@ -84,6 +85,9 @@ const Login = () => {
             localStorage.setItem('access', response.data.access);
             localStorage.setItem('refresh', response.data.refresh);
 
+            // Registrar push token de forma não-bloqueante
+            registerPushToken();
+
             // Redirect to feed/home
             navigate('/feed');
         } catch (err) {
@@ -113,7 +117,10 @@ const Login = () => {
                 
                 localStorage.setItem('access', res.data.access);
                 localStorage.setItem('refresh', res.data.refresh);
-                
+
+                // Registrar push token de forma não-bloqueante
+                registerPushToken();
+
                 navigate('/feed');
             } catch (err) {
                 if (err.response?.status === 403 && err.response?.data?.banned) {

@@ -53,6 +53,9 @@ export const googleLogin = (data) => api.post('/api/auth/google/', data);
 export const logout = async () => {
     const refresh = localStorage.getItem('refresh');
     try {
+        // Import dinâmico para evitar dependência circular com notifications.js
+        const { unregisterPushToken } = await import('./notifications');
+        await unregisterPushToken(); // remover token FCM antes de encerrar sessão
         await api.post('/api/auth/logout/', { refresh });
     } finally {
         localStorage.removeItem('access');

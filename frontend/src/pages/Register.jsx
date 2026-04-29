@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { register, login } from '../services/api';
+import { registerPushToken } from '../services/notifications';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import '../styles/Auth.css';
@@ -63,6 +64,9 @@ const Register = () => {
 
             localStorage.setItem('access', loginResponse.data.access);
             localStorage.setItem('refresh', loginResponse.data.refresh);
+
+            // Registrar push token de forma não-bloqueante
+            registerPushToken();
 
             navigate('/onboarding');
         } catch (err) {

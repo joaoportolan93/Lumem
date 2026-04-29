@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
+import { onForegroundMessage } from './services/notifications';
 
 // Layout
 import Layout from './components/Layout';
@@ -58,6 +59,22 @@ const PublicRoute = ({ children }) => {
 };
 
 function App() {
+    // Handler para notificações em foreground (app aberto)
+    useEffect(() => {
+        const unsubscribe = onForegroundMessage((payload) => {
+            const { title, body } = payload.notification || {};
+            // Exibir notificação nativa do browser quando o app está em foreground
+            if (Notification.permission === 'granted' && title) {
+                new Notification(title, {
+                    body: body || 'Nova notificação',
+                    icon: '/logo192.png',
+                });
+            }
+        });
+
+        return unsubscribe;
+    }, []);
+
     return (
         <Router>
             <SuggestionsProvider>

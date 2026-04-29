@@ -19,6 +19,7 @@ firebase-credentials.json
 **/firebase-credentials.json
 **/serviceAccount*.json
 **/google-credentials*.json
+firebase-messaging-sw.js
 *.pem
 *.key
 *.p12

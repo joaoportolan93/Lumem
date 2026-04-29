@@ -1942,6 +1942,37 @@ def create_notification(usuario_destino, usuario_origem, tipo, id_referencia=Non
             conteudo=conteudo
         )
 
+        # ── Disparar push notification ──────────────────────────
+        if usuario_destino.fcm_token:
+            from .tasks import send_push_to_user
+
+            # Mapeamento de tipos para textos legíveis
+            TIPO_PUSH = {
+                1: ('Nova publicação 🌙',     f'{usuario_origem.nome_usuario} publicou um novo sonho'),
+                2: ('Novo comentário 💬',     f'{usuario_origem.nome_usuario} comentou no seu sonho'),
+                3: ('Nova curtida ✨',        f'{usuario_origem.nome_usuario} curtiu seu sonho'),
+                4: ('Novo seguidor 👤',       f'{usuario_origem.nome_usuario} começou a te seguir'),
+                5: ('Solicitação de seguir',  f'{usuario_origem.nome_usuario} quer te seguir'),
+                7: ('Você foi mencionado 🔔', f'{usuario_origem.nome_usuario} mencionou você em um sonho'),
+            }
+
+            title, body = TIPO_PUSH.get(
+                tipo,
+                ('Lumem', conteudo or 'Você tem uma nova notificação')
+            )
+
+            send_push_to_user.delay(
+                str(usuario_destino.id_usuario),
+                title=title,
+                body=body,
+                data={
+                    'type': str(tipo),
+                    'reference_id': str(id_referencia) if id_referencia else '',
+                    'origem_usuario': usuario_origem.nome_usuario,
+                },
+            )
+        # ─────────────────────────────────────────────────────────
+
 
 # ==========================================
 # ADMIN VIEWS - Issue #29
