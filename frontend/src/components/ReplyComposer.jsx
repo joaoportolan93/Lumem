@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { FaImage, FaVideo, FaSmile, FaSpinner, FaTimes } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
+import MentionTextarea from './MentionTextarea';
 
 const ReplyComposer = ({
     mode = 'modal', // 'inline' | 'modal'
@@ -136,15 +137,15 @@ const ReplyComposer = ({
                     className={`transition-all duration-200 ease-out bg-transparent ${mode === 'inline' && !isExpanded ? 'opacity-80' : 'opacity-100'
                         }`}
                 >
-                    <textarea
+                    <MentionTextarea
                         ref={textareaRef}
                         value={text}
-                        onChange={(e) => setText(e.target.value)}
+                        onChange={(val) => setText(val)}
                         onFocus={handleFocus}
                         placeholder={placeholder}
                         className={`w-full bg-transparent text-gray-900 dark:text-white text-lg placeholder-gray-500 resize-none focus:outline-none overflow-hidden transition-all duration-200 ease-out`}
                         style={{
-                            minHeight: mode === 'inline' && !isExpanded ? '24px' : '80px', // Start small, grow when focused
+                            minHeight: mode === 'inline' && !isExpanded ? '24px' : '80px',
                         }}
                         rows={1}
                         autoFocus={autoFocus}

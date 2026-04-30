@@ -4,6 +4,7 @@ import { FaTimes, FaMoon, FaImage, FaVideo, FaSmile, FaGlobeAmericas, FaUserFrie
 import { useTranslation } from 'react-i18next';
 import { createDream, updateDream, getProfile, createDraft } from '../services/api';
 import DraftsModal from './DraftsModal';
+import MentionTextarea from './MentionTextarea';
 
 const CreateDreamModal = ({ isOpen, onClose, onSuccess, editingDream = null, communityId = null }) => {
     const { t } = useTranslation();
@@ -286,9 +287,9 @@ const CreateDreamModal = ({ isOpen, onClose, onSuccess, editingDream = null, com
                                 </div>
 
                                 {/* Textarea */}
-                                <textarea
+                                <MentionTextarea
                                     value={content}
-                                    onChange={(e) => setContent(e.target.value)}
+                                    onChange={(val) => setContent(val)}
                                     placeholder={t('createDream.placeholder')}
                                     className="w-full bg-transparent text-white text-lg placeholder-gray-500 resize-none focus:outline-none min-h-[120px]"
                                     autoFocus
