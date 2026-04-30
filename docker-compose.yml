@@ -15,6 +15,7 @@ services:
       - "${BACKEND_PORT:-8000}:${BACKEND_PORT:-8000}"
     volumes:
       - backend_media:/app/media
+      - ./backend/firebase-credentials.json:/app/firebase-credentials.json:ro
 
   # ==========================================
   # Redis (Message Broker para Channels e Celery)
@@ -45,6 +46,7 @@ services:
     command: celery -A dreamshare_backend worker -l info --concurrency=2
     volumes:
       - backend_media:/app/media
+      - ./backend/firebase-credentials.json:/app/firebase-credentials.json:ro
     restart: unless-stopped
 
   # ==========================================
