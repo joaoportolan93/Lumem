@@ -1720,7 +1720,7 @@ class ComentarioViewSet(viewsets.ModelViewSet):
         
         # For detail actions (retrieve, update, destroy), return ALL comments
         # This allows deleting/editing nested replies, not just root comments
-        if self.action in ['retrieve', 'update', 'partial_update', 'destroy', 'like']:
+        if self.action in ['retrieve', 'update', 'partial_update', 'destroy', 'react']:
             return base_queryset
         
         # For list action, only return root comments (children are nested in serializer)
