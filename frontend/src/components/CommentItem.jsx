@@ -9,6 +9,7 @@ import { FaRegComment, FaRetweet } from 'react-icons/fa6';
 import { deleteComment, editComment, likeComment } from '../services/api';
 import ReplyInput from './ReplyInput';
 import { ChildBranch, ParentLine } from './ThreadConnectorSVG';
+import RenderMentions from './RenderMentions';
 
 /**
  * CommentItem - Reddit-style L-Connectors + Twitter/X Icons
@@ -170,7 +171,7 @@ const CommentItem = ({
                     <>
                         {comment.conteudo_texto && (
                             <p className="text-gray-900 dark:text-gray-100 text-[15px] mt-1 break-words whitespace-pre-wrap leading-relaxed">
-                                {comment.conteudo_texto}
+                                <RenderMentions text={comment.conteudo_texto} />
                             </p>
                         )}
 

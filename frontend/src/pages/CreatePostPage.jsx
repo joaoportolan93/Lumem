@@ -11,6 +11,7 @@ import {
     getUserCommunities, createDream, getDrafts, createDraft, updateDraft, deleteDraft, getCommunity
 } from '../services/api';
 import DraftsModal from '../components/DraftsModal';
+import MentionTextarea from '../components/MentionTextarea';
 
 const CreatePostPage = () => {
     const { t } = useTranslation();
@@ -470,10 +471,10 @@ const CreatePostPage = () => {
                     {/* Tab Content */}
                     {activeTab === 'texto' && (
                         <div className="p-4">
-                            <textarea
+                            <MentionTextarea
                                 ref={textareaRef}
                                 value={content}
-                                onChange={(e) => setContent(e.target.value)}
+                                onChange={(val) => setContent(val)}
                                 placeholder={t('createPost.placeholders.text')}
                                 className="w-full h-48 bg-transparent text-white placeholder-gray-500 resize-none focus:outline-none text-base leading-relaxed"
                             />
@@ -531,9 +532,9 @@ const CreatePostPage = () => {
                             )}
 
                             {/* Optional caption for media */}
-                            <textarea
+                            <MentionTextarea
                                 value={content}
-                                onChange={(e) => setContent(e.target.value)}
+                                onChange={(val) => setContent(val)}
                                 placeholder={t('createPost.placeholders.caption')}
                                 className="w-full h-24 mt-4 bg-transparent text-white placeholder-gray-500 resize-none focus:outline-none text-base border-t border-gray-700/50 pt-4"
                             />
@@ -549,9 +550,9 @@ const CreatePostPage = () => {
                                 placeholder={t('createPost.placeholders.link')}
                                 className="w-full bg-transparent text-white placeholder-gray-500 text-base focus:outline-none border-b border-gray-700/50 pb-4 mb-4"
                             />
-                            <textarea
+                            <MentionTextarea
                                 value={content}
-                                onChange={(e) => setContent(e.target.value)}
+                                onChange={(val) => setContent(val)}
                                 placeholder={t('createPost.placeholders.description')}
                                 className="w-full h-24 bg-transparent text-white placeholder-gray-500 resize-none focus:outline-none text-base"
                             />

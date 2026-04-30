@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { FaImage, FaVideo, FaTimes, FaSpinner } from 'react-icons/fa';
+import MentionTextarea from './MentionTextarea';
 
 /**
  * ReplyInput - Twitter/X-style inline reply component
@@ -112,10 +113,10 @@ const ReplyInput = ({
 
             {/* Input Area */}
             <div className="flex-1 min-w-0">
-                <textarea
+                <MentionTextarea
                     ref={textareaRef}
                     value={text}
-                    onChange={(e) => setText(e.target.value)}
+                    onChange={(val) => setText(val)}
                     onKeyDown={handleKeyDown}
                     placeholder={placeholder}
                     className="w-full bg-transparent text-gray-900 dark:text-white text-[15px] placeholder-gray-500 dark:placeholder-gray-400 resize-none focus:outline-none overflow-hidden"

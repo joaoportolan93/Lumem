@@ -9,6 +9,12 @@ import ReportModal from './ReportModal';
 import ReactMarkdown from 'react-markdown';
 import { useTranslation } from 'react-i18next';
 
+// Pre-process @mentions into markdown links
+const processMentions = (text) => {
+    if (!text) return text;
+    return text.replace(/(?<![\w@])@([A-Za-z0-9_]{1,50})\b/g, '[@$1](/search?q=$1&type=users)');
+};
+
 const DreamCard = ({ dream, onDelete, onEdit, currentUserId }) => {
     const { t } = useTranslation();
     const navigate = useNavigate();
@@ -191,12 +197,25 @@ const DreamCard = ({ dream, onDelete, onEdit, currentUserId }) => {
         : 'border-gray-200 dark:border-white/10';
 
     const markdownComponents = useMemo(() => ({
-        // Custom link styling
-        a: ({ children, href, ...props }) => (
-            <a href={href} {...props} className="text-blue-400 hover:underline" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
-                {children}
-            </a>
-        ),
+        // Custom link styling – internal mention links vs external links
+        a: ({ children, href, ...props }) => {
+            // Check if it's an internal mention link (starts with /)
+            if (href && href.startsWith('/')) {
+                return (
+                    <span
+                        className="text-primary hover:underline font-medium cursor-pointer"
+                        onClick={(e) => { e.stopPropagation(); navigate(href); }}
+                    >
+                        {children}
+                    </span>
+                );
+            }
+            return (
+                <a href={href} {...props} className="text-blue-400 hover:underline" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
+                    {children}
+                </a>
+            );
+        },
         // Prevent h1-h6 from being too large
         h1: ({ children, ...props }) => <h4 {...props} className="text-lg font-bold mt-2">{children}</h4>,
         h2: ({ children, ...props }) => <h4 {...props} className="text-base font-bold mt-2">{children}</h4>,
@@ -350,7 +369,7 @@ const DreamCard = ({ dream, onDelete, onEdit, currentUserId }) => {
                 {/* Content - Markdown Rendered */}
                 <div className="text-gray-700 dark:text-gray-300 leading-relaxed mb-4 prose prose-sm dark:prose-invert max-w-none prose-p:my-2 prose-headings:my-2 prose-ul:my-1 prose-ol:my-1 prose-blockquote:my-2 prose-pre:my-2">
                     <ReactMarkdown components={markdownComponents}>
-                        {dream.conteudo_texto}
+                        {processMentions(dream.conteudo_texto)}
                     </ReactMarkdown>
                 </div>
             </div>

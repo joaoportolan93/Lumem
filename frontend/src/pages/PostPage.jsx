@@ -7,6 +7,7 @@ import ReplyComposer from '../components/ReplyComposer';
 import CommentItem from '../components/CommentItem';
 import CommentDetailModal from '../components/CommentDetailModal';
 import ReportModal from '../components/ReportModal';
+import RenderMentions from '../components/RenderMentions';
 
 // Sorting options
 const SORT_OPTIONS = [
@@ -480,7 +481,7 @@ const PostPage = () => {
 
                     {/* Content */}
                     <p className="text-gray-900 dark:text-gray-100 text-lg leading-relaxed whitespace-pre-wrap mb-4">
-                        {post.conteudo_texto}
+                        <RenderMentions text={post.conteudo_texto} />
                     </p>
 
                     {/* Image */}
