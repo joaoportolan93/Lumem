@@ -30,6 +30,7 @@ const PostPage = () => {
     // Post states
     const [liked, setLiked] = useState(false);
     const [likesCount, setLikesCount] = useState(0);
+    const [commentsCount, setCommentsCount] = useState(0);
     const [saved, setSaved] = useState(false);
     const [showMenu, setShowMenu] = useState(false);
     const [showReportModal, setShowReportModal] = useState(false);
@@ -84,6 +85,7 @@ const PostPage = () => {
             setPost(response.data);
             setLiked(response.data.is_liked || false);
             setLikesCount(response.data.likes_count || 0);
+            setCommentsCount(response.data.comentarios_count || 0);
             setSaved(response.data.is_saved || false);
             setIsFollowing(response.data.usuario?.is_following || false);
             setIsBlocked(response.data.usuario?.is_blocked || false);
@@ -246,6 +248,7 @@ const PostPage = () => {
                 setComments(prevComments => [response.data, ...prevComments]);
             }
             setActiveReplyId(null); // Close the inline reply input after successful submission
+            setCommentsCount(prev => prev + 1);
         } catch (err) {
             console.error('Error creating comment:', err);
         }
@@ -271,6 +274,7 @@ const PostPage = () => {
                 respostas: (c.respostas || []).filter(r => r.id_comentario !== commentId)
             }));
         });
+        setCommentsCount(prev => Math.max(0, prev - 1));
     };
 
     const handleUpdateComment = (commentId, newText) => {
@@ -527,7 +531,7 @@ const PostPage = () => {
                             <strong>{likesCount}</strong> <span className="text-gray-500">{t('post.likesCount')}</span>
                         </span>
                         <span className="text-gray-900 dark:text-white">
-                            <strong>{post.comentarios_count || 0}</strong> <span className="text-gray-500">{t('post.commentsCount')}</span>
+                            <strong>{commentsCount}</strong> <span className="text-gray-500">{t('post.commentsCount')}</span>
                         </span>
                     </div>
 
