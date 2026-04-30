@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { FaArrowLeft, FaHeart, FaRegHeart, FaComment, FaShare, FaEllipsisH, FaEdit, FaTrash, FaFlag, FaBookmark, FaRegBookmark, FaUserFriends, FaChevronDown, FaRobot, FaLock } from 'react-icons/fa';
-import { getDream, deleteDream, likeDream, saveDream, getComments, createComment, getProfile } from '../services/api';
+import { FaArrowLeft, FaHeart, FaRegHeart, FaComment, FaShare, FaEllipsisH, FaEdit, FaTrash, FaFlag, FaBookmark, FaRegBookmark, FaUserFriends, FaChevronDown, FaRobot, FaLock, FaUserPlus, FaUserCheck, FaVolumeMute, FaBan } from 'react-icons/fa';
+import { getDream, deleteDream, likeDream, saveDream, getComments, createComment, getProfile, followUser, unfollowUser, muteUser, unmuteUser, blockUser, unblockUser } from '../services/api';
 import { useTranslation } from 'react-i18next';
 import ReplyComposer from '../components/ReplyComposer';
 import CommentItem from '../components/CommentItem';
@@ -32,6 +32,11 @@ const PostPage = () => {
     const [saved, setSaved] = useState(false);
     const [showMenu, setShowMenu] = useState(false);
     const [showReportModal, setShowReportModal] = useState(false);
+
+    // Social actions state
+    const [isFollowing, setIsFollowing] = useState(false);
+    const [isBlocked, setIsBlocked] = useState(false);
+    const [isMuted, setIsMuted] = useState(false);
 
     // Comments
     const [comments, setComments] = useState([]);
@@ -79,6 +84,9 @@ const PostPage = () => {
             setLiked(response.data.is_liked || false);
             setLikesCount(response.data.likes_count || 0);
             setSaved(response.data.is_saved || false);
+            setIsFollowing(response.data.usuario?.is_following || false);
+            setIsBlocked(response.data.usuario?.is_blocked || false);
+            setIsMuted(response.data.usuario?.is_muted || false);
         } catch (err) {
             console.error('Error fetching post:', err);
             setError(t('post.errNotFound'));
@@ -154,6 +162,49 @@ const PostPage = () => {
         } catch (err) {
             console.error('Error deleting post:', err);
         }
+    };
+
+    const handleFollowToggle = async () => {
+        if (!post?.usuario?.id_usuario) return;
+        const prev = isFollowing;
+        setIsFollowing(!prev);
+        try {
+            if (prev) await unfollowUser(post.usuario.id_usuario);
+            else await followUser(post.usuario.id_usuario);
+        } catch (err) {
+            console.error('Error toggling follow:', err);
+            setIsFollowing(prev);
+        }
+        setShowMenu(false);
+    };
+
+    const handleBlockToggle = async () => {
+        if (!window.confirm(isBlocked ? t('post.confirmUnblock', 'Desbloquear usuário?') : t('post.confirmBlock', 'Bloquear usuário?'))) return;
+        if (!post?.usuario?.id_usuario) return;
+        const prev = isBlocked;
+        setIsBlocked(!prev);
+        try {
+            if (prev) await unblockUser(post.usuario.id_usuario);
+            else await blockUser(post.usuario.id_usuario);
+        } catch (err) {
+            console.error('Error toggling block:', err);
+            setIsBlocked(prev);
+        }
+        setShowMenu(false);
+    };
+
+    const handleMuteToggle = async () => {
+        if (!post?.usuario?.id_usuario) return;
+        const prev = isMuted;
+        setIsMuted(!prev);
+        try {
+            if (prev) await unmuteUser(post.usuario.id_usuario);
+            else await muteUser(post.usuario.id_usuario);
+        } catch (err) {
+            console.error('Error toggling mute:', err);
+            setIsMuted(prev);
+        }
+        setShowMenu(false);
     };
 
     const handleReply = (comment = null) => {
@@ -387,12 +438,32 @@ const PostPage = () => {
                                                 </button>
                                             </>
                                         ) : (
-                                            <button
-                                                onClick={() => { setShowReportModal(true); setShowMenu(false); }}
-                                                className="w-full flex items-center gap-3 px-4 py-3 text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/20"
-                                            >
-                                                <FaFlag /> {t('post.menuReport')}
-                                            </button>
+                                            <>
+                                                <button
+                                                    onClick={handleFollowToggle}
+                                                    className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/10"
+                                                >
+                                                    {isFollowing ? <><FaUserCheck /> {t('post.actionFollowing', 'Seguindo')}</> : <><FaUserPlus /> {t('post.actionFollow', 'Seguir')}</>}
+                                                </button>
+                                                <button
+                                                    onClick={handleMuteToggle}
+                                                    className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/10"
+                                                >
+                                                    <FaVolumeMute /> {isMuted ? t('post.actionUnmute', 'Desilenciar') : t('post.actionMute', 'Silenciar')}
+                                                </button>
+                                                <button
+                                                    onClick={handleBlockToggle}
+                                                    className="w-full flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                                >
+                                                    <FaBan /> {isBlocked ? t('post.actionUnblock', 'Desbloquear') : t('post.actionBlock', 'Bloquear')}
+                                                </button>
+                                                <button
+                                                    onClick={() => { setShowReportModal(true); setShowMenu(false); }}
+                                                    className="w-full flex items-center gap-3 px-4 py-3 text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/20"
+                                                >
+                                                    <FaFlag /> {t('post.menuReport')}
+                                                </button>
+                                            </>
                                         )}
                                     </div>
                                 </>
