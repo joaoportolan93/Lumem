@@ -154,7 +154,7 @@ export const editComment = (dreamId, commentId, text) => api.patch(`/api/dreams/
 
 export const deleteComment = (dreamId, commentId) => api.delete(`/api/dreams/${dreamId}/comments/${commentId}/`);
 
-export const likeComment = (dreamId, commentId) => api.post(`/api/dreams/${dreamId}/comments/${commentId}/like/`);
+export const likeComment = (dreamId, commentId) => api.post(`/api/dreams/${dreamId}/comments/${commentId}/react/`);
 
 
 

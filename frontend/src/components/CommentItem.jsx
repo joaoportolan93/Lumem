@@ -77,8 +77,11 @@ const CommentItem = ({
     const handleLike = async () => {
         try {
             const response = await likeComment(dreamId, comment.id_comentario);
-            setIsLiked(response.data.is_liked);
-            setLikesCount(response.data.likes_count);
+            const data = response.data;
+            // Backend returns { status: 'created'|'removed'|'updated', likes_count }
+            const liked = data.status === 'created' || data.status === 'updated';
+            setIsLiked(liked);
+            setLikesCount(data.likes_count);
         } catch (err) {
             console.error('Error liking comment:', err);
         }
