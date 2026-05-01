@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaTimes, FaMoon, FaImage, FaVideo, FaSmile, FaGlobeAmericas, FaUserFriends } from 'react-icons/fa';
+import { FaTimes, FaMoon, FaImage, FaVideo, FaSmile, FaGlobeAmericas, FaUserFriends, FaHourglass } from 'react-icons/fa';
 import { useTranslation } from 'react-i18next';
 import { createDream, updateDream, getProfile, createDraft } from '../services/api';
 import DraftsModal from './DraftsModal';
@@ -24,6 +24,16 @@ const CreateDreamModal = ({ isOpen, onClose, onSuccess, editingDream = null, com
     const [showDraftPrompt, setShowDraftPrompt] = useState(false);
     const [savingDraft, setSavingDraft] = useState(false);
     const [isDraftsModalOpen, setIsDraftsModalOpen] = useState(false);
+    const [duracaoHoras, setDuracaoHoras] = useState(null);
+    const [showDuracaoMenu, setShowDuracaoMenu] = useState(false);
+
+    const duracaoOptions = [
+        { value: null, label: 'Sem limite', icon: '∞' },
+        { value: 1, label: '1 hora', icon: '⏱️' },
+        { value: 6, label: '6 horas', icon: '⏱️' },
+        { value: 12, label: '12 horas', icon: '⏱️' },
+        { value: 24, label: '24 horas', icon: '⏱️' },
+    ];
 
     const dreamTypes = [
         { value: t('createDream.typeLucid'), icon: '✨', color: 'text-purple-400' },
@@ -78,6 +88,7 @@ const CreateDreamModal = ({ isOpen, onClose, onSuccess, editingDream = null, com
             setSelectedImage(null);
             setVideoPreview(null);
             setSelectedVideo(null);
+            setDuracaoHoras(null);
         }
         setError('');
     }, [editingDream, isOpen]);
@@ -113,6 +124,7 @@ const CreateDreamModal = ({ isOpen, onClose, onSuccess, editingDream = null, com
         }
 
         if (communityId) formData.append('comunidade', communityId);
+        if (duracaoHoras !== null && !editingDream) formData.append('duracao_horas', duracaoHoras);
 
         try {
             if (editingDream) {
@@ -439,6 +451,36 @@ const CreateDreamModal = ({ isOpen, onClose, onSuccess, editingDream = null, com
                                     </div>
                                 )}
                             </div>
+
+                            {/* Efêmero (duração) — apenas na criação, não na edição */}
+                            {!editingDream && (
+                                <div className="relative">
+                                    <button
+                                        onClick={() => { setShowDuracaoMenu(!showDuracaoMenu); setShowTypeMenu(false); setShowEmotionsMenu(false); }}
+                                        className={`p-2 rounded-full hover:bg-primary/20 transition-colors ${duracaoHoras !== null ? 'text-[#00CED1]' : 'text-primary'}`}
+                                        title="Post efêmero"
+                                    >
+                                        <FaHourglass size={18} />
+                                    </button>
+                                    {showDuracaoMenu && (
+                                        <div className="absolute bottom-full left-0 mb-2 bg-gray-800 border border-white/10 rounded-xl shadow-xl z-20 py-2 min-w-[180px]">
+                                            <p className="px-4 py-2 text-gray-400 text-xs uppercase">Duração do post</p>
+                                            {duracaoOptions.map(opt => (
+                                                <button
+                                                    key={String(opt.value)}
+                                                    onClick={() => { setDuracaoHoras(opt.value); setShowDuracaoMenu(false); }}
+                                                    className={`w-full flex items-center gap-2 px-4 py-2 hover:bg-white/5 ${
+                                                        duracaoHoras === opt.value ? 'text-[#00CED1]' : 'text-white'
+                                                    }`}
+                                                >
+                                                    <span>{opt.icon}</span> {opt.label}
+                                                    {duracaoHoras === opt.value && <span className="ml-auto">✓</span>}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
 
                         {/* Submit Button */}

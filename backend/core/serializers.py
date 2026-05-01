@@ -260,6 +260,10 @@ class PublicacaoSerializer(serializers.ModelSerializer):
     comunidade_id = serializers.UUIDField(source='comunidade.id_comunidade', read_only=True, default=None)
     comunidade_nome = serializers.CharField(source='comunidade.nome', read_only=True, default=None)
     
+    is_efemero = serializers.BooleanField(read_only=True)
+    expira_em = serializers.DateTimeField(read_only=True)
+    tempo_restante_segundos = serializers.SerializerMethodField()
+    
     class Meta:
         model = Publicacao
         fields = (
@@ -267,9 +271,17 @@ class PublicacaoSerializer(serializers.ModelSerializer):
             'data_sonho', 'tipo_sonho', 'visibilidade', 'emocoes_sentidas', 'imagem', 'video',
             'data_publicacao', 'editado', 'data_edicao', 'views_count',
             'likes_count', 'comentarios_count', 'is_liked', 'is_saved',
-            'comunidade_id', 'comunidade_nome'
+            'comunidade_id', 'comunidade_nome',
+            'is_efemero', 'expira_em', 'tempo_restante_segundos'
         )
-        read_only_fields = ('id_publicacao', 'usuario', 'data_publicacao', 'editado', 'data_edicao', 'views_count')
+        read_only_fields = ('id_publicacao', 'usuario', 'data_publicacao', 'editado', 'data_edicao', 'views_count', 'is_efemero', 'expira_em')
+
+    def get_tempo_restante_segundos(self, obj):
+        if not obj.is_efemero or not obj.expira_em:
+            return None
+        from django.utils import timezone
+        remaining = (obj.expira_em - timezone.now()).total_seconds()
+        return max(0, int(remaining))
 
     def get_likes_count(self, obj):
         if hasattr(obj, 'annotated_likes_count'):
