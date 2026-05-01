@@ -971,10 +971,25 @@ class PublicacaoViewSet(viewsets.ModelViewSet):
             qs = Publicacao.objects.filter(base_filter, visibility_q).distinct()
 
         from django.utils import timezone
+        now = timezone.now()
+
+        # 1. Remove posts efêmeros já expirados
         qs = qs.exclude(
             is_efemero=True,
-            expira_em__lte=timezone.now()
+            expira_em__lte=now
         )
+
+        # 2. Posts efêmeros ainda ativos: visíveis apenas para o autor e seus seguidores
+        if user.is_authenticated:
+            qs = qs.filter(
+                Q(is_efemero=False) |
+                Q(is_efemero=True, usuario=user) |
+                Q(is_efemero=True, usuario__in=following_ids)
+            )
+        else:
+            # Usuários não autenticados nunca veem posts efêmeros
+            qs = qs.filter(is_efemero=False)
+
 
         # N+1 Optimization logic: select_related, prefetch_related, and annotations
         from django.db.models import Prefetch, Exists, OuterRef

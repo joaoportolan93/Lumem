@@ -136,11 +136,14 @@ class Publicacao(models.Model):
     video = models.FileField(upload_to='dream_videos/', null=True, blank=True)
     views_count = models.IntegerField(default=0)
     
-    is_efemero = models.BooleanField(default=False)
-    expira_em = models.DateTimeField(null=True, blank=True)
+    is_efemero = models.BooleanField(default=False, db_index=True)
+    expira_em = models.DateTimeField(null=True, blank=True, db_index=True)
 
     class Meta:
         db_table = 'publicacoes'
+        indexes = [
+            models.Index(fields=['is_efemero', 'expira_em'], name='idx_efemero_expira'),
+        ]
 
 class MidiaPublicacao(models.Model):
     id_midia = models.UUIDField(primary_key=True, default=uuid6.uuid7, editable=False)

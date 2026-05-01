@@ -336,14 +336,13 @@ def delete_expired_ephemeral_posts():
     Executada a cada hora pelo Celery Beat.
     """
     from core.models import Publicacao
-    
+
     cutoff = timezone.now()
-    expired_posts = Publicacao.objects.filter(
+    deleted_count, _ = Publicacao.objects.filter(
         is_efemero=True,
         expira_em__lte=cutoff
-    )
-    
-    count = expired_posts.count()
-    if count > 0:
-        expired_posts.delete()
-        logger.info(f"Limpeza de posts efêmeros: {count} posts expirados removidos.")
+    ).delete()
+
+    if deleted_count > 0:
+        logger.info(f"Limpeza de posts efêmeros: {deleted_count} posts expirados removidos.")
+
