@@ -286,6 +286,10 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'core.tasks.cleanup_old_notifications',
         'schedule': crontab(hour=3, minute=0),  # 3h da manhã
     },
+    'delete-expired-ephemeral-posts': {
+        'task': 'core.tasks.delete_expired_ephemeral_posts',
+        'schedule': crontab(minute=0),  # A cada hora
+    },
 }
 
 # ==========================================

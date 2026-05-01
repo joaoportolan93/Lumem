@@ -135,6 +135,9 @@ class Publicacao(models.Model):
     imagem = models.ImageField(upload_to='dream_images/', null=True, blank=True)
     video = models.FileField(upload_to='dream_videos/', null=True, blank=True)
     views_count = models.IntegerField(default=0)
+    
+    is_efemero = models.BooleanField(default=False)
+    expira_em = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         db_table = 'publicacoes'

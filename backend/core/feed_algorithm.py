@@ -219,6 +219,7 @@ def _get_candidates(user, context, pool_size=POOL_SIZE):
         dict(usuario=user),
         dict(usuario__in=exclude_ids),
         dict(id_publicacao__in=context['seen_post_ids']),
+        dict(is_efemero=True),
     ]
 
     def _query(extra_filter=None):
@@ -364,6 +365,7 @@ def get_foryou_feed(user, page=1, page_size=15):
                     data_publicacao__gte=timezone.now() - timedelta(days=30),
                 )
                 .exclude(usuario=user)
+                .exclude(is_efemero=True)
                 .annotate(
                     pop=Count('reacaopublicacao', distinct=True)
                         + Count('comentario', filter=Q(comentario__status=1), distinct=True)

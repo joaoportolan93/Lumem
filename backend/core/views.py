@@ -970,6 +970,12 @@ class PublicacaoViewSet(viewsets.ModelViewSet):
         else:
             qs = Publicacao.objects.filter(base_filter, visibility_q).distinct()
 
+        from django.utils import timezone
+        qs = qs.exclude(
+            is_efemero=True,
+            expira_em__lte=timezone.now()
+        )
+
         # N+1 Optimization logic: select_related, prefetch_related, and annotations
         from django.db.models import Prefetch, Exists, OuterRef
         from django.contrib.auth import get_user_model
@@ -1056,7 +1062,35 @@ class PublicacaoViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
     def perform_create(self, serializer):
-        post = serializer.save(usuario=self.request.user)
+        from django.utils import timezone
+        from datetime import timedelta
+        from rest_framework.exceptions import ValidationError
+
+        duracao_horas = self.request.data.get('duracao_horas')
+        DURACOES_VALIDAS = {1, 6, 12, 24}
+
+        is_efemero = False
+        expira_em  = None
+
+        if duracao_horas is not None:
+            try:
+                duracao_horas = int(duracao_horas)
+            except (ValueError, TypeError):
+                raise ValidationError({'duracao_horas': 'Valor inválido.'})
+
+            if duracao_horas not in DURACOES_VALIDAS:
+                raise ValidationError({
+                    'duracao_horas': f'Duração inválida. Opções: {sorted(DURACOES_VALIDAS)}h'
+                })
+
+            is_efemero = True
+            expira_em  = timezone.now() + timedelta(hours=duracao_horas)
+
+        post = serializer.save(
+            usuario=self.request.user,
+            is_efemero=is_efemero,
+            expira_em=expira_em
+        )
         
         # Extract hashtags
         hashtags = re.findall(r'#(\w+)', post.conteudo_texto)
@@ -1080,6 +1114,14 @@ class PublicacaoViewSet(viewsets.ModelViewSet):
         compute_post_embedding_task.delay(str(post.id_publicacao))
     
     def perform_update(self, serializer):
+        instance = self.get_object()
+
+        if instance.is_efemero:
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError(
+                {'detail': 'Posts efêmeros não podem ser editados após a publicação.'}
+            )
+
         post = serializer.save(editado=True, data_edicao=timezone.now())
         self._sync_post_mentions(post)
     

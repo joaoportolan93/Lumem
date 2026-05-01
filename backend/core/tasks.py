@@ -329,3 +329,21 @@ def cleanup_posts_vistos():
     deleted, _ = PostVisto.objects.filter(data_visto__lt=cutoff).delete()
     logger.info(f"Limpeza de PostVisto: {deleted} registros removidos")
 
+@shared_task
+def delete_expired_ephemeral_posts():
+    """
+    Exclui posts efêmeros cujo expira_em <= agora.
+    Executada a cada hora pelo Celery Beat.
+    """
+    from core.models import Publicacao
+    
+    cutoff = timezone.now()
+    expired_posts = Publicacao.objects.filter(
+        is_efemero=True,
+        expira_em__lte=cutoff
+    )
+    
+    count = expired_posts.count()
+    if count > 0:
+        expired_posts.delete()
+        logger.info(f"Limpeza de posts efêmeros: {count} posts expirados removidos.")
