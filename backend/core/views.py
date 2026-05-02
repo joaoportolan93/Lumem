@@ -1079,27 +1079,14 @@ class PublicacaoViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         from django.utils import timezone
         from datetime import timedelta
-        from rest_framework.exceptions import ValidationError
 
-        duracao_horas = self.request.data.get('duracao_horas')
-        DURACOES_VALIDAS = {1, 6, 12, 24}
+        # Lê is_efemero do payload — aceita bool ou string
+        is_efemero = self.request.data.get('is_efemero', False)
+        if isinstance(is_efemero, str):
+            is_efemero = is_efemero.lower() in ('true', '1')
 
-        is_efemero = False
-        expira_em  = None
-
-        if duracao_horas is not None:
-            try:
-                duracao_horas = int(duracao_horas)
-            except (ValueError, TypeError):
-                raise ValidationError({'duracao_horas': 'Valor inválido.'})
-
-            if duracao_horas not in DURACOES_VALIDAS:
-                raise ValidationError({
-                    'duracao_horas': f'Duração inválida. Opções: {sorted(DURACOES_VALIDAS)}h'
-                })
-
-            is_efemero = True
-            expira_em  = timezone.now() + timedelta(hours=duracao_horas)
+        # Duração sempre fixa em 24h — sem variável duracao_horas
+        expira_em = timezone.now() + timedelta(hours=24) if is_efemero else None
 
         post = serializer.save(
             usuario=self.request.user,

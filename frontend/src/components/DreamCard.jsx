@@ -1,7 +1,8 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaHeart, FaRegHeart, FaEllipsisH, FaEdit, FaTrash, FaUserFriends, FaFlag, FaBookmark, FaRegBookmark, FaUserPlus, FaUserCheck, FaBan, FaVolumeMute, FaLock, FaHourglass } from 'react-icons/fa';
+import { FaHeart, FaRegHeart, FaEllipsisH, FaEdit, FaTrash, FaUserFriends, FaFlag, FaBookmark, FaRegBookmark, FaUserPlus, FaUserCheck, FaBan, FaVolumeMute, FaLock } from 'react-icons/fa';
 import { FaRegComment, FaRetweet } from 'react-icons/fa6';
+import { RiHourglassLine } from 'react-icons/ri';
 import { deleteDream, likeDream, saveDream, followUser, unfollowUser, blockUser, unblockUser, muteUser, unmuteUser, viewDream } from '../services/api';
 import { AnimatePresence } from 'framer-motion';
 import CommentSection from './CommentSection';
@@ -33,31 +34,6 @@ const DreamCard = ({ dream, onDelete, onEdit, currentUserId }) => {
     const [isFollowing, setIsFollowing] = useState(dream.usuario?.is_following || false);
     const [isBlocked, setIsBlocked] = useState(dream.usuario?.is_blocked || false);
     const [isMuted, setIsMuted] = useState(dream.usuario?.is_muted || false);
-
-    // Countdown para posts efêmeros
-    const [tempoRestante, setTempoRestante] = useState(dream.tempo_restante_segundos || null);
-
-    useEffect(() => {
-        if (!dream.is_efemero || !dream.tempo_restante_segundos || dream.tempo_restante_segundos <= 0) return;
-        const interval = setInterval(() => {
-            setTempoRestante(prev => {
-                if (prev <= 1) { clearInterval(interval); return 0; }
-                return prev - 1;
-            });
-        }, 1000);
-        return () => clearInterval(interval);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [dream.is_efemero, dream.tempo_restante_segundos]);
-
-    const formatCountdown = (seconds) => {
-        if (!seconds || seconds <= 0) return 'Expirado';
-        const h = Math.floor(seconds / 3600);
-        const m = Math.floor((seconds % 3600) / 60);
-        const s = seconds % 60;
-        if (h > 0) return `${h}h ${m}m`;
-        if (m > 0) return `${m}m ${s}s`;
-        return `${s}s`;
-    };
 
     const cardRef = useRef(null);
 
@@ -313,21 +289,21 @@ const DreamCard = ({ dream, onDelete, onEdit, currentUserId }) => {
                 </div>
 
                 {/* Menu */}
-                <div className="relative">
+                <div className="relative flex items-center gap-2">
+                    {/* Indicador efêmero ao lado do menu */}
+                    {dream.is_efemero && (
+                        <div className="text-[#00CED1] flex items-center gap-1 bg-[#00CED1]/10 px-2 py-1 rounded-full text-xs font-medium" title={t('dreamCard.ephemeralTooltip')}>
+                            <RiHourglassLine size={12} />
+                            <span>{t('dreamCard.ephemeralLabel')}</span>
+                        </div>
+                    )}
+                    
                     <button
                         onClick={() => setShowMenu(!showMenu)}
                         className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
                     >
                         <FaEllipsisH className="text-gray-500 dark:text-gray-400" />
                     </button>
-
-                    {/* Countdown efêmero ao lado do menu */}
-                    {dream.is_efemero && tempoRestante > 0 && (
-                        <div className="flex items-center gap-1 text-[#00CED1] text-xs font-medium mt-1" title="Post efêmero">
-                            <FaHourglass size={10} className="animate-pulse" />
-                            <span>{formatCountdown(tempoRestante)}</span>
-                        </div>
-                    )}
 
                     {showMenu && (
                         <div className="absolute right-0 top-10 bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg shadow-xl z-10 min-w-[150px]">

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaTimes, FaMoon, FaImage, FaVideo, FaSmile, FaGlobeAmericas, FaUserFriends, FaHourglass } from 'react-icons/fa';
+import { FaTimes, FaMoon, FaImage, FaVideo, FaSmile, FaGlobeAmericas, FaUserFriends } from 'react-icons/fa';
+import { RiHourglassLine } from 'react-icons/ri';
 import { useTranslation } from 'react-i18next';
 import { createDream, updateDream, getProfile, createDraft } from '../services/api';
 import DraftsModal from './DraftsModal';
@@ -24,16 +25,7 @@ const CreateDreamModal = ({ isOpen, onClose, onSuccess, editingDream = null, com
     const [showDraftPrompt, setShowDraftPrompt] = useState(false);
     const [savingDraft, setSavingDraft] = useState(false);
     const [isDraftsModalOpen, setIsDraftsModalOpen] = useState(false);
-    const [duracaoHoras, setDuracaoHoras] = useState(null);
-    const [showDuracaoMenu, setShowDuracaoMenu] = useState(false);
-
-    const duracaoOptions = [
-        { value: null, label: 'Sem limite', icon: '∞' },
-        { value: 1, label: '1 hora', icon: '⏱️' },
-        { value: 6, label: '6 horas', icon: '⏱️' },
-        { value: 12, label: '12 horas', icon: '⏱️' },
-        { value: 24, label: '24 horas', icon: '⏱️' },
-    ];
+    const [isEfemero, setIsEfemero] = useState(false);
 
     const dreamTypes = [
         { value: t('createDream.typeLucid'), icon: '✨', color: 'text-purple-400' },
@@ -88,7 +80,7 @@ const CreateDreamModal = ({ isOpen, onClose, onSuccess, editingDream = null, com
             setSelectedImage(null);
             setVideoPreview(null);
             setSelectedVideo(null);
-            setDuracaoHoras(null);
+            setIsEfemero(false);
         }
         setError('');
     }, [editingDream, isOpen]);
@@ -124,7 +116,7 @@ const CreateDreamModal = ({ isOpen, onClose, onSuccess, editingDream = null, com
         }
 
         if (communityId) formData.append('comunidade', communityId);
-        if (duracaoHoras !== null && !editingDream) formData.append('duracao_horas', duracaoHoras);
+        if (isEfemero && !editingDream) formData.append('is_efemero', true);
 
         try {
             if (editingDream) {
@@ -233,7 +225,7 @@ const CreateDreamModal = ({ isOpen, onClose, onSuccess, editingDream = null, com
                     animate={{ scale: 1, opacity: 1, y: 0 }}
                     exit={{ scale: 0.95, opacity: 0, y: -20 }}
                     onClick={(e) => e.stopPropagation()}
-                    className="bg-gray-900 rounded-2xl w-full max-w-xl border border-white/10"
+                    className={`w-full max-w-xl ${isEfemero ? 'dream-bubble text-white shadow-lg shadow-[#00CED1]/20' : 'bg-gray-900 rounded-2xl border border-white/10'}`}
                 >
                     {/* Header */}
                     <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
@@ -456,29 +448,12 @@ const CreateDreamModal = ({ isOpen, onClose, onSuccess, editingDream = null, com
                             {!editingDream && (
                                 <div className="relative">
                                     <button
-                                        onClick={() => { setShowDuracaoMenu(!showDuracaoMenu); setShowTypeMenu(false); setShowEmotionsMenu(false); }}
-                                        className={`p-2 rounded-full hover:bg-primary/20 transition-colors ${duracaoHoras !== null ? 'text-[#00CED1]' : 'text-primary'}`}
-                                        title="Post efêmero"
+                                        onClick={() => setIsEfemero(!isEfemero)}
+                                        className={`p-2 rounded-full transition-colors ${isEfemero ? 'text-white bg-[#00CED1] shadow-md shadow-[#00CED1]/50' : 'text-primary hover:bg-primary/20'}`}
+                                        title={isEfemero ? t('createDream.ephemeralDisable') : t('createDream.ephemeralEnable')}
                                     >
-                                        <FaHourglass size={18} />
+                                        <RiHourglassLine size={18} />
                                     </button>
-                                    {showDuracaoMenu && (
-                                        <div className="absolute bottom-full left-0 mb-2 bg-gray-800 border border-white/10 rounded-xl shadow-xl z-20 py-2 min-w-[180px]">
-                                            <p className="px-4 py-2 text-gray-400 text-xs uppercase">Duração do post</p>
-                                            {duracaoOptions.map(opt => (
-                                                <button
-                                                    key={String(opt.value)}
-                                                    onClick={() => { setDuracaoHoras(opt.value); setShowDuracaoMenu(false); }}
-                                                    className={`w-full flex items-center gap-2 px-4 py-2 hover:bg-white/5 ${
-                                                        duracaoHoras === opt.value ? 'text-[#00CED1]' : 'text-white'
-                                                    }`}
-                                                >
-                                                    <span>{opt.icon}</span> {opt.label}
-                                                    {duracaoHoras === opt.value && <span className="ml-auto">✓</span>}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    )}
                                 </div>
                             )}
                         </div>

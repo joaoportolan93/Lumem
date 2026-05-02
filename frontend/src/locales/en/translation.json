@@ -161,7 +161,9 @@
         "customPlaceholder": "Ex: Nostalgia",
         "btnPublishing": "Publishing...",
         "btnSave": "Save",
-        "btnDream": "Dream"
+        "btnDream": "Dream",
+        "ephemeralDisable": "Disable ephemeral post (24h)",
+        "ephemeralEnable": "Enable ephemeral post (24h)"
     },
     "dreamCard": {
         "timeNow": "now",
@@ -184,7 +186,9 @@
         "actionBlock": "Block",
         "actionReport": "Report",
         "tooltipUnsave": "Remove from saved",
-        "tooltipSave": "Save"
+        "tooltipSave": "Save",
+        "ephemeralLabel": "Ephemeral",
+        "ephemeralTooltip": "Ephemeral post (24h)"
     },
     "profile": {
         "dateNotInfo": "Date not informed",
