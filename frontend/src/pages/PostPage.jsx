@@ -373,7 +373,7 @@ const PostPage = () => {
             {/* Main Content */}
             <div className="max-w-2xl mx-auto">
                 {/* Post */}
-                <div className={`bg-white dark:bg-white/5 border-b border-gray-200 dark:border-white/5 p-6 backdrop-blur-sm rounded-none sm:rounded-2xl sm:my-4 transition-all hover:bg-white/90 ${post.is_efemero ? 'dream-bubble text-white shadow-lg shadow-[#00CED1]/20 border-[#00CED1]/60' : ''}`}>
+                <div className={`bg-white dark:bg-white/5 border-b border-gray-200 dark:border-white/5 p-6 backdrop-blur-sm rounded-none sm:rounded-2xl sm:my-4 transition-all hover:bg-white/90 ${post.is_efemero ? 'border-2 !border-[#00897B]' : ''}`}>
                     {/* User Header */}
                     <div className="flex items-start justify-between mb-4">
                         <div className="flex items-center gap-3">
@@ -423,7 +423,7 @@ const PostPage = () => {
                         <div className="relative flex items-center gap-2">
                             {/* Indicador efêmero ao lado do menu */}
                             {post.is_efemero && (
-                                <div className="text-white flex items-center gap-1 bg-white/20 px-2 py-1 rounded-full text-xs font-medium" title="Post efêmero (24h)">
+                                <div className="text-[#00897B] flex items-center gap-1 bg-[#00897B]/10 px-2 py-1 rounded-full text-xs font-medium" title="Post efêmero (24h)">
                                     <RiHourglassLine size={12} />
                                     <span>Efêmero</span>
                                 </div>
@@ -532,6 +532,11 @@ const PostPage = () => {
                     {/* Timestamp */}
                     <p className="text-gray-500 dark:text-gray-400 text-sm mb-4 border-b border-gray-200 dark:border-white/5 pb-4">
                         {formatDate(post.data_publicacao)}
+                        {post.editado && (
+                            <span className="text-gray-400 dark:text-gray-500 ml-1" title={post.data_edicao ? new Date(post.data_edicao).toLocaleString() : ''}>
+                                · (editado)
+                            </span>
+                        )}
                     </p>
 
                     {/* Stats Bar */}

@@ -188,7 +188,8 @@
         "tooltipUnsave": "Remove from saved",
         "tooltipSave": "Save",
         "ephemeralLabel": "Ephemeral",
-        "ephemeralTooltip": "Ephemeral post (24h)"
+        "ephemeralTooltip": "Ephemeral post (24h)",
+        "edited": "(edited)"
     },
     "profile": {
         "dateNotInfo": "Date not informed",

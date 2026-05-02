@@ -225,7 +225,7 @@ const CreateDreamModal = ({ isOpen, onClose, onSuccess, editingDream = null, com
                     animate={{ scale: 1, opacity: 1, y: 0 }}
                     exit={{ scale: 0.95, opacity: 0, y: -20 }}
                     onClick={(e) => e.stopPropagation()}
-                    className={`w-full max-w-xl ${isEfemero ? 'dream-bubble text-white shadow-lg shadow-[#00CED1]/20' : 'bg-gray-900 rounded-2xl border border-white/10'}`}
+                    className={`w-full max-w-xl bg-gray-900 rounded-2xl border ${isEfemero ? 'border-2 border-[#00897B]' : 'border-white/10'}`}
                 >
                     {/* Header */}
                     <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
@@ -449,7 +449,7 @@ const CreateDreamModal = ({ isOpen, onClose, onSuccess, editingDream = null, com
                                 <div className="relative">
                                     <button
                                         onClick={() => setIsEfemero(!isEfemero)}
-                                        className={`p-2 rounded-full transition-colors ${isEfemero ? 'text-white bg-[#00CED1] shadow-md shadow-[#00CED1]/50' : 'text-primary hover:bg-primary/20'}`}
+                                        className={`p-2 rounded-full transition-colors ${isEfemero ? 'text-white bg-[#00897B] shadow-md shadow-[#00897B]/50' : 'text-primary hover:bg-primary/20'}`}
                                         title={isEfemero ? t('createDream.ephemeralDisable') : t('createDream.ephemeralEnable')}
                                     >
                                         <RiHourglassLine size={18} />
