@@ -194,7 +194,7 @@ const DreamCard = ({ dream, onDelete, onEdit, currentUserId }) => {
     };
 
     const borderClass = dream.is_efemero
-        ? 'border-[#00CED1]/60'
+        ? 'border-2 border-[#00897B]'
         : dream.visibilidade === 2
             ? 'border-green-500/50'
             : 'border-gray-200 dark:border-white/10';
@@ -272,6 +272,11 @@ const DreamCard = ({ dream, onDelete, onEdit, currentUserId }) => {
                                 <FaLock className="inline ml-1 text-gray-400" size={10} title="Conta Privada" />
                             )}
                             {' '}· {formatDate(dream.data_publicacao)}
+                            {dream.editado && (
+                                <span className="text-gray-400 dark:text-gray-500 ml-1" title={dream.data_edicao ? new Date(dream.data_edicao).toLocaleString() : ''}>
+                                    · {t('dreamCard.edited')}
+                                </span>
+                            )}
                         </p>
                         {dream.comunidade_id && (
                             <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
@@ -292,7 +297,7 @@ const DreamCard = ({ dream, onDelete, onEdit, currentUserId }) => {
                 <div className="relative flex items-center gap-2">
                     {/* Indicador efêmero ao lado do menu */}
                     {dream.is_efemero && (
-                        <div className="text-[#00CED1] flex items-center gap-1 bg-[#00CED1]/10 px-2 py-1 rounded-full text-xs font-medium" title={t('dreamCard.ephemeralTooltip')}>
+                        <div className="text-[#00897B] flex items-center gap-1 bg-[#00897B]/10 px-2 py-1 rounded-full text-xs font-medium" title={t('dreamCard.ephemeralTooltip')}>
                             <RiHourglassLine size={12} />
                             <span>{t('dreamCard.ephemeralLabel')}</span>
                         </div>
