@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { FaArrowLeft, FaHeart, FaRegHeart, FaComment, FaShare, FaEllipsisH, FaEdit, FaTrash, FaFlag, FaBookmark, FaRegBookmark, FaUserFriends, FaChevronDown, FaRobot, FaLock, FaUserPlus, FaUserCheck, FaVolumeMute, FaBan } from 'react-icons/fa';
+import { RiHourglassLine } from 'react-icons/ri';
 import { getDream, deleteDream, likeDream, saveDream, getComments, createComment, getProfile, followUser, unfollowUser, muteUser, unmuteUser, blockUser, unblockUser } from '../services/api';
 import { useTranslation } from 'react-i18next';
 import ReplyComposer from '../components/ReplyComposer';
@@ -372,7 +373,7 @@ const PostPage = () => {
             {/* Main Content */}
             <div className="max-w-2xl mx-auto">
                 {/* Post */}
-                <div className="bg-white dark:bg-white/5 border-b border-gray-200 dark:border-white/5 p-6 backdrop-blur-sm rounded-none sm:rounded-2xl sm:my-4 transition-all hover:bg-white/90">
+                <div className={`bg-white dark:bg-white/5 border-b border-gray-200 dark:border-white/5 p-6 backdrop-blur-sm rounded-none sm:rounded-2xl sm:my-4 transition-all hover:bg-white/90 ${post.is_efemero ? 'dream-bubble text-white shadow-lg shadow-[#00CED1]/20 border-[#00CED1]/60' : ''}`}>
                     {/* User Header */}
                     <div className="flex items-start justify-between mb-4">
                         <div className="flex items-center gap-3">
@@ -419,7 +420,15 @@ const PostPage = () => {
                         </div>
 
                         {/* Menu */}
-                        <div className="relative">
+                        <div className="relative flex items-center gap-2">
+                            {/* Indicador efêmero ao lado do menu */}
+                            {post.is_efemero && (
+                                <div className="text-[#00CED1] flex items-center gap-1 bg-[#00CED1]/10 px-2 py-1 rounded-full text-xs font-medium" title="Post efêmero (24h)">
+                                    <RiHourglassLine size={12} />
+                                    <span>Efêmero</span>
+                                </div>
+                            )}
+
                             <button
                                 onClick={() => setShowMenu(!showMenu)}
                                 className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"

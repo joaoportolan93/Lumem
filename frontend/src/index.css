@@ -23,3 +23,40 @@ code {
     font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
         monospace;
 }
+
+/* Efeito de borda serrilhada — balão de sonho / nuvem */
+.dream-bubble {
+    background-color: #00CED1;
+    border-radius: 4px;
+    position: relative;
+
+    /* Bumps serrilhados nas 4 bordas via radial-gradient */
+    --bump: 13px;
+
+    background-image:
+        radial-gradient(circle at 50% 0%,   transparent var(--bump), #00CED1 calc(var(--bump) + 1px)),
+        radial-gradient(circle at 50% 100%, transparent var(--bump), #00CED1 calc(var(--bump) + 1px)),
+        radial-gradient(circle at 0%   50%, transparent var(--bump), #00CED1 calc(var(--bump) + 1px)),
+        radial-gradient(circle at 100% 50%, transparent var(--bump), #00CED1 calc(var(--bump) + 1px));
+
+    background-size:
+        calc(var(--bump) * 2) var(--bump),
+        calc(var(--bump) * 2) var(--bump),
+        var(--bump) calc(var(--bump) * 2),
+        var(--bump) calc(var(--bump) * 2);
+
+    background-position:
+        top left,
+        bottom left,
+        left top,
+        right top;
+
+    background-repeat:
+        repeat-x,
+        repeat-x,
+        repeat-y,
+        repeat-y;
+
+    /* Padding interno compensando os bumps */
+    padding: calc(var(--bump) + 10px) calc(var(--bump) + 18px);
+}
