@@ -292,9 +292,9 @@ const DreamCard = ({ dream, onDelete, onEdit, currentUserId }) => {
                 <div className="relative flex items-center gap-2">
                     {/* Indicador efêmero ao lado do menu */}
                     {dream.is_efemero && (
-                        <div className="text-[#00CED1] flex items-center gap-1 bg-[#00CED1]/10 px-2 py-1 rounded-full text-xs font-medium" title="Post efêmero (24h)">
+                        <div className="text-[#00CED1] flex items-center gap-1 bg-[#00CED1]/10 px-2 py-1 rounded-full text-xs font-medium" title={t('dreamCard.ephemeralTooltip')}>
                             <RiHourglassLine size={12} />
-                            <span>Efêmero</span>
+                            <span>{t('dreamCard.ephemeralLabel')}</span>
                         </div>
                     )}
                     

@@ -161,7 +161,9 @@
         "customPlaceholder": "Ex: Saudade",
         "btnPublishing": "Publicando...",
         "btnSave": "Salvar",
-        "btnDream": "Sonhar"
+        "btnDream": "Sonhar",
+        "ephemeralDisable": "Desativar post efêmero (24h)",
+        "ephemeralEnable": "Ativar post efêmero (24h)"
     },
     "dreamCard": {
         "timeNow": "agora",
@@ -184,7 +186,9 @@
         "actionBlock": "Bloquear",
         "actionReport": "Denunciar",
         "tooltipUnsave": "Remover dos salvos",
-        "tooltipSave": "Salvar"
+        "tooltipSave": "Salvar",
+        "ephemeralLabel": "Efêmero",
+        "ephemeralTooltip": "Post efêmero (24h)"
     },
     "profile": {
         "dateNotInfo": "Data não informada",

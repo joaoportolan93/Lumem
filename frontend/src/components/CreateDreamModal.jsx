@@ -450,7 +450,7 @@ const CreateDreamModal = ({ isOpen, onClose, onSuccess, editingDream = null, com
                                     <button
                                         onClick={() => setIsEfemero(!isEfemero)}
                                         className={`p-2 rounded-full transition-colors ${isEfemero ? 'text-white bg-[#00CED1] shadow-md shadow-[#00CED1]/50' : 'text-primary hover:bg-primary/20'}`}
-                                        title={isEfemero ? "Desativar post efêmero (24h)" : "Ativar post efêmero (24h)"}
+                                        title={isEfemero ? t('createDream.ephemeralDisable') : t('createDream.ephemeralEnable')}
                                     >
                                         <RiHourglassLine size={18} />
                                     </button>
