@@ -1,0 +1,246 @@
+name: 🚦 Quality Gate (Catraca) — Lumem
+
+# Roda em todo Pull Request para main/develop.
+# Bloqueia o merge se qualquer métrica regredir em relação ao baseline.json.
+# A IA de babysitting (Claude) lê os comentários deste workflow e corrige o código.
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
+
+jobs:
+  # ─────────────────────────────────────────────────────────────
+  # JOB 1: Backend Python (Django + pytest + flake8)
+  # ─────────────────────────────────────────────────────────────
+  backend-quality:
+    name: 🐍 Backend Quality
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
+
+    steps:
+      - name: 📥 Checkout do repositório
+        uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: 📦 Instalar dependências Python
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          # Ferramentas de qualidade (não precisam estar no requirements.txt)
+          pip install flake8 flake8-bugbear pip-audit
+
+      # ── Auditoria de segurança ────────────────────────────────
+      - name: 🔒 pip-audit (vulnerabilidades Python)
+        run: |
+          pip-audit --format json --output ../.quality-reports/pip-audit.json || true
+
+      # ── Linting ───────────────────────────────────────────────
+      - name: 🔍 Flake8 (linting Python)
+        run: |
+          mkdir -p ../.quality-reports
+          # max-line-length=120 alinhado com o estilo atual do projeto
+          # O arquivo de saída é contado pelo quality-gate.js (1 linha = 1 violação)
+          flake8 . \
+            --max-line-length=120 \
+            --exclude=.venv,migrations,__pycache__ \
+            --output-file=../.quality-reports/flake8.txt \
+            --tee || true
+
+      # ── Testes com coverage ───────────────────────────────────
+      - name: 🧪 pytest + coverage
+        env:
+          DJANGO_SETTINGS_MODULE: dreamshare_backend.settings
+          SECRET_KEY: ci-only-fake-secret-key-not-for-production
+          DATABASE_URL: sqlite:///./test-db.sqlite3
+          DEBUG: "True"
+          ALLOWED_HOSTS: "localhost,127.0.0.1"
+        run: |
+          coverage run -m pytest \
+            --tb=short \
+            -q \
+            2>&1 | tee ../.quality-reports/pytest-output.txt
+          coverage json -o ../.quality-reports/python-coverage.json || true
+          coverage report --skip-covered || true
+
+      # ── Upload dos relatórios ─────────────────────────────────
+      - name: 📤 Upload relatórios backend
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-quality-reports
+          path: .quality-reports/
+          retention-days: 7
+
+  # ─────────────────────────────────────────────────────────────
+  # JOB 2: Frontend React (ESLint + Jest + jscpd)
+  # ─────────────────────────────────────────────────────────────
+  frontend-quality:
+    name: ⚛️ Frontend Quality
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontend
+
+    steps:
+      - name: 📥 Checkout do repositório
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: './frontend/package-lock.json'
+
+      - name: 📦 Instalar dependências (npm ci)
+        # npm ci = instalação LIMPA e determinística (congelada no package-lock.json)
+        run: npm ci
+
+      # ── Auditoria de segurança ────────────────────────────────
+      - name: 🔒 npm audit (vulnerabilidades JS)
+        run: |
+          npm audit --json > ../.quality-reports/npm-audit.json || true
+
+      # ── Linting ───────────────────────────────────────────────
+      - name: 🔍 ESLint (linting JS/JSX)
+        run: |
+          mkdir -p ../.quality-reports
+          npx eslint src \
+            --format json \
+            --output-file ../.quality-reports/eslint.json \
+            --ext .js,.jsx \
+            || true
+
+      # ── Duplicação de código ──────────────────────────────────
+      - name: 🔁 jscpd (duplicação de código)
+        run: |
+          npx jscpd src \
+            --reporters json \
+            --output ../.quality-reports \
+            --ignore "**/node_modules/**,**/build/**" \
+            --min-lines 5 \
+            --min-tokens 50 \
+            || true
+          # jscpd salva como jscpd-report.json na pasta de output
+          mv ../.quality-reports/jscpd-report.json ../.quality-reports/jscpd-report.json 2>/dev/null || true
+
+      # ── Testes com coverage ───────────────────────────────────
+      - name: 🧪 Jest (testes + coverage)
+        run: |
+          # CI=true previne o modo watch interativo
+          CI=true npm test -- \
+            --coverage \
+            --coverageReporters=json-summary \
+            --coverageDirectory=../.quality-reports/jest-coverage \
+            --passWithNoTests \
+            || true
+
+      # ── Upload dos relatórios ─────────────────────────────────
+      - name: 📤 Upload relatórios frontend
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: frontend-quality-reports
+          path: .quality-reports/
+          retention-days: 7
+
+  # ─────────────────────────────────────────────────────────────
+  # JOB 3: Quality Gate — A Catraca
+  # Roda APÓS os dois jobs acima. Compara com o baseline e bloqueia.
+  # ─────────────────────────────────────────────────────────────
+  quality-gate:
+    name: 🚦 Quality Gate (Catraca)
+    runs-on: ubuntu-latest
+    needs: [backend-quality, frontend-quality]
+    # Roda mesmo que os jobs anteriores falhem (para gerar o relatório)
+    if: always()
+
+    steps:
+      - name: 📥 Checkout do repositório
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # ── Baixa todos os relatórios gerados ────────────────────
+      - name: 📥 Download relatórios backend
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-quality-reports
+          path: .quality-reports/
+        continue-on-error: true
+
+      - name: 📥 Download relatórios frontend
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-quality-reports
+          path: .quality-reports/
+        continue-on-error: true
+
+      # ── Executa a catraca ─────────────────────────────────────
+      - name: 🚦 Executar Quality Gate
+        id: gate
+        run: node scripts/quality-gate.js
+
+      # ── Posta o resumo como comentário no PR ──────────────────
+      # Isso é o que o Agente de Babysitting lê para corrigir o código
+      - name: 💬 Comentar resultado no PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const reportPath = '.quality-reports/gate-summary.md';
+
+            if (!fs.existsSync(reportPath)) {
+              console.log('Relatório não encontrado, pulando comentário.');
+              return;
+            }
+
+            const body = fs.readFileSync(reportPath, 'utf8');
+
+            // Busca e atualiza comentário anterior (evita spam de comentários)
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const existing = comments.find(c =>
+              c.user.type === 'Bot' && c.body.includes('🚦 Quality Gate — Lumem')
+            );
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
+      # ── Posta o resumo no GitHub Step Summary ─────────────────
+      - name: 📋 Publicar no Step Summary
+        if: always()
+        run: |
+          if [ -f .quality-reports/gate-summary.md ]; then
+            cat .quality-reports/gate-summary.md >> $GITHUB_STEP_SUMMARY
+          fi

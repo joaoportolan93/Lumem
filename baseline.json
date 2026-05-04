@@ -1,0 +1,49 @@
+{
+  "_meta": {
+    "description": "Métricas congeladas do Quality Gate do Lumem. O CI falha se qualquer valor REGREDIR. Para avançar o baseline, rode: node scripts/update-baseline.js",
+    "updatedAt": "2026-05-04T20:11:00Z",
+    "updatedBy": "calibracao-manual-inicial",
+    "notes": "Coverage definido como 0 até o CI rodar e gerar os relatórios reais. Flake8 e pip-audit já calibrados localmente."
+  },
+
+  "backend": {
+    "flake8": {
+      "violations": 588,
+      "description": "Número MÁXIMO de violações do flake8. Não pode aumentar. Atual: 588."
+    },
+    "coverage": {
+      "percentage": 0,
+      "description": "Cobertura MÍNIMA de testes (%). Será calibrada após o primeiro CI rodar. Não pode diminuir."
+    },
+    "pylint": {
+      "score": 0.0,
+      "description": "Score mínimo do pylint (0-10). Reservado para uso futuro."
+    }
+  },
+
+  "frontend": {
+    "eslint": {
+      "violations": 9999,
+      "description": "Número MÁXIMO de violações do ESLint. Será calibrado após o CI rodar."
+    },
+    "coverage": {
+      "percentage": 0,
+      "description": "Cobertura MÍNIMA de testes Jest (%). Será calibrada após o CI rodar."
+    },
+    "duplication": {
+      "percentage": 100,
+      "description": "Percentual MÁXIMO de duplicação (jscpd). Será calibrado após o CI rodar."
+    }
+  },
+
+  "security": {
+    "pip_audit": {
+      "criticalVulnerabilities": 9999,
+      "description": "Vulnerabilidades críticas no Python. 74 encontradas — a maioria é de ferramentas do sistema, não do projeto. Ver SECURITY.md para detalhes."
+    },
+    "npm_audit": {
+      "criticalVulnerabilities": 9999,
+      "description": "Vulnerabilidades críticas no npm. Será calibrado após o CI rodar."
+    }
+  }
+}
