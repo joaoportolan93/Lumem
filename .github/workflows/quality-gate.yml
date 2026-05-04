@@ -10,6 +10,13 @@ on:
   push:
     branches: [main, develop]
 
+# Permissões necessárias para o bot comentar nos PRs
+# Sem isso, o GITHUB_TOKEN recebe erro 403 ao tentar postar comentários
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
 jobs:
   # ─────────────────────────────────────────────────────────────
   # JOB 1: Backend Python (Django + pytest + flake8)
@@ -101,9 +108,11 @@ jobs:
           cache: 'npm'
           cache-dependency-path: './frontend/package-lock.json'
 
-      - name: 📦 Instalar dependências (npm ci)
-        # npm ci = instalação LIMPA e determinística (congelada no package-lock.json)
-        run: npm ci
+      - name: 📦 Instalar dependências (npm install)
+        # Usamos --legacy-peer-deps porque react-scripts@5.0.1 tem conflito de peer
+        # com TypeScript 5.x (ele espera ^3.2.1 || ^4). É um problema upstream do
+        # create-react-app que não tem correção oficial — legacy-peer-deps contorna.
+        run: npm install --legacy-peer-deps
 
       # ── Auditoria de segurança ────────────────────────────────
       - name: 🔒 npm audit (vulnerabilidades JS)
