@@ -6,24 +6,21 @@ on:
   push:
     branches: [main, develop]
 
-# Permissões necessárias para o bot comentar nos PRs
 permissions:
   contents: read
   pull-requests: write
   issues: write
 
 jobs:
-  # ─────────────────────────────────────────────────────────────
-  # JOB 1: Backend Python (Django + pytest + flake8)
-  # ─────────────────────────────────────────────────────────────
-  backend-quality:
-    name: 🐍 Backend Quality
+  quality-gate:
+    name: 🚦 Quality Gate (Catraca)
     runs-on: ubuntu-latest
 
     steps:
       - name: 📥 Checkout do repositório
         uses: actions/checkout@v4
 
+      # ── Setup ──────────────────────────────────────────────────
       - name: 🐍 Setup Python 3.11
         uses: actions/setup-python@v5
         with:
@@ -31,6 +28,19 @@ jobs:
           cache: 'pip'
           cache-dependency-path: 'backend/requirements.txt'
 
+      - name: 🟢 Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'frontend/package-lock.json'
+
+      - name: 📁 Criar pasta de relatórios
+        run: mkdir -p .quality-reports
+
+      # ══════════════════════════════════════════════════════════
+      # BACKEND — Python / Django
+      # ══════════════════════════════════════════════════════════
       - name: 📦 Instalar dependências Python
         working-directory: ./backend
         run: |
@@ -38,13 +48,11 @@ jobs:
           pip install -r requirements.txt
           pip install flake8 pip-audit
 
-      # Cria a pasta ANTES de qualquer ferramenta tentar escrever nela
-      - name: 📁 Criar pasta de relatórios
-        run: mkdir -p .quality-reports
-
       - name: 🔒 pip-audit (vulnerabilidades Python)
         working-directory: ./backend
-        run: pip-audit --format json --output ../.quality-reports/pip-audit.json || true
+        run: |
+          pip-audit --format json --output ../.quality-reports/pip-audit.json || true
+          echo "pip-audit finalizado"
 
       - name: 🔍 Flake8 (linting Python)
         working-directory: ./backend
@@ -53,6 +61,7 @@ jobs:
             --max-line-length=120 \
             --exclude=.venv,migrations,__pycache__ \
             --output-file=../.quality-reports/flake8.txt || true
+          echo "flake8 finalizado — linhas: $(wc -l < ../.quality-reports/flake8.txt 2>/dev/null || echo 0)"
 
       - name: 🧪 pytest + coverage
         working-directory: ./backend
@@ -64,49 +73,21 @@ jobs:
         run: |
           coverage run -m pytest --tb=short -q || true
           coverage json -o ../.quality-reports/python-coverage.json || true
+          echo "pytest+coverage finalizado"
 
-      - name: 🔎 Listar relatórios gerados (debug)
-        run: ls -la .quality-reports/ || echo "Pasta vazia ou inexistente"
-
-      - name: 📤 Upload relatórios backend
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: backend-quality-reports
-          path: .quality-reports/
-          if-no-files-found: warn
-          retention-days: 7
-
-  # ─────────────────────────────────────────────────────────────
-  # JOB 2: Frontend React (ESLint + Jest + jscpd)
-  # ─────────────────────────────────────────────────────────────
-  frontend-quality:
-    name: ⚛️ Frontend Quality
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: 📥 Checkout do repositório
-        uses: actions/checkout@v4
-
-      - name: 🟢 Setup Node.js 20
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: './frontend/package-lock.json'
-
+      # ══════════════════════════════════════════════════════════
+      # FRONTEND — React / Node.js
+      # ══════════════════════════════════════════════════════════
       - name: 📦 Instalar dependências JS
         working-directory: ./frontend
         # legacy-peer-deps necessário: react-scripts@5 não suporta TypeScript 5.x
         run: npm install --legacy-peer-deps
 
-      # Cria a pasta ANTES de qualquer ferramenta tentar escrever nela
-      - name: 📁 Criar pasta de relatórios
-        run: mkdir -p .quality-reports
-
       - name: 🔒 npm audit (vulnerabilidades JS)
         working-directory: ./frontend
-        run: npm audit --json > ../.quality-reports/npm-audit.json || true
+        run: |
+          npm audit --json > ../.quality-reports/npm-audit.json || true
+          echo "npm audit finalizado"
 
       - name: 🔍 ESLint (linting JS/JSX)
         working-directory: ./frontend
@@ -115,6 +96,7 @@ jobs:
             --format json \
             --output-file ../.quality-reports/eslint.json \
             --ext .js,.jsx || true
+          echo "ESLint finalizado"
 
       - name: 🔁 jscpd (duplicação de código)
         working-directory: ./frontend
@@ -125,6 +107,7 @@ jobs:
             --ignore "**/node_modules/**,**/build/**" \
             --min-lines 5 \
             --min-tokens 50 || true
+          echo "jscpd finalizado"
 
       - name: 🧪 Jest (testes + coverage)
         working-directory: ./frontend
@@ -134,57 +117,22 @@ jobs:
             --coverageReporters=json-summary \
             --coverageDirectory=../.quality-reports/jest-coverage \
             --passWithNoTests || true
+          echo "Jest finalizado"
 
-      - name: 🔎 Listar relatórios gerados (debug)
-        run: ls -la .quality-reports/ || echo "Pasta vazia ou inexistente"
+      # ══════════════════════════════════════════════════════════
+      # DEBUG — Confirma que os relatórios existem
+      # ══════════════════════════════════════════════════════════
+      - name: 🔎 Listar relatórios gerados
+        run: |
+          echo "=== Conteúdo de .quality-reports/ ==="
+          ls -lah .quality-reports/
+          echo ""
+          echo "=== Primeiras linhas do flake8.txt ==="
+          head -5 .quality-reports/flake8.txt 2>/dev/null || echo "(arquivo não encontrado)"
 
-      - name: 📤 Upload relatórios frontend
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: frontend-quality-reports
-          path: .quality-reports/
-          if-no-files-found: warn
-          retention-days: 7
-
-  # ─────────────────────────────────────────────────────────────
-  # JOB 3: Quality Gate — A Catraca
-  # ─────────────────────────────────────────────────────────────
-  quality-gate:
-    name: 🚦 Quality Gate (Catraca)
-    runs-on: ubuntu-latest
-    needs: [backend-quality, frontend-quality]
-    if: always()
-
-    steps:
-      - name: 📥 Checkout do repositório
-        uses: actions/checkout@v4
-
-      - name: 🟢 Setup Node.js 20
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: 📁 Criar pasta de relatórios
-        run: mkdir -p .quality-reports
-
-      - name: 📥 Download relatórios backend
-        uses: actions/download-artifact@v4
-        with:
-          name: backend-quality-reports
-          path: .quality-reports/
-        continue-on-error: true
-
-      - name: 📥 Download relatórios frontend
-        uses: actions/download-artifact@v4
-        with:
-          name: frontend-quality-reports
-          path: .quality-reports/
-        continue-on-error: true
-
-      - name: 🔎 Listar relatórios baixados (debug)
-        run: ls -la .quality-reports/ || echo "Pasta vazia"
-
+      # ══════════════════════════════════════════════════════════
+      # CATRACA — Compara com o baseline
+      # ══════════════════════════════════════════════════════════
       - name: 🚦 Executar Quality Gate
         id: gate
         run: node scripts/quality-gate.js
