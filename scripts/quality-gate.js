@@ -59,7 +59,10 @@ function readJestCoverage() {
   if (!summary || !summary.total) return null;
   // Média das 4 métricas principais
   const { lines, statements, functions, branches } = summary.total;
-  const avg = (lines.pct + statements.pct + functions.pct + branches.pct) / 4;
+  
+  const getPct = (metric) => typeof metric?.pct === 'number' ? metric.pct : 0;
+  
+  const avg = (getPct(lines) + getPct(statements) + getPct(functions) + getPct(branches)) / 4;
   return Math.round(avg * 100) / 100;
 }
 
