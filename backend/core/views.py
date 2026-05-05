@@ -663,7 +663,7 @@ from rest_framework.decorators import action
 from .models import Publicacao, Seguidor, ReacaoPublicacao, Comentario, Hashtag, PublicacaoHashtag, PublicacaoSalva, PublicacaoMencao, ComentarioMencao
 from .serializers import PublicacaoSerializer, PublicacaoCreateSerializer, SeguidorSerializer, HashtagSerializer, SearchSerializer, NotificacaoSerializer
 from django.utils import timezone
-from django.db.models import Count, Q
+from django.db.models import Count, Q, F
 
 class PublicacaoViewSet(viewsets.ModelViewSet):
     """ViewSet for dream posts CRUD operations"""
