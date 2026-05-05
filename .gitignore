@@ -47,3 +47,6 @@ Thumbs.db
 .pytest_cache/
 htmlcov/
 .coverage
+ 
+# Relatorios do Quality Gate
+.quality-reports/  
