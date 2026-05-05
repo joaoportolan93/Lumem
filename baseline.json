@@ -1,0 +1,45 @@
+{
+  "_meta": {
+    "description": "Métricas congeladas do Quality Gate do Lumem. O CI falha se qualquer valor REGREDIR. Para avançar o baseline, rode: node scripts/update-baseline.js",
+    "updatedAt": "2026-05-05T03:59:13.024Z",
+    "updatedBy": "joao"
+  },
+  "backend": {
+    "flake8": {
+      "violations": 589,
+      "description": "Número máximo de violações do flake8. Não pode aumentar."
+    },
+    "coverage": {
+      "percentage": 0,
+      "description": "Cobertura mínima de testes (%). Não pode diminuir."
+    },
+    "pylint": {
+      "score": 0,
+      "description": "Score mínimo do pylint (0-10). Não pode diminuir."
+    }
+  },
+  "frontend": {
+    "eslint": {
+      "violations": 31,
+      "description": "Número máximo de violações do ESLint. Não pode aumentar."
+    },
+    "coverage": {
+      "percentage": 0,
+      "description": "Cobertura mínima de testes Jest (%). Não pode diminuir."
+    },
+    "duplication": {
+      "percentage": 1.73,
+      "description": "Percentual máximo de duplicação de código (jscpd). Não pode aumentar."
+    }
+  },
+  "security": {
+    "pip_audit": {
+      "criticalVulnerabilities": 0,
+      "description": "Número máximo de vulnerabilidades críticas no Python."
+    },
+    "npm_audit": {
+      "criticalVulnerabilities": 9999,
+      "description": "Número máximo de vulnerabilidades críticas no npm."
+    }
+  }
+}

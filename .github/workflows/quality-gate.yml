@@ -1,0 +1,186 @@
+name: 🚦 Quality Gate (Catraca) — Lumem
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  quality-gate:
+    name: 🚦 Quality Gate (Catraca)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout do repositório
+        uses: actions/checkout@v4
+
+      # ── Setup ──────────────────────────────────────────────────
+      - name: 🐍 Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: 'backend/requirements.txt'
+
+      - name: 🟢 Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'frontend/package-lock.json'
+
+      - name: 📁 Criar pasta de relatórios
+        run: mkdir -p .quality-reports
+
+      # ══════════════════════════════════════════════════════════
+      # BACKEND — Python / Django
+      # ══════════════════════════════════════════════════════════
+      - name: 📦 Instalar dependências Python
+        working-directory: ./backend
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install flake8 pip-audit
+
+      - name: 🔒 pip-audit (vulnerabilidades Python)
+        working-directory: ./backend
+        run: |
+          pip-audit --format json --output ../.quality-reports/pip-audit.json || true
+          echo "pip-audit finalizado"
+
+      - name: 🔍 Flake8 (linting Python)
+        working-directory: ./backend
+        run: |
+          flake8 . \
+            --max-line-length=120 \
+            --exclude=.venv,migrations,__pycache__ \
+            --output-file=../.quality-reports/flake8.txt || true
+          echo "flake8 finalizado — linhas: $(wc -l < ../.quality-reports/flake8.txt 2>/dev/null || echo 0)"
+
+      - name: 🧪 pytest + coverage
+        working-directory: ./backend
+        env:
+          DJANGO_SETTINGS_MODULE: dreamshare_backend.settings
+          SECRET_KEY: ci-only-fake-secret-key-not-for-production
+          DEBUG: "True"
+          ALLOWED_HOSTS: "localhost,127.0.0.1"
+        run: |
+          coverage run -m pytest --tb=short -q || true
+          coverage json -o ../.quality-reports/python-coverage.json || true
+          echo "pytest+coverage finalizado"
+
+      # ══════════════════════════════════════════════════════════
+      # FRONTEND — React / Node.js
+      # ══════════════════════════════════════════════════════════
+      - name: 📦 Instalar dependências JS
+        working-directory: ./frontend
+        # legacy-peer-deps necessário: react-scripts@5 não suporta TypeScript 5.x
+        run: npm install --legacy-peer-deps
+
+      - name: 🔒 npm audit (vulnerabilidades JS)
+        working-directory: ./frontend
+        run: |
+          npm audit --json > ../.quality-reports/npm-audit.json || true
+          echo "npm audit finalizado"
+
+      - name: 🔍 ESLint (linting JS/JSX)
+        working-directory: ./frontend
+        run: |
+          npx eslint src \
+            --format json \
+            --output-file ../.quality-reports/eslint.json \
+            --ext .js,.jsx || true
+          echo "ESLint finalizado"
+
+      - name: 🔁 jscpd (duplicação de código)
+        working-directory: ./frontend
+        run: |
+          npx jscpd src \
+            --reporters json \
+            --output ../.quality-reports \
+            --ignore "**/node_modules/**,**/build/**" \
+            --min-lines 5 \
+            --min-tokens 50 || true
+          echo "jscpd finalizado"
+
+      - name: 🧪 Jest (testes + coverage)
+        working-directory: ./frontend
+        run: |
+          CI=true npm test -- \
+            --coverage \
+            --coverageReporters=json-summary \
+            --coverageDirectory=../.quality-reports/jest-coverage \
+            --passWithNoTests || true
+          echo "Jest finalizado"
+
+      # ══════════════════════════════════════════════════════════
+      # DEBUG — Confirma que os relatórios existem
+      # ══════════════════════════════════════════════════════════
+      - name: 🔎 Listar relatórios gerados
+        run: |
+          echo "=== Conteúdo de .quality-reports/ ==="
+          ls -lah .quality-reports/
+          echo ""
+          echo "=== Primeiras linhas do flake8.txt ==="
+          head -5 .quality-reports/flake8.txt 2>/dev/null || echo "(arquivo não encontrado)"
+
+      # ══════════════════════════════════════════════════════════
+      # CATRACA — Compara com o baseline
+      # ══════════════════════════════════════════════════════════
+      - name: 🚦 Executar Quality Gate
+        id: gate
+        run: node scripts/quality-gate.js
+
+      - name: 💬 Comentar resultado no PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const reportPath = '.quality-reports/gate-summary.md';
+
+            if (!fs.existsSync(reportPath)) {
+              console.log('Relatório não encontrado, pulando comentário.');
+              return;
+            }
+
+            const body = fs.readFileSync(reportPath, 'utf8');
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const existing = comments.find(c =>
+              c.user.type === 'Bot' && c.body.includes('🚦 Quality Gate — Lumem')
+            );
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
+      - name: 📋 Publicar no Step Summary
+        if: always()
+        run: |
+          if [ -f .quality-reports/gate-summary.md ]; then
+            cat .quality-reports/gate-summary.md >> $GITHUB_STEP_SUMMARY
+          fi
